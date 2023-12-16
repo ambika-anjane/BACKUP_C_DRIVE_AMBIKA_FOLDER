@@ -1,0 +1,63 @@
+create database raw
+select * from RAW.JAFFLE_SHOP_JAFFLE.CREATE_SCHEMA
+drop database raw
+drop schema  jaffle_shop_jaffle_shop
+create warehouse compute_wh
+
+CREATE or replace TABLE Employee  
+(  
+EmployeeID int,  
+DEPTNO    CHAR(3),
+FirstName varchar(255),  
+LastName varchar(255),  
+Email varchar(255),  
+AddressLine varchar(255),  
+City varchar(255),
+salary int,
+payment varchar(200)
+);  
+desc table employee
+insert into employee
+  (EmployeeID, DEPTNO,FirstName,LastName,Email,AddressLine,City,salary,payment)
+  values (101, 01,'Ambika','Shyam','ambikashyam@gmail.com', '2130 Boars Nest', 
+          'Georgia',2500,'UPI');
+insert into employee
+  (EmployeeID, DEPTNO,FirstName,LastName,Email,AddressLine,City,salary,payment)
+  values (102, 02,'Janaki','sethu','janakisethu@gmail.com', '2130 Board Nest', 
+          'Nokia',3500,'NET TRANSFER');
+drop table employee
+select * from employee
+
+CREATE OR REPLACE TABLE DEPARTMENT
+      (DEPTNO    CHAR(3)           NOT NULL,
+       DEPTNAME  VARCHAR(36)       NOT NULL,
+       MGRNO     CHAR(6)                   ,
+       ADMRDEPT  CHAR(6)           NOT NULL, 
+       LOCATION  CHAR(16),
+       PRIMARY KEY (DEPTNO))
+
+insert into department
+  (DEPTNO,DEPTNAME,MGRNO,ADMRDEPT,LOCATION)
+  values (01,'IT',8001,'Ramu',
+          'Georgia');
+insert into department
+  (DEPTNO,DEPTNAME,MGRNO,ADMRDEPT,LOCATION)
+  values (02,'IT',8002,'Raja',
+          'George');
+
+desc table employee
+select e.employeeid, e.deptno,d.deptno,d.deptname from employee e inner join department d
+on e.deptno = d.deptno
+
+select sum(e.salary),d.deptname from employee e inner join department d
+on e.deptno = d.deptno group by e.salary,d.deptname order by e.salary desc
+
+select count(*),SUM(salary),payment from employee  where payment in ('UPI','NET TRANSFER') group by salary,payment order by salary desc
+
+with emp as (
+select employeeid,deptno,
+case 
+  WHEN payment in ('UPI') then salary
+from employee
+)
+select * from emp

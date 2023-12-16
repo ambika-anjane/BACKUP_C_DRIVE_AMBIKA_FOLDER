@@ -1,0 +1,7 @@
+qn : 12 (answer to be checked)
+qn : 27 (anserr to be checked)
+qn : 34 (answer to be cheked)
+
+
+qn : 8 (answer )
+Snowflake storage capacity can be pre-purchased for a lower price? )qn :9,10,16,28,33,43,59,63)
