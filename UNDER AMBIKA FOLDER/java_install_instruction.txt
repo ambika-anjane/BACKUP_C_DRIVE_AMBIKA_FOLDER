@@ -1,0 +1,9 @@
+1. How to install java in ur system
+2. download jdk and install
+3. add jdk filepath (to user_variable in system varaible)
+in new (java_home) inclusive of bin 
+4. set ok
+5. go to command prompt
+6. type java_home and dd \bin 
+7. java version command
+8. java version wil be displayed

@@ -1,0 +1,228 @@
+1. half
+2. one
+3. one
+4. half
+5. half
+6.one
+7. one
+8. zero
+9. one
+10. one
+11. one
+12. zero
+13. one
+14. one
+15. one
+16. one
+17. zero
+18. one
+19. zero (results cache)
+20. zero
+21. half
+22. one
+23. one
+24. zero
+25. one
+26. half
+27. half
+28. half
+29. half
+30.one
+31. one
+32. one
+33. half
+34. one
+35. one
+36. 
+37. one
+38. one
+39. half
+40. one
+41. one
+42. one
+43.one
+44. one
+45. zero
+46. one
+47. one
+48. one
+49. zero
+50.one
+51. one
+52. one
+53. zero
+54.one
+55.one
+56. one
+57.one
+58. one
+59.one
+60.one
+
+45 / 60
+
+part 2 
+1. half
+2. half
+3. one
+4. one
+5. half
+6. one
+7.one
+8.one
+9.one
+10.one
+11.one
+12.zero
+13.one
+14.one
+15.zero
+16.one
+17.one
+18.zero
+19.zero
+20.zero
+21.zero
+22.one
+23.one
+24.half
+25. half
+26. one
+27.one
+28.one
+29.one
+30.one
+31. half
+32. one
+33.zero
+34.one
+35. zero
+36. one
+37.zero
+38.zero
+39.one
+40.half
+41. one
+42.one
+43.one
+44.one
+45.one
+46.one
+47.one
+48.one
+49.half
+50.one
+51.one
+52.zero
+53.zero
+54.one
+55.zero
+56.half
+57.one
+58.zero
+59.one
+60.half
+
+(42/60)
+
+test3
+1. one
+2.one
+3.one
+4 zero
+5.zero
+6.zero
+7.one
+8.half
+9.one
+10.zero
+11.half
+12.one
+13.one
+14.one
+15.one
+16.half
+17.one
+18.one
+19.one
+20.zero
+21.zero
+22.zero
+23.half
+24.half
+25.one
+26.one
+27.one
+28.one
+29.one
+30.one
+31.one
+32.one
+33.one
+34.one
+35.one
+36.one
+37.one
+38.one
+39.one
+40.one
+41.one
+42.zero
+43.one
+44.one
+45.one
+46.one
+47.one
+48.zero
+49.half
+50.half
+51.one'
+52.one
+53.zero
+54.one
+55.one
+56.one
+57.one
+58.zero
+59.one
+60.one
+
+46/60
+
+part 4
+1. one
+2. zero
+3.one
+4.zero
+5.zero
+6.
+7.zero
+8.one
+9.zero
+10.one
+11.zero
+12.zero
+13.one
+14.one
+15.one
+16.one
+17.one
+18.one
+19.one
+20.half
+21.zero
+22.one
+23.one
+24.zero
+25.zero
+26.half
+27.zero
+28.one
+29.one
+30.zero
+31.zero
+32.half
+33.
+34.one
+35.one
+C:\Program Files\Zulu\zulu-18\
