@@ -1,0 +1,14 @@
+-- under test
+-- our_firt_databse_datatest.sql
+
+select
+order_id
+from {{ref('stg_order')}}
+group by 1
+having not (order_id >0)
+
+-- our_first_databse_status
+select
+ord_status
+from {{ref('stg_order')}}
+where ord_status not in ( 'Placed','Shipped','Completed','return_pending','returned')

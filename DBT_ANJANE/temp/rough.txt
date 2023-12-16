@@ -1,0 +1,695 @@
+ def post(self, request, *args, **kwargs):
+        serializer = RunTaskSerializer(data=request.data)
+        if serializer.is_valid():
+            task_id = serializer.validated_data["task_id"]
+            task = PeriodicTaskModel.objects.get(id=task_id)
+            args = eval(task.args) if task.args else []
+            kwargs = eval(task.kwargs) if task.kwargs else {}
+            python_runner_task.delay(*args, **kwargs)
+            return Response(
+                {"status": "Task has been initiated"}, status=status.HTTP_200_OK
+            )
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+"postgres://dbtuser:2rWiGcqhn26ing89EpeQTyeK@postgres:5432/analytics"
+
+export DATABASE_URL = "postgres://dbtuser:"2rWiGcqhn26ing89EpeQTyeK"@postgres:5432/analytics"
+export DATABASE_URL=postgres://postgres:2rWiGcqhn26ing89EpeQTyeK@127.0.0.1:5432/analytics
+
+-- changes:
+-- docker file:
+
+ARG PYTHON_VERSION=3.11-slim-bullseye
+
+# define an alias for the specfic python version used in this file.
+FROM python:${PYTHON_VERSION} as python
+
+# Python build stage
+FROM python as python-build-stage
+
+ARG BUILD_ENVIRONMENT=local
+
+# System setup
+RUN apt-get update && apt-get install --no-install-recommends -y \
+  # dependencies for building Python packages
+  build-essential \
+  # psycopg2 dependencies
+  libpq-dev
+
+# Requirements are installed here to ensure they will be cached.
+COPY ./requirements .
+
+# Create Python Dependency and Sub-Dependency Wheels.
+RUN pip wheel --wheel-dir /usr/src/app/wheels  \
+  -r ${BUILD_ENVIRONMENT}.txt
+
+
+# Python 'run' stage
+FROM python as python-run-stage
+
+ARG BUILD_ENVIRONMENT=local
+ARG APP_HOME=/app
+
+ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV BUILD_ENV ${BUILD_ENVIRONMENT}
+
+WORKDIR ${APP_HOME}
+
+# Install required system dependencies
+RUN apt-get update && apt-get install --no-install-recommends -y \
+  # psycopg2 dependencies
+  libpq-dev \
+  # Translations dependencies
+  gettext \
+  # dbt dependencies
+  git \
+  ssh-client \
+  software-properties-common \
+  make \
+  ca-certificates \
+  # cleaning up unused files
+  && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
+  && rm -rf /var/lib/apt/lists/*
+
+# All absolute dir copies ignore workdir instruction. All relative dir copies are wrt to the workdir instruction
+# copy python dependency wheels from python-build-stage
+COPY --from=python-build-stage /usr/src/app/wheels  /wheels/
+
+# use wheels to install python dependencies
+RUN pip install --no-cache-dir --no-index --find-links=/wheels/ /wheels/* \
+	&& rm -rf /wheels/
+
+RUN python -m pip install --upgrade pip setuptools wheel --no-cache-dir
+RUN python -m  pip install dbt-core dbt-postgres dbt-redshift dbt-snowflake dbt-bigquery dbt-duckdb
+
+
+COPY ./compose/local/django/entrypoint /entrypoint
+RUN sed -i 's/\r$//g' /entrypoint
+RUN chmod +x /entrypoint
+
+COPY ./compose/local/django/start /start
+RUN sed -i 's/\r$//g' /start
+RUN chmod +x /start
+
+
+COPY ./compose/local/django/celery/worker/start /start-celeryworker
+RUN sed -i 's/\r$//g' /start-celeryworker
+RUN chmod +x /start-celeryworker
+
+COPY ./compose/local/django/celery/beat/start /start-celerybeat
+RUN sed -i 's/\r$//g' /start-celerybeat
+RUN chmod +x /start-celerybeat
+
+RUN mkdir -p /root/.dbt
+# copy application code to WORKDIR
+COPY . ${APP_HOME}
+
+ENTRYPOINT ["/entrypoint"]
+
+
+django/start
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+set_database_url() {
+  postgres_password=$(grep 'postgres_password' /passwords/password.txt | cut -d '=' -f 2)
+
+  # Set DATABASE_URL environment variable
+  database_url="postgres://dbtuser:$postgres_password@postgres:5432/analytics"
+  export DATABASE_URL="$database_url"
+
+}
+#  create superuser
+create_superuser() {
+  # Set predefined values for the superuser credentials
+  username=$(grep 'dbt_login' /passwords/password.txt | cut -d '=' -f 2)
+  email="dbtuser@example.com"
+  # Read password from /passwords/password.txt
+  password=$(grep 'dbt_password' /passwords/password.txt | cut -d '=' -f 2)
+
+  # Check if the superuser already exists
+  if python manage.py shell -c "from django.contrib.auth import get_user_model; User = get_user_model(); exists = User.objects.filter(username='$username').exists(); exit(0 if exists else 1)"; then
+    # Superuser exists, skip creation
+    echo "Superuser '$username' already exists. Skipping creation."
+  else
+    # Run Django management command to create the superuser
+    python manage.py createsuperuser --noinput --username "$username" --email "$email"
+    # Set the password for the superuser
+    echo "from django.contrib.auth import get_user_model; User = get_user_model(); user = User.objects.get(username='$username'); user.set_password('$password'); user.save()" | python manage.py shell
+    # create token for superuser
+    python manage.py drf_create_token "$username"
+
+    # Display the created superuser information
+    echo "Superuser created:"
+    echo "Username: $username"
+    echo "Email: $email"
+  fi
+}
+
+set_database_url
+
+python manage.py makemigrations
+# Run migrations
+python manage.py migrate
+
+create_superuser
+#
+# Execute DDL statements for the POSTGREST schema
+python manage.py shell <<EOF
+from django.db import connection
+from django.db.utils import ProgrammingError
+# DDL statements
+ddl_statements = '''
+  CREATE ROLE dbt_pgrst NOLOGIN;
+  CREATE ROLE web_anon NOLOGIN;
+  REVOKE ALL ON SCHEMA public FROM dbt_pgrst, web_anon;
+  CREATE VIEW args AS SELECT * FROM analytics_args;
+  CREATE VIEW dbtlogs AS SELECT * FROM analytics_dbtlogs;
+  CREATE VIEW gitrepo AS SELECT * FROM analytics_gitrepo;
+  CREATE VIEW profileyaml AS SELECT * FROM analytics_profileyaml;
+  CREATE VIEW pythonlogs AS SELECT * FROM analytics_pythonlogs;
+  CREATE VIEW sshkey AS SELECT * FROM analytics_sshkey;
+  CREATE VIEW subprocesslog AS SELECT * FROM analytics_subprocesslog;
+  REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM web_anon;
+  REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public FROM web_anon;
+  REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM web_anon;
+  GRANT ALL ON TABLE args, dbtlogs, gitrepo, profileyaml, sshkey, subprocesslog TO dbt_pgrst;
+'''
+
+# Split the statements and execute non-empty ones
+ddl_statements = ddl_statements.strip().split(';')
+with connection.cursor() as cursor:
+    for statement in ddl_statements:
+        statement = statement.strip()
+        if statement:
+            try:
+                cursor.execute(statement)
+            except ProgrammingError as e:
+                # Check if the error is caused by existing roles
+                error_message = str(e)
+                if 'role' or 'relation' in error_message and 'already exists' in error_message:
+                    # Skip the statement if role already exists
+                    print(f"Skipping statement: {statement} (Role already exists)")
+                else:
+                    # Raise the exception for other errors
+                    raise e
+
+EOF
+python manage.py collectstatic --noinput
+# Start the Django server
+python manage.py runserver_plus 0.0.0.0:8000
+
+
+-- admin.py
+from django import forms
+from django.contrib import admin, messages
+from django.forms import ModelForm, PasswordInput
+from celery import current_app
+from django.contrib.auth.models import Group
+
+from django.contrib.sites.models import Site
+from django.forms.widgets import Select
+from celery.utils import cached_property
+from django_celery_beat.admin import (
+    PeriodicTaskAdmin as BasePeriodicTaskAdmin,
+    PeriodicTaskForm as BasePeriodicTaskForm,
+)
+from dbt.users.models import User
+
+from dbt.analytics.models import (
+    DBTLogs,
+    PythonLogs,
+    GitRepo,
+    ProfileYAML,
+    SubProcessLog,
+    PeriodicTask,
+)
+from dbt.utils.common import clone_git_repo
+
+
+class GitRepoForm(ModelForm):
+    url = forms.CharField(widget=PasswordInput())
+
+    class Meta:
+        model = GitRepo
+        fields = "__all__"
+
+
+@admin.register(DBTLogs)
+class DBTLogsLAdmin(admin.ModelAdmin):
+    list_display = [
+        "created_at",
+        "completed_at",
+        "success",
+        "repository_used_name",
+        "command",
+        "previous_command",
+        "periodic_task_name",
+        "profile_yml_used_name",
+    ]
+    readonly_fields = [
+        "repository_used_name",
+        "periodic_task_name",
+        "profile_yml_used_name",
+    ]
+
+@admin.register(PythonLogs)
+class PythonLogsLAdmin(admin.ModelAdmin):
+    list_display = [
+        "created_at",
+        "completed_at",
+        "success",
+        "repository_used_name",
+        "command",
+        "previous_command",
+        "periodic_task_name",
+        "profile_yml_used_name",
+    ]
+    readonly_fields = [
+        "repository_used_name",
+        "periodic_task_name",
+        "profile_yml_used_name",
+    ]
+
+
+
+@admin.register(ProfileYAML)
+class ProfileYAMLAdmin(admin.ModelAdmin):
+    list_display = [
+        "name",
+        "profile_yml",
+    ]
+
+    def has_add_permission(self, request):
+        count = ProfileYAML.objects.all().count()
+        if count < 2:
+            return True
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(GitRepo)
+class GitRepoAdmin(admin.ModelAdmin):
+    # form = GitRepoForm
+    list_display = [
+        "id",
+        "name",
+        "public_key",
+    ]
+
+    def save_model(self, request, obj, form, change):
+        obj.save()
+        result, msg = clone_git_repo(obj)
+        if result:
+            ...
+        else:
+            obj.delete()
+            messages.error(request, f"Something is wrong while git cloning {msg}")
+
+
+@admin.register(SubProcessLog)
+class SubprocessAdmin(admin.ModelAdmin):
+    list_display = [
+        "created_at",
+        "details",
+    ]
+
+
+class ProfileSelectWidget(Select):
+    """Widget that lets you choose between task names."""
+
+    celery_app = current_app
+    _choices = None
+
+    def profiles_as_choices(self):
+        _ = self._modules  # noqa
+        tasks = list(
+            sorted(
+                name for name in self.celery_app.tasks if not name.startswith("celery.")
+            )
+        )
+        return (("", ""),) + tuple(zip(tasks, tasks))
+
+    @property
+    def choices(self):
+        if self._choices is None:
+            self._choices = self.profiles_as_choices()
+        return self._choices
+
+    @choices.setter
+    def choices(self, _):
+        pass
+
+    @cached_property
+    def _modules(self):
+        self.celery_app.loader.import_default_modules()
+
+
+class ProfileChoiceField(forms.ChoiceField):
+    widget = ProfileSelectWidget
+
+    def valid_value(self, value):
+        return True
+
+
+class PeriodicTaskForm(BasePeriodicTaskForm):
+    profile_yml = ProfileChoiceField(
+        label="Profile YAML",
+        required=False,
+    )
+
+    class Meta:
+        model = PeriodicTask
+        exclude = ()
+
+
+class PeriodicTaskAdmin(BasePeriodicTaskAdmin):
+    # form = PeriodicTaskForm
+    model = PeriodicTask
+    list_display = ('__str__', 'id',  'enabled', 'interval', 'start_time',
+                    'last_run_at', 'one_off')
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": (
+                    "name",
+                    "git_repo",
+                    "profile_yml",
+                    "regtask",
+                    "task",
+                    "enabled",
+                    "description",
+                ),
+                "classes": ("extrapretty", "wide"),
+            },
+        ),
+        (
+            "Schedule",
+            {
+                "fields": (
+                    "interval",
+                    "crontab",
+                    "solar",
+                    "clocked",
+                    "start_time",
+                    "last_run_at",
+                    "one_off",
+                ),
+                "classes": ("extrapretty", "wide"),
+            },
+        ),
+        (
+            "Arguments",
+            {
+                "fields": ("args",),
+                "classes": ("extrapretty", "wide", "collapse", "in"),
+            },
+        ),
+        (
+            "Execution Options",
+            {
+                "fields": (
+                    "expires",
+                    "expire_seconds",
+                    "queue",
+                    "exchange",
+                    "routing_key",
+                    "priority",
+                    "headers",
+                ),
+                "classes": ("extrapretty", "wide", "collapse", "in"),
+            },
+        ),
+    )
+
+
+#
+
+if PeriodicTask in admin.site._registry:
+    admin.site.unregister(PeriodicTask)
+admin.site.register(PeriodicTask, PeriodicTaskAdmin)
+
+
+# admin.site.unregister(Group)
+# admin.site.register(Site)
+
+admin.site.register(User)
+
+
+-- views/py
+
+from django_celery_beat.models import IntervalSchedule, CrontabSchedule
+from rest_framework.viewsets import ModelViewSet
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from dbt.utils.common import load_dbt_current_version
+from config.celery_app import dbt_runner_task,python_runner_task
+from dbt.analytics.models import (
+    GitRepo,
+    ProfileYAML,
+    SSHKey,
+    PythonLogs,
+    PeriodicTask as PeriodicTaskModel,
+)
+from dbt.analytics.serializers import (
+    GitRepoSerializer,
+    IntervalScheduleSerializer,
+    PeriodicTaskSerializer,
+    ProfileYAMLSerializer,
+    SSHKeySerializer,
+    WritePeriodicTaskSerializer,
+    CrontabScheduleSerializer,
+    DBTCurrentVersionSerializer,
+    RunTaskSerializer,
+    PythonSerializer
+)
+
+
+class GitRepoAPIViewset(ModelViewSet):
+    http_method_names = ["get", "post", "delete", "head", "options", "trace"]
+    queryset = GitRepo.objects.all()
+    serializer_class = GitRepoSerializer
+
+
+class PostYMALDetailsView(ModelViewSet):
+    serializer_class = ProfileYAMLSerializer
+    queryset = ProfileYAML.objects.all()
+
+class PythonLogsDetailsView(ModelViewSet):
+    serializer_class = PythonSerializer
+    queryset = PythonLogs.objects.all()
+
+
+class SSHKeyViewSets(ModelViewSet):
+    http_method_names = ["get", "post", "delete", "head", "options", "trace"]
+    queryset = SSHKey.objects.all()
+    serializer_class = SSHKeySerializer
+
+
+class InterValViewSet(ModelViewSet):
+    queryset = IntervalSchedule.objects.all()
+    serializer_class = IntervalScheduleSerializer
+
+
+class CrontabScheduleViewSet(ModelViewSet):
+    queryset = CrontabSchedule.objects.all()
+    serializer_class = CrontabScheduleSerializer
+
+
+class AddPeriodicTask(ModelViewSet):
+    queryset = PeriodicTaskModel.objects.all()
+    serializer_class = WritePeriodicTaskSerializer
+
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            return self.serializer_class
+        else:
+            return PeriodicTaskSerializer
+
+
+class DBTCurrentVersionView(APIView):
+    def get(self, request,):
+        modules_version_data = load_dbt_current_version()
+        serializer = DBTCurrentVersionSerializer(data=modules_version_data, many=True)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data)
+
+
+class RunDBTTask(APIView):
+    serializer_class = RunTaskSerializer
+
+class RunPythonTask(APIView):
+    serializer_class = RunTaskSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = RunTaskSerializer(data=request.data)
+        if serializer.is_valid():
+            task_id = serializer.validated_data["task_id"]
+            task = PeriodicTaskModel.objects.get(id=task_id)
+            args = eval(task.args) if task.args else []
+            kwargs = eval(task.kwargs) if task.kwargs else {}
+            dbt_runner_task.delay(*args, **kwargs)
+            python_runner_task.delay(*args, **kwargs)
+            return Response(
+                {"status": "Task has been initiated"}, status=status.HTTP_200_OK
+            )
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+   -- python_command.py
+
+
+
+import json
+import os
+import subprocess
+from datetime import datetime
+from django.conf import settings
+from django.core.management.base import BaseCommand
+import paramiko
+from dbt.analytics.models import (
+    Args,
+    PythonLogs,
+    GitRepo,
+    SubProcessLog,
+    ProfileYAML,
+    PeriodicTask,
+)
+from dbt.utils.common import save_profile_yml
+
+
+SSH_KEY_PREFIX = "git-django_"
+
+
+class Command(BaseCommand):
+    help = "PYTHON jobs"
+
+    def add_arguments(self, parser):
+        print("add_arguments", parser)
+        parser.add_argument("--python_command", action="store", type=str)
+        parser.add_argument(
+            "--pk", action="store", type=str
+        )  # pk is git repo object id
+
+    def read_json(self, filename, pk):
+        PYTHON_LOG_TARGET = "{}-{}/target".format(
+            getattr(settings, "EXTERNAL_REPO_PREFIX"), pk
+        )
+        file_path = os.path.join(PYTHON_LOG_TARGET, filename)
+        data = {}
+        try:
+            with open(file_path, "r") as state:
+                data = json.load(state)
+        except Exception:
+            print(f"{file_path} not found")
+            data = {}
+        return data
+
+    def handle(self, *args, **options):
+        os.environ["PATH"] += os.pathsep + "/usr/bin"
+        os.environ["PATH"] += os.pathsep + "/bin"
+
+        stdout_data = ""
+        try:
+            python_command = options["python_command"]
+            pk = json.loads(options["pk"].replace("'", '"'))["task_id"]
+
+            if python_command.startswith("python"):
+                instance = PeriodicTask.objects.get(id=pk)
+                git_repo = GitRepo.objects.get(id=instance.git_repo_id)
+                profile_yml = ProfileYAML.objects.get(id=instance.profile_yml_id)
+
+                EXTERNAL_REPO_PREFIX = getattr(settings, "EXTERNAL_REPO_PREFIX")
+                THIS_PROJECT_PATH = getattr(settings, "THIS_PROJECT_PATH")
+                EXTERNAL_REPO_NAME = f"{EXTERNAL_REPO_PREFIX}-{instance.git_repo_id}"
+                EXTERNAL_REPO_PATH = os.path.join(THIS_PROJECT_PATH, EXTERNAL_REPO_NAME)
+
+                os.path.join(THIS_PROJECT_PATH, EXTERNAL_REPO_NAME)
+                pull_cmd = f"cd {EXTERNAL_REPO_PATH} && git pull origin HEAD"
+                print(f"Pull cmd: {pull_cmd}")
+
+                profile_yml_content = None
+                if instance.profile_yml:
+                    profile_yml_content = profile_yml.profile_yml
+                    save_profile_yml(profile_yml_content, ".dbt/profiles.yml")
+                else:
+                    print("No profile yml found")
+                    exit(-1)
+
+                if git_repo.url.startswith("git"):
+                    pvt_key = os.path.join(
+                        os.getenv("HOME"),
+                        ".ssh/{}{}".format(SSH_KEY_PREFIX, git_repo.ssh_key.id),
+                    )
+                    cmd = 'eval "$(/usr/bin/ssh-agent -s)" && /usr/bin/ssh-add {} && {}'.format(
+                        pvt_key, pull_cmd
+                    )
+                    p1 = subprocess.Popen(
+                        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True
+                    )
+                else:
+                    p1 = subprocess.Popen(
+                        pull_cmd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        shell=True,
+                    )
+                p1.wait()
+                SubProcessLog.objects.create(details=str(p1))
+                p1.kill()
+                del p1
+
+                executable_command = "cd {} && {}".format(
+                    EXTERNAL_REPO_PATH, python_command
+                )
+                python_result = subprocess.Popen(
+                    executable_command,
+                    cwd=EXTERNAL_REPO_PATH,
+                    shell=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                )
+                # Read the real-time output from stdout and save it to a variable
+                for line in python_result.stdout:
+                    print(line, end="")
+                    stdout_data += line.decode("utf-8")
+
+                python_result.wait()
+                os.system("cd {} && git pull origin HEAD".format(EXTERNAL_REPO_PATH))
+
+            
+
+                
+
+    
+ 
+                python_log = PythonLogs.objects.create(
+                    command=python_command,
+                    repository_used_name=instance.git_repo.name,
+                    profile_yml_used_name=profile_yml.name,
+                    periodic_task_name=instance.name,
+                    completed_at=datetime.now(),
+                    previous_command="this is first commands"
+                    if not PythonLogs.objects.all().exists()
+                    else PythonLogs.objects.last().command,
+                    python_stdout=stdout_data,
+                )
+
+
+                args = run_results.get("args", {})
+                Args.objects.create(
+                    python_log=python_log,
+                   
+                )
+
+
+
