@@ -1,0 +1,16 @@
+1.https://teams.microsoft.com/_#/conversations/19:54676f0b-a17b-41a6-92e6-d40426246b90_87537ea9-36c6-4f9a-a083-494da4cf4329@unq.gbl.spaces?ctx=chat
+
+2. https://cloud.getdbt.com/
+
+3.https://github.com/data-and-analytics/Genesis/pulls
+
+4.https://helenoftroyit.atlassian.net/plugins/servlet/ac/io.tempo.jira/tempo-app#!/reports/logged-time?columns=WORKED_COLUMN&dateDisplayType=days&from=2023-08-01&groupBy=project&groupBy=worker&groupBy=subTask&order=ASCENDING&periodKey&periodType=FIXED&showCharts=false&sortBy=TITLE_COLUMN&subPeriodType=MONTH&to=2023-08-14&viewType=TIMESHEET (TEMPO)
+
+5. https://helenoftroyit.atlassian.net/jira/software/c/projects/PG/boards/206/backlog?view=detail&selectedIssue=PG-3193&issueLimit=100&assignee=63b3306848b367d78a175cca (BACKLOGS)
+
+
+6. https://windows365.microsoft.com/ (SNOWFLAKE RDP)
+
+7. https://github.com/dbt-labs/dbt-core/issues/2737 (merge macro)
+
+
