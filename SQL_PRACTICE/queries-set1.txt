@@ -1,0 +1,97 @@
+1. create table student (name datatype, id datattype)
+
+
+https://github.com/ambika-anjane/dbt_new/import
+
+1.select * from emp where name like '%p%
+2. select * from emp_salary where is_permananent = 'yes' and salary > 5000
+3. select * from employee where email like '%gmail.com' or emaildid ends_with 'gmal.com'
+4. select empid,empname from emp e, empdept d where dept_id in ('e-104','e-105') and e.department = d.dept_id
+select * from employee where  where dept_id in ('e-104','e-105') 
+5. select depname from empdept where deptid = 'e-102'
+6. select sum(salary) as tot_salary from empsalry where ispermanenrt = 'yes' 
+7. select * from employee where empname like '%a'
+8. select count(e.department) from employees e, project p where e.empid = p.empid
+select count(empid) from empproject group by empid
+9. select * from empproject where startyear = '2010'
+10. select * from empproject where startyear = endyear
+11. select left(ename,3) from employee where left(ename,3)  = 'h'
+select * from employee where ename like '__h%'
+12.select dept from employee where empid > 103
+13. select delptname from dept where empid in (select empid from employee where empid > 103)
+14. select empname from employee where empheadid = 'Abhishek'
+select ename from emp where empheadid in (select empid from emp where ename = 'abhishej;
+15.select e.empname,e.dept_id from emp e, dept d where e.dept_id  = d.dept_id and d.dept_name = 'HR'
+select e.empname from emp e where e.empid in (select depthead from dept where deptname = 'HR")
+16. select empname from empsalary where empid in (select empheadid from  emp) and empid in (select empid from empsal where is_permanent = 'yes)
+17. select empname from emp where department in (select deptid from empdept where dept_off = 'modday')
+18. select clientname from the clienttyable where cleintid in (select cid from client where cnamr = 'india')
+19.selecr ename from employee where empid in (select empid from dept where deptname = 'Developmen')
+20.select firstname as worker_name from worker
+21. select upper(first_name) from  worker
+22. select distict department from worker
+23. select left(workeer_name,3) as first_three from worker
+select substring(worker_name,1,3) from worker
+24. select 
+
+
+
+
+
+  raise TypeError("The `actions` argument must be provided when "
+TypeError: The `actions` argument must be provided when calling `.as_view()` on a ViewSet. For example `.as_view({'get': 'list'})`
+
+href="{% url 'food:gitlist' %}" 
+
+ {% csrf_token %}
+  
+    {{ form|bootstrap }}
+
+    <button type="submit" name="" id="" class="btn btn-primary btn-lg btn-block my-4">Save </button>
+
+
+
+def add_sub_process(request):
+    form= SubProcessForm(request.POST or None)
+    #validation
+    if form.is_valid():
+        form.save()
+        return redirect('food:subprocessindex')
+
+    template= loader.get_template('food/subprocess.html')
+    return HttpResponse(template.render({'form':form}, request))
+
+ # sub process 
+    path('subprocessItem/', views.add_sub_process, name='subprocessItem'),
+
+
+ formset = TaskForm(request.POST)
+    profileform = ProfileForm(request.POST)
+    form= ItemForm(request.POST or None)
+    #validation
+    if all([form.is_valid(), formset.is_valid(), profileform.is_valid()]):
+
+        form.save()
+        profileform.save()
+        formset.save()
+        return redirect('food:periodicviewItem')
+
+    template= loader.get_template('food/addItem.html')
+    return HttpResponse(template.render({'form':form}, request))
+  
+
+
+ <form action="{% url 'food:deleteItem' item.id %}" method="POST">
+        {% csrf_token %}
+        <a name="" id="" class="btn btn-primary danger"  role="button">
+            Delete  Periodic Tasks</a>
+   
+
+
+
+
+
+
+
+	
+

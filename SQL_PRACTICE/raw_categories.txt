@@ -1,0 +1,79 @@
+raw_categories
+SELECT categoryID
+FROM {{ source('northwind', 'Categories') }}
+
+schema.yml
+version: 2
+
+models:
+  - name: stg_customers
+    description: "A starter dbt model"
+    columns:
+        - name: CategoryID
+          description: Primary key of the table
+          tests:
+            - unique
+            - not_null
+
+
+
+sources.yml
+
+
+
+version : 2
+sources: 
+  - name: northwind
+    schema: main
+    tables:
+      - name: Categories
+
+
+stg_categories
+
+select categoryID from 
+ {{ref('raw_categories')}}
+
+10:57:49  Running with dbt=1.6.3
+10:57:49  dbt version: 1.6.3
+10:57:49  python version: 3.10.4
+10:57:49  python path: C:\ambika\python\python.exe
+10:57:49  os info: Windows-10-10.0.22621-SP0
+10:57:49  Encountered an error:
+cannot import name 'RuntimeException' from 'dbt.exceptions' (C:\ambika\python\lib\site-packages\dbt\exceptions.py)
+10:57:49  Traceback (most recent call last):
+  File "C:\ambika\python\lib\site-packages\dbt\cli\requires.py", line 87, in wrapper
+    result, success = func(*args, **kwargs)
+  File "C:\ambika\python\lib\site-packages\dbt\cli\requires.py", line 72, in wrapper
+    return func(*args, **kwargs)
+  File "C:\ambika\python\lib\site-packages\dbt\cli\main.py", line 427, in debug
+    results = task.run()
+  File "C:\ambika\python\lib\site-packages\dbt\task\debug.py", line 122, in run
+    load_profile_status: SubtaskStatus = self._load_profile()
+  File "C:\ambika\python\lib\site-packages\dbt\task\debug.py", line 210, in _load_profile
+    profile: Profile = Profile.render(
+  File "C:\ambika\python\lib\site-packages\dbt\config\profile.py", line 436, in render
+    return cls.from_raw_profiles(
+  File "C:\ambika\python\lib\site-packages\dbt\config\profile.py", line 401, in from_raw_profiles
+    return cls.from_raw_profile_info(
+  File "C:\ambika\python\lib\site-packages\dbt\config\profile.py", line 355, in from_raw_profile_info
+    credentials: Credentials = cls._credentials_from_profile(
+  File "C:\ambika\python\lib\site-packages\dbt\config\profile.py", line 165, in _credentials_from_profile       
+    cls = load_plugin(typename)
+  File "C:\ambika\python\lib\site-packages\dbt\adapters\factory.py", line 212, in load_plugin
+    return FACTORY.load_plugin(name)
+  File "C:\ambika\python\lib\site-packages\dbt\adapters\factory.py", line 58, in load_plugin
+    mod: Any = import_module("." + name, "dbt.adapters")
+  File "C:\ambika\python\lib\importlib\__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "C:\ambika\python\lib\site-packages\dbt\adapters\postgres\__init__.py", line 4, in <module>
+    from dbt.adapters.postgres.relation import PostgresColumn  # noqa
+  File "C:\ambika\python\lib\site-packages\dbt\adapters\postgres\relation.py", line 4, in <module>
+    from dbt.exceptions import RuntimeException
+ImportError: cannot import name 'RuntimeException' from 'dbt.exceptions' (C:\ambika\python\lib\site-packages\dbt\exceptions.py
