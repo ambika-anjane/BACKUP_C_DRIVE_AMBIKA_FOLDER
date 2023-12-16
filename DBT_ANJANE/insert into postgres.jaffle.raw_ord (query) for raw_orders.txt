@@ -1,0 +1,1 @@
+insert into postgres.jaffle.raw_orders values(27,110,'2023-11-30','completed','2023-11-30 14:49:31.996 -0800')
