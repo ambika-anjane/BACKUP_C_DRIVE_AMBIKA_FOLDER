@@ -1,0 +1,28 @@
+
+-- tested id's in mp and sales join 
+
+--  and mp.item_id = '1344120' and mp.location_id = '524158' and  year(s.sales_date) = '2023'
+-- and mp.item_id = '132039' and mp.location_id = '511889' and  year(s.sales_date) = '2023'
+-- and mp.item_id = '638081' and mp.location_id = '517594' and  year(s.sales_date) = '2022'
+ 
+-- 1344120~524158~20230701
+-- 737232~511587~20230201
+-- 132039~511889~20231101
+--  1093186~513338~20230201
+ --and sales_data.sales_date =  '2023-11-01' and sales_data.item_id = '132039' and sales_data.location_id = '511889'
+ -- 1093186~513338~20230201
+ -- 188141~263106~2023-10-01
+ -- 3464~518077~20230401
+ -- 36622~511643~20230901
+-- 638081~517594~20220901
+-- 15602~510708~20220901
+
+
+stg_sales
+
+
+-- 486643~511314~20230701
+-- and mp.item_id = '1344120' and mp.location_id = '524158' and  year(s.sales_date) = '2023'
+-- and mp.item_id = '132039' and mp.location_id = '511889' and  year(s.sales_date) = '2023'
+ --  where    sales_data.sales_date =  '2023-01-01' and sales_data.item_id = '486643' and customer_group_account.location_id = '511314'
+   --  where     sales_data.item_id = '1344120' and  sales_data.location_id ='524158'  and  year(sales_date) = '2023'
