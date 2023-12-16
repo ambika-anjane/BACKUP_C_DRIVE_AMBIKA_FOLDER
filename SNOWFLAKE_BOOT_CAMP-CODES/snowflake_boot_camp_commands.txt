@@ -1,0 +1,214 @@
+SF_TUTS.PUBLIC.ONSTAGESF_FIRST.INFORMATION_SCHEMA.DATABASESSF_FIRST.INFORMATION_SCHEMA.DATABASESSF_FIRSTSF_FIRST.RAWcreate database sf_first
+SF_FIRST.INFORMATION_SCHEMA.DATABASESSF_FIRST
+select LAST_QUERY_ID(01b0541a-3200-eef3-0000-0007029630c1)
+create schema jaffle
+select current_timestamp()
+
+CREATE TABLE employee (
+    empid INTEGER NOT NULL,
+    empname varchar NOT NULL,
+    CONSTRAINT pkey_1 PRIMARY KEY (empid, empname) NOT ENFORCED
+    );
+
+    CREATE OR REPLACE TABLE EMPLOYEE (
+    empid NUMBER(38,0) NOT NULL,
+    empname varchar NOT NULL,
+    CONSTRAINT pkey_1 PRIMARY KEY (empid, empname) NOT ENFORCED
+    );
+
+    
+    CREATE OR REPLACE TABLE EMPLOYEE (
+    empid NUMBER(38,0) NOT NULL,
+    empname varchar NOT NULL,
+    CONSTRAINT pkey_1 PRIMARY KEY (empid, empname) ENFORCED
+    );
+
+    CREATE OR REPLACE TABLE EMP (
+    empid NUMBER(38,0) NOT NULL,
+    empname varchar NOT NULL,
+    CONSTRAINT pkey_1 PRIMARY KEY (empid, empname) ENFORCED
+    );
+
+    INSERT INTO emp (empid, empname)
+    VALUES (1, 'Fourier');
+    INSERT INTO emp (empid, empname)
+    VALUES (2, 'Riches');
+    desc table emp
+
+    select * from employee
+    delete from employee where empid = 4
+
+     INSERT INTO emp (empid, empname)
+    VALUES (3, 'Faizaan');
+    INSERT INTO emp (empid, empname)
+    VALUES (4, 'ira');
+
+    select * from emp
+    update emp set emp.empname = employee.empname
+    from employee
+    where emp.empid  = employee.empid
+    
+MERGE INTO emp USING (select empid,empname from employee group by empid,empname) AS b ON emp.empid = b.empid and emp.empname = b.empname
+  WHEN MATCHED THEN UPDATE SET emp.empid = b.empid and emp.empname = b.empname
+  WHEN NOT MATCHED THEN INSERT (emp.empid,emp.empname) VALUES (b.empid,b.empname);
+
+    show primary keys;
+
+    -- VIEWS
+    CREATE VIEW myview COMMENT='Test view' AS SELECT EMPID,EMPNAME FROM EMP;
+    select * from employee_hierarchy
+    CREATE VIEW employee_hierarchy (EMPID,EMPNAME) AS (
+   WITH RECURSIVE employee_hierarchy_cte (EMPID,EMPNAME) AS (
+      -- Start at the top of the hierarchy ...
+      SELECT EMPID,EMPNAME
+        FROM emp
+        WHERE EMPID = 4
+      UNION ALL
+      -- ... and work our way down one level at a time.
+      SELECT emp.EMPID, 
+             emp.EMPNAME
+        FROM emp INNER JOIN employee_hierarchy_cte
+       WHERE employee_hierarchy_cte.empid = emp.empid
+   )
+   SELECT * 
+      FROM employee_hierarchy_cte
+);
+
+SHOW VIEWS;
+
+-- sequence
+CREATE OR REPLACE SEQUENCE seq_01 START = 1 INCREMENT = 1;
+CREATE OR REPLACE TABLE sequence_test_table (i INTEGER);
+INSERT INTO sequence_test_table (i) VALUES (seq_01.nextval);
+ALTER SEQUENCE seq_01 RENAME TO myseq;
+DROP SEQUENCE IF EXISTS myseq
+DESC SEQUENCE myseq
+-- procedure
+
+CREATE OR REPLACE PROCEDURE return_greater(number_1 INTEGER, number_2 INTEGER)
+RETURNS INTEGER NOT NULL
+LANGUAGE SQL
+AS
+BEGIN
+  IF (number_1 > number_2) THEN
+    RETURN number_1;
+  ELSE
+    RETURN number_2;
+  END IF;
+END;
+
+CALL return_greater(2, 3);
+
+ALTER PROCEDURE IF EXISTS return_greater(FLOAT) RENAME TO return_greater_than;
+DROP PROCEDURE RETURN_GREATER
+SHOW PROCEDURES
+
+
+CREATE OR REPLACE STREAM EMP_STREAM ON TABLE EMP;
+SELECT * FROM EMP_STREAM ORDER BY EMPID
+SELECT * FROM EMP
+
+
+-- stream with another example
+-- source table
+create or replace table t(id int, name string);
+-- Create a standard stream on the source table.
+create or replace  stream delta_s on table t;
+-- Create an append-only stream on the source table.
+create or replace  stream append_only_s on table t append_only=true;
+-- Insert 3 rows into the source table.
+insert into t values (0, 'charlie brown');
+insert into t values (1, 'lucy');
+insert into t values (2, 'linus');
+
+SELECT * FROM T
+
+-- Delete 1 of the 3 rows.
+delete from t where id = '0';
+-- Update a row in the source table.
+
+select * from delta_s order by id;
+
+-- The append-only stream does not remove the deleted row.
+select * from append_only_s order by id;
+
+update t set  name = 'sally' where id = 2 -- Update a row in the source table.
+
+select * from delta_s order by id;
+
+-- The append-only stream does not remove the deleted row.
+select * from append_only_s order by id;
+
+-- Create a table to store the change data capture records in each of the streams.
+create or replace  table t2(id int, name string, stream_type string default NULL);
+SELECT * FROM T2
+SELECT * FROM TEMP_T2
+
+-- Insert the records from the streams into the new table, advancing the offset of each stream.
+insert into t2(id,name,stream_type) select id, name, 'delta stream' from delta_s;
+insert into t2(id,name,stream_type) select id, name, 'append_only stream' from append_only_s;
+
+create or replace stream temp_t2 on table t2
+
+
+
+
+-- Create a staging table that stores raw JSON data
+
+
+  PUT 'file:///Downloads/sales.json' @mystage AUTO_COMPRESS=TRUE;
+  PUT 'file://C:\temp\data\sales.json' @mystage AUTO_COMPRESS=TRUE;
+
+drop stage SF_TUTS.PUBLIC.ONSTAGE
+DROP DATABASE SF_TUTS
+select 
+  CREATE OR REPLACE FILE FORMAT json_format
+  TYPE = 'JSON'
+  STRIP_OUTER_ARRAY = TRUE;
+
+
+select * from SF_SAMPLE.PUBLIC.DATA_PROD1
+select * from SF_SAMPLE.PUBLIC.DATA_STAGING
+
+  -- Create a stream on the staging table
+CREATE OR REPLACE STREAM data_check ON TABLE data_staging;
+
+-- Create 2 production tables to store transformed
+-- JSON data in relational columns
+CREATE OR REPLACE TABLE data_prod1 (
+    RAW VARIANT,
+    ts TIMESTAMP_TZ
+    );
+CREATE OR REPLACE TABLE data_prod2 (
+    id number(8),
+    color VARCHAR,
+    num NUMBER
+    );
+
+    -- Load JSON data into staging table
+-- using COPY statement, Snowpipe,
+-- or inserts
+insert into data_staging values({"id": 7077,"x1": "2018-08-14T20:57:01-07:00",
+"x2": [{  "y1": "green", "y2": "35"   }]})
+        
+select * from SF_SAMPLE.PUBLIC.DATA_CHECK
+select * from  SF_SAMPLE.PUBLIC.DATA_STAGING
+
+
+BEGIN;
+
+-- Transform and copy JSON elements into relational columns
+-- in the production tables
+INSERT INTO data_prod1 (id, ts)
+SELECT t.raw:id, to_timestamp_tz(t.raw:x1)
+FROM data_check t
+WHERE METADATA$ACTION = 'INSERT';
+
+create or replace  table t2(id int, name string, stream_type string default NULL);
+SELECT * FROM T2
+SELECT * FROM TEMP_T2
+
+-- Insert the records from the streams into the new table, advancing the offset of each stream.
+insert into t2(id,name,stream_type) select id, name, 'delta stream' from delta_s;
+
+
