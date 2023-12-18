@@ -1,0 +1,36 @@
+DELETE
+      FROM WC_DM_DAILY_SNAP_SHOT_F
+      WHERE snapshot_date = TRUNC(sysdate)
+      OR (snapshot_date   < TRUNC(sysdate - 7)
+      AND day_of_week    <> 'Monday')
+      OR snapshot_date    < sysdate - 60;
+      
+      SELECT snapshot_date,COUNT(*) FROM  DEV_EDW.BI11G_DW.WC_DM_DAILY_SNAP_SHOT_F GROUP BY snapshot_date ORDER BY snapshot_date
+      
+            select  W_UPDATE_DT from DEV_EDW.EDW_OMNI.W_SALES_FORECAST_F WHERE W_UPDATE_DT = CURRENT_DATE() - 2
+            SELECT CURRENT_DATE() FROM DUAL
+     
+     -- aggregate fuction for snap_shot : select snapshot_date, count(*) from DEV_EDW.EDW_OMNI.W_DM_DAILY_SNAP_SHOT_F  group by 1 order by 1;
+               
+ select * from DEV_EDW.EDW_OMNI.W_DM_DAILY_SNAP_SHOT_F  where SNAPSHOT_DATE = '2023-05-16'
+ --UPDATE DEV_EDW.EDW_OMNI.W_DM_DAILY_SNAP_SHOT_F SET SNAPSHOT_DATE = '2023-05-17' WHERE SNAPSHOT_DATE = '2023-05-18'
+ select snapshot_date, count(*) from DEV_EDW.EDW_OMNI.W_SALES_FORECAST_DAILY_SNAPSHOT_F  group by 1 order by 1;
+ select * from  DEV_EDW.EDW_OMNI.W_SALES_FORECAST_DAILY_SNAPSHOT_F where SNAPSHOT_DATE = '2023-05-19'
+ select count(*) from  DEV_EDW.EDW_OMNI.W_SALES_FORECAST_F
+  dev_edw.edw_metadata.el_batch_refresh_tracker
+
+desc table  dev_edw.edw_metadata.el_batch_refresh_tracker_history
+desc table  dev_edw.edw_metadata.el_batch_refresh_tracker
+
+-- insufficient privilegs
+  alter table  dev_edw.edw_metadata.el_batch_refresh_tracker alter column table_name SET DATA TYPE VARCHAR(50)
+--dbt build -s w_dm_daily_snap_shot_f --vars '{"process_date": "2023-05-08"}'
+--dbt build -s w_dm_daily_snap_shot_f  '{"process_date": "2023-05-10"}'
+-- to show the records ...in sales-invoice_line_f (validtion)
+-- dev_plan updates to check
+
+---sales_invoice_validation and two cols to add in load left out can i do it develop itself?
+-- to chkwith venkat for discount_amount and list_amount
+select net_amt,discount_amt,list_amt from "DEV_EDW"."BI11G_DW"."W_SALES_INVOICE_LINE_F" where SALES_ORDLN_ID = '67531827'
+select net_amount,discount_amount,list_amount from "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F" where SALES_ORDER_LINE_ID = '67531827~100'
+select * from "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F" limit 10

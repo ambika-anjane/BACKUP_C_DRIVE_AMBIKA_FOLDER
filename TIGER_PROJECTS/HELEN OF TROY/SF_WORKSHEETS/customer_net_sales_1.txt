@@ -1,0 +1,117 @@
+
+select * from "DEV_EDW"."EDW_OMNI"."W_FORECAST_SCENARIOS_D"
+select Floor(ent_period_ago_end_date / 1000) * 1000 from "DEV_EDW"."EDW_OMNI
+"."W_DAY_D"
+select floor(ent_period_ago_end_date) from "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+select ent_period per_name_ent_period from "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+year_ago_date
+select max(year_ago_date) from "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+
+select max(ship_date)
+                from  "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+                where calendar_date < current_date()
+                
+               select
+            '1' || to_char(max(year_ago_date), 'YYYYMMDD') || '000'
+            yago_ship_dt_wid,
+            max(year_ago_date) yago_ship_date
+        from "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+        where
+            ship_date = (
+                select max(ship_date)
+                from"DEV_EDW"."EDW_OMNI"."W_DAY_D"
+                where calendar_date < current_date()
+            )
+
+DESC TABLE  "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+
+with
+    products as (
+        select
+            inventory_item_id,
+             ITEM_NUMBER,
+            organization_id,
+             inventory_ctg_brand,
+            cogs_brand_segment_integration_id,
+            cogs_product_line_segment_integration_id,
+            datasource_num_id
+        from dev_edw.edw_omni.w_inventory_product_d
+        where dbt_valid_to is null
+    ),
+    company as (
+        select
+            org.organization_id organization_id,
+            org.datasource_num_id datasource_num_id,
+            company_segment_id,
+            location_segment_id
+        from dev_edw.edw_omni.w_int_org_d org
+    )
+select
+    (
+        fs.product_id || '~' || fs.inventory_org_id || '~' || fs.datasource_num_id
+    )::varchar(200) inventory_product_id,
+    (fs.inventory_org_id || '~' || fs.datasource_num_id)::varchar(200) inventory_org_id,
+    (
+        fs.inventory_org_id
+        || '~'
+        || fs.subinventory_code
+        || '~'
+        || fs.locator_id
+        || '~'
+        || fs.datasource_num_id
+    )::varchar(200) inventory_location_id,
+    '2023-06-27 18:28:32.020895'::date inventory_balance_date,
+    fs.unit_std_cost unit_std_cost,
+    fs.std_cost_amt std_cost_amt,
+    fs.available_qty on_hand_quantity,
+ 
+    coalesce(co.company_segment_id, '0') as company_segment_id,
+    coalesce(co.location_segment_id, '0') as location_segment_id,
+    coalesce(pa.cogs_brand_segment_integration_id, '0') as brand_segment_id,
+    coalesce(
+        pa.cogs_product_line_segment_integration_id, '0'
+    ) as product_line_segment_id,
+     pa.inventory_ctg_brand,
+     pa.item_number
+    
+from dev_discover.SUPPLY_CHAIN.stg_oracle__w_inventory_daily_bal_fs fs 
+ inner  join
+   products pa
+    on pa.inventory_item_id = fs.product_id
+    and pa.organization_id = fs.inventory_org_id
+    and pa.datasource_num_id = fs.datasource_num_id
+    AND pa.inventory_ctg_brand like '%VIDAL%'
+    
+left outer join
+    company co
+    on co.organization_id = fs.inventory_org_id
+    and co.datasource_num_id = fs.datasource_num_id
+  
+    
+    --and ITEM_NUMBER = 'VS533E'
+    
+    
+    
+ 
+    select pa.inventory_ctg_brand, pa.ITEM_NUMBER,pa.datasource_num_id,fs.datasource_num_id,fs.available_qty from "DEV_DISCOVER"."SUPPLY_CHAIN"."STG_ORACLE__W_INVENTORY_DAILY_BAL_FS" fs
+inner join
+   "DEV_EDW"."EDW_OMNI"."W_INVENTORY_PRODUCT_D" pa
+    on pa.inventory_item_id = fs.product_id
+    and pa.organization_id = fs.inventory_org_id
+    and pa.datasource_num_id = fs.datasource_num_id
+    and pa.inventory_ctg_brand like '%VIDAL%' 
+    AND   pa.ITEM_NUMBER = 'VS533E'
+--and fs.available_qty = '9.00000000000000000000'
+    
+    
+    -- pa.ITEM_NUMBER = 'VS533E'
+    -- pa.ITEM_NUMBER = 'VS935SDE1
+    
+    */
+    
+     SELECT COGS_BUSINESS_UNIT_CODE,inventory_ctg_brand,item_number,inventory_item_id,fs.available_qty
+ FROM "DEV_EDW"."EDW_OMNI"."W_INVENTORY_PRODUCT_D" a , "DEV_DISCOVER"."SUPPLY_CHAIN"."STG_ORACLE__W_INVENTORY_DAILY_BAL_FS" fs
+ WHERE a.inventory_ctg_brand LIKE '%VIDAL%' and a. ITEM_NUMBER = 'VS533E' and fs.available_qty = 23 and a.organization_id = fs.inventory_org_id
+ 
+ 
+ 

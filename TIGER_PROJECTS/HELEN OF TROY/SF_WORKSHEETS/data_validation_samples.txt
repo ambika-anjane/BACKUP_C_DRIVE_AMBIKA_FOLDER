@@ -1,0 +1,184 @@
+(select cust_account_id from dev_edw.edw_omni.w_claims_f)
+ select * from  dev_edw.edw_omni.w_trade_balances_f where integration_id is null
+  select * from  dev_edw.edw_omni.w_trade_balances_f where datasource_num_id is null
+  select * from  dev_edw.edw_omni.wc_fund_d
+    select * from  dev_edw.edw_omni.w_fund_d
+
+
+ 
+ select * from "DEV_EDW"."BI11G_DW"."WC_TRADE_BALANCES_F" where fund_wid = '490494' order by period_wid
+ select * from  dev_edw.edw_omni.w_trade_balances_f where fund_id = '50981~100' order by ent_period_start_date
+ 
+ select * from "DEV_EDW"."BI11G_DW"."WC_TRADE_BALANCES_F" where fund_wid = '490494' order by period_wid
+
+ SELECT   sum(
+                case
+                    when DEV_EDW.EDW_OMNI.W_TRADE_FUNDS_F.gl_posted_flag <> 'Y' and DEV_EDW.EDW_OMNI.W_TRADE_FUNDS_F.gl_date is null
+                    then accrual_loc_amt
+                end
+            )
+            unposted_accruals FROM DEV_EDW.EDW_OMNI.W_TRADE_FUNDS_F 
+            
+            desc table DEV_EDW.EDW_OMNI.W_TRADE_FUNDS_F
+            
+            SELECT adjusted_on_dt::date,utilization_type,e.UNPOSTED_ACCRUALS
+ FROM DEV_EDW.EDW_OMNI.W_TRADE_FUNDS_F F ,dev_edw.edw_omni.w_trade_balances_f e
+            WHERE F.gl_posted_flag <> 'Y' and F.gl_date is null AND F.FUND_ID =  '50981~100' and ACCRUAL_LOC_AMT
+ is not null and F.adjusted_on_dt::date = e.ent_period_start_date and  e.ent_period_start_date between '2018-05-01' and '2018-05-31'  group by adjusted_on_dt,utilization_type,UNPOSTED_ACCRUALS
+ 
+    SELECT adjusted_on_dt::date,utilization_type,e.UNPOSTED_ACCRUALS
+ FROM DEV_EDW.EDW_OMNI.W_TRADE_FUNDS_F F ,dev_edw.edw_omni.w_trade_balances_f e
+            WHERE F.gl_posted_flag <> 'Y' and F.gl_date is null AND F.FUND_ID =  '50981~100' and ACCRUAL_LOC_AMT
+ is not null and F.adjusted_on_dt::date = e.ent_period_start_date and F.adjusted_on_dt::date between '2018-05-01' and '2018-05-31'  group by adjusted_on_dt,utilization_type,UNPOSTED_ACCRUALS
+ 
+   SELECT adjusted_on_dt,utilization_type,e.UNPOSTED_ACCRUALS
+ FROM DEV_EDW.EDW_OMNI.W_TRADE_FUNDS_F F ,dev_edw.edw_omni.w_trade_balances_f e
+            WHERE F.gl_posted_flag <> 'Y' and F.gl_date is null AND F.FUND_ID =  '50981~100' and ACCRUAL_LOC_AMT
+ is not null and F. adjusted_on_dt  between '2018-01-01' and '2018-01-30'  group by adjusted_on_dt,utilization_type,UNPOSTED_ACCRUALS
+ 
+ 
+      SELECT adjusted_on_dt,utilization_type
+ FROM DEV_EDW.EDW_OMNI.W_TRADE_FUNDS_F F ,dev_edw.edw_omni.w_trade_balances_f e
+            WHERE F.gl_posted_flag <> 'Y' and F.gl_date is null AND F.FUND_ID =  '50981~100' and ACCRUAL_LOC_AMT
+ is not null group by adjusted_on_dt,utilization_type
+ 
+ 
+
+            
+            select * from DEV_EDW.EDW_OMNI.W_TRADE_FUNDS_F limit 10
+            select * from dev_edw.edw_omni.w_trade_balances_f where integration_id is null
+            
+            
+            
+            
+            
+      create temporary stage sales_temp_int_stage
+      drop stage  sales_temp_int_stage
+  file_format = my_csv_format;
+
+Conclusion
+            
+,
+  select ST_ADDRESS1,ST_ADDRESS2 from "DEV_EDW"."BI11G_DW"."W_BUSN_LOCATION_D"  where Integration_id = '666~RVKM~470485~100';
+  select ST_ADDRESS1,ST_ADDRESS2 from "DEV_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" where ST_ADDRESS2 IS NOT NULL
+  select distinct(w_insert_dt) from dev_edw.edw_omni.w_inventory_location_d where w_insert_dt  >  dateadd( 'days', -7, current_date ) order by w_insert_dt
+    select *  from dev_edw.edw_omni.w_sales_forecast_f where w_insert_dt  >  dateadd( 'days', -7, current_date ) order by w_insert_dt
+ select integration_id from dev_edw.edw_omni.w_sales_forecast_f limit 10
+ create t
+
+  where "DATE" > dateadd( 'days', -7, current_date )
+   select a.ADDRESS_LINE_2,ST_ADDRESS2 from dev_edw.edw_omni.w_inventory_location_d a,"DEV_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" b  where a.integration_id <> b.integration_id limit 
+
+
+SELECT * FROM dev_discover.master_data.stg_oracle__organization_locations
+ -- WORK ON THEE QUERY AND PROOVE ALL THE 20 ROWS BEGINNING AND ENDING ARE SAME
+ -- RERUN STAG_TRADE_FUNDS_f AND  W_TRADE_FUNDS_F 
+ -- RERUN TB
+ -- DO VALIDATION FOR THESE FUND_ID
+desc table "DEV_EDW"."BI11G_DW"."WC_TRADE_FUNDS_F"
+
+select sum(fund_id) from"DEV_EDW"."BI11G_DW"."WC_FUND_D" where row_id = '490494'
+select * from wc_fund_d
+DESC TABLE DEV_EDW.EDW_OMNI.W_DAYD_D
+
+select * from DEV_EDW.EDW_OMNI.W_TRADE_FUNDS_F where gl_posted_flag <> 'Y' and gl_date is null
+select * from DEV_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D where Integration_id = '666~RVKM~470485~100';
+select ADDRESS_LINE_1,ADDRESS_LINE_2 from DEV_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D where Integration_id = '666~RVKM~470485~100';
+select ADDRESS_LINE_1,ADDRESS_LINE_2 from DEV_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D where ADDRESS_LINE_2 is not null
+select active_flag from DEV_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D
+
+drop table DEV_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D
+
+select* from DEV_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D 
+
+Select Row_Wid,Integration_id,W_Busn_Loc_Type_Code,Busn_Loc_Num,Parent_Loc_Num,Contact_Num,Contact_Name,
+Address_Type_Code,St_Address1,St_Address2,City_Code,State_Prov_Code,Country_Region_Code
+W_Country_Code,Postal_Code,Phone_Num,Fax_Num,Email_Address,Web_Address,X_Custom,Integration_Id
+Datasource_Num_Id,Set_Id,C_Region_Code,C_Country_Region_Code,C_County_Code,C_State_Prov_Code,C_City_Code,Phone_Num,Fax_Num 
+From W_Busn_Location_D A 
+Where A.Integration_Id = 'STORAGE_LOC~666~RVKM~470485'--'STORAGE_LOC~666~RVKM~470459'
+And A.Datasource_Num_Id = 27;
+
+select row_wid,integration_id,W_BUSN_LOC_TYPE_CODE,BUSN_LOC_NUM,PARENT_LOC_NUM,CONTACT_NUM,CONTACT_NAME,
+ADDRESS_TYPE_CODE,ST_ADDRESS1,ST_ADDRESS2,CITY_CODE,STATE_PROV_CODE,COUNTRY_REGION_CODE,W_COUNTRY_CODE,
+POSTAL_CODE,PHONE_NUM,FAX_NUM,EMAIL_ADDRESS,WEB_ADDRESS,X_CUSTOM,INTEGRATION_ID,DATASOURCE_NUM_ID,SET_ID,
+C_REGION_CODE,C_COUNTRY_REGION_CODE,C_COUNTY_CODE,C_STATE_PROV_CODE,C_CITY_CODE,PHONE_NUM,FAX_NUM 
+FROM  "DEV_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" A
+WHERE A.INTEGRATION_ID = 'STORAGE_LOC~666~RVKM~470485' AND A.DATASOURCE_NUM_ID = 27
+
+
+
+
+
+
+with        mtl_invent as (select * from dev_discover.MASTER_DATA.stg_oracle__secondary_inventories),
+            hr_loc as (select * from dev_discover.MASTER_DATA.stg_oracle__organization_locations),
+             mtl_item_loc as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__mtl_item_locations)
+
+
+select
+   mtl_invent.organization_id organization_id,
+   mtl_invent.location_id,
+  inventory_loc.st_address1 address_line_1,
+    inventory_loc.st_address2 address_line_2,
+    inventory_loc.st_address3 address_line_3,
+    inventory_loc.city_code town_or_city
+    from 
+  
+mtl_invent left outer join hr_loc inventory_loc
+ on mtl_invent.location_id = inventory_loc.location_id
+
+    
+-- inventory_loc
+
+with
+    mtl_invent as (select * from dev_discover.MASTER_DATA.stg_oracle__mtl_secondary_inventories),
+    hr_loc as (select * from dev_discover.MASTER_DATA.stg_oracle__organization_locations),
+    hr_org as (select * from dev_discover.MASTER_DATA.stg_oracle__organization_units),
+    mtl_param as (select * from dev_discover.MASTER_DATA.stg_oracle__org_parameters),
+    mtl_item_loc as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__mtl_item_locations)
+
+select
+    inventory_loc.style address_type_code,
+      concat(mtl_item_loc.segment1)
+    || (mtl_item_loc.segment2)
+    || (mtl_item_loc.segment3)
+    || (mtl_item_loc.segment4)
+    || (mtl_item_loc.segment5) busn_loc_num,
+    mtl_item_loc.subinventory_code subinventory_code,
+  --  mtl_param.organization_code organization_code,
+    NVL(mtl_invent.organization_id||'~'||mtl_item_loc._source_id,'0') organization_id,
+    mtl_invent.subinventory_type subinventory_type_code,
+  
+     inventory_loc.telephone_number_1 telephone_number_1,
+    inventory_loc.telephone_number_2 telephone_number_2,
+    inventory_loc.telephone_number_3 telephone_number_3,
+    inventory_loc.country_code region_1,
+    inventory_loc.region_2 region_2,
+    inventory_loc.region_3 region_3,
+    inventory_loc.st_address1 address_line_1,
+    inventory_loc.st_address2 address_line_2,
+    inventory_loc.st_address3 address_line_3,
+    inventory_loc.city_code town_or_city,
+    inventory_loc.postal_code postal_code,
+    inventory_loc.country_code country
+ from mtl_item_loc
+inner join
+    mtl_invent
+    on mtl_item_loc.organization_id = mtl_invent.organization_id
+    and mtl_item_loc.subinventory_code = mtl_invent.secondary_inventory_name
+  --  inner join hr_org on mtl_invent.organization_id = hr_org.organization_id
+--inner join mtl_param on hr_org.organization_id = mtl_param.organization_id
+
+left outer join
+    hr_loc inventory_loc on mtl_invent.location_id = inventory_loc.location_id
+    left outer join
+    hr_loc plant_loc on mtl_invent.location_id = plant_loc.location_id
+
+
+
+where
+    (1 = 1)
+    
+
+

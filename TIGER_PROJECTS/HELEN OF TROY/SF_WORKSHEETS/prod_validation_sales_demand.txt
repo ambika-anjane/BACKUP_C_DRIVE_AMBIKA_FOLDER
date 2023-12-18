@@ -1,0 +1,993 @@
+
+SELECT item_cost FROM "DEV_ODS"."ORACLE_MASTER_DATA"."CST_ITEM_COSTS" a inner join "DEV_ODS"."ORACLE_SCP"."MSC_SYSTEM_ITEMS" b 
+on a.inventory_item_id = b.inventory_item_id
+
+SELECT * FROM "DEV_ODS"."ORACLE_MASTER_DATA"."CST_ITEM_COSTS" 
+SELECT item_cost FROM "DEV_ODS"."ORACLE_MASTER_DATA"."CST_ITEM_COSTS" a inner join "DEV_ODS"."ORACLE_SCP"."MSC_SAFETY_STOCKS" b 
+on a.inventory_item_id = b.inventory_item_id and a.organization_id = b.organization_id
+
+
+
+select using_requirement_quantity from "DEV_ODS"."ORACLE_SCP"."MSC_DEMANDS" WHERE using_requirement_quantity > 0
+
+desc table  "DEV_ODS"."ORACLE_SCP"."MSC_DEMANDS"
+desc table "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"
+SELECT  nvl(demand_class, 'NA') demand_class,ORDER_NUMBER FROM "DEV_ODS"."ORACLE_SCP"."MSC_DEMANDS" WHERE DEMAND_CLASS = 'EU-KTN-CEE'
+SELECT 
+select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number = '24024551'
+select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number = '24180088'
+select * from "PROD_EDW"."BI11G_DW"."WC_SALES_DEMAND_F" where sales_order_number = '24024551'
+select * from "PROD_EDW"."BI11G_DW"."WC_SALES_DEMAND_F" where sales_order_number = '24180088'
+
+
+
+ select * from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type  not in ('Consumption','Unschedule','Shipped','Safety Stock','Sales Orders - LAD') 
+
+
+select count(*) from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"
+ select * from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  sales_order_number = '23821372' and demand_type = 'Unschedule'
+  select  demand_type from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  sales_order_number = '23821372' and demand_type <> 'Unschedule'
+   
+   select  demand_type,plan_name,sales_order_number from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  sales_order_number = '23821372' and demand_type = 'Unschedule'
+   
+   
+select * from {source('oracle_order_mgmt','oe_order_headers_all')}} 
+
+select flow_status_code from dev_ods.oracle_order_mgmt.oe_order_headers_all where order_number = '24024551'
+select open_flag from dev_ods.oracle_order_mgmt.oe_order_lines_all where  order_number = '24089660'
+
+---- testing of flagc
+with
+
+ 
+    order_details as (select * from dev_discover.ORDER_MGMT.stg_oracle__order_details),
+    mtl_uom_conv as (select * from dev_discover.MASTER_DATA.stg_oracle__item_uom_conversions)
+  
+select b.order_line_open_flag,b.order_number,B.order_status_code from   mtl_uom_conv
+                    
+                      
+                     right outer join order_details b
+                        on mtl_uom_conv.inventory_item_id
+                        = b.inventory_item_id
+                        and mtl_uom_conv.uom_code = b.order_quantity_uom
+                    where
+                        (1 = 1)
+                        and (
+                            b.order_status_code in ('BOOKED', 'ENTERED','CLOSED','CANCELLED')
+                            and b.order_line_open_flag = 'N'
+                            and b.line_category_code = 'ORDER'
+                          and b.order_number  = '24089660'
+
+                        )
+                        
+ with
+
+ 
+    order_details as (select * from dev_discover.ORDER_MGMT.stg_oracle__order_details),
+    mtl_uom_conv as (select * from dev_discover.MASTER_DATA.stg_oracle__item_uom_conversions)
+  
+select b.order_line_open_flag,b.order_number from   mtl_uom_conv
+                    
+                      
+                     right outer join order_details b
+                        on mtl_uom_conv.inventory_item_id
+                        = b.inventory_item_id
+                        and mtl_uom_conv.uom_code = b.order_quantity_uom
+                    where
+                        (1 = 1)
+                        and (
+                            b.order_status_code in ('BOOKED', 'ENTERED','CLOSED')
+                            and b.order_line_open_flag = 'N'
+                            and b.line_category_code = 'ORDER'
+                          and b.order_number  = '23904442'
+                        )                       
+                        
+                        
+                        
+select order_number,order_line_open_flag,order_status_code from dev_discover.ORDER_MGMT.stg_oracle__order_details where order_number  = '24293263' and  ORDER_LINE_OPEN_FLAG = 'Y'
+select order_number,order_line_open_flag,order_status_code from dev_discover.ORDER_MGMT.stg_oracle__order_details where order_number  = '24263916' and  ORDER_LINE_OPEN_FLAG = 'N'
+
+
+--- consumption stage
+
+with
+
+    plan_demand as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__planned_demand),
+    supply_chain_plans  as (
+        select * from dev_discover.SUPPLY_CHAIN.stg_oracle__supply_chain_plans
+    ),
+    organization_plan as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__organization_plans),  
+    msc_system as (select * from dev_ods.oracle_scp.msc_system_items),  
+    msd_dp_scn as (
+        select * from dev_ods.oracle_scp.msd_dp_scn_entries_denorm
+    ),  
+    consumed_demand as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__consumed_demand), 
+    order_details as (select * from dev_discover.ORDER_MGMT.stg_oracle__order_details),
+    mtl_uom_conv as (select * from dev_discover.MASTER_DATA.stg_oracle__item_uom_conversions), 
+    shipped_demand as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__shipped_demand), 
+    item_safety_stocks as (
+        select * from dev_discover.SUPPLY_CHAIN.stg_oracle__item_saftey_stocks  
+    )
+
+
+
+  select *   from
+                        supply_chain_plans inner join msc_system
+                        on supply_chain_plans.plan_id = msc_system.plan_id
+                        inner join  consumed_demand
+                        on supply_chain_plans.plan_id = consumed_demand.plan_id
+                        and  msc_system.inventory_item_id = consumed_demand.inventory_item_id
+                        and msc_system.organization_id = consumed_demand.organization_id
+                        inner join  organization_plan
+                        on organization_plan.plan_id = consumed_demand.plan_id
+                        and organization_plan.organization_id = consumed_demand.organization_id
+                        and organization_plan.sr_instance_id = consumed_demand.sr_instance_id
+                        and (consumed_demand.consumed_qty > 0)
+                        and consumed_demand.sales_order_number  = '24180088'
+
+select * from dev_ods.oracle_scp.msc_forecast_updates where sales_order_number  = '24270438'
+  select  sales_order_number,demand_type from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number is not null
+
+
+---- planned_demand (msc_demands)
+with
+
+    plan_demand as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__planned_demand),
+    supply_chain_plans  as (
+        select * from dev_discover.SUPPLY_CHAIN.stg_oracle__supply_chain_plans
+    ),
+    organization_plan as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__organization_plans),  
+    msc_system as (select * from dev_ods.oracle_scp.msc_system_items),  
+    msd_dp_scn as (
+        select * from dev_ods.oracle_scp.msd_dp_scn_entries_denorm
+    ),  
+    consumed_demand as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__consumed_demand), 
+    order_details as (select * from dev_discover.ORDER_MGMT.stg_oracle__order_details),
+    mtl_uom_conv as (select * from dev_discover.MASTER_DATA.stg_oracle__item_uom_conversions), 
+    shipped_demand as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__shipped_demand), 
+    item_safety_stocks as (
+        select * from dev_discover.SUPPLY_CHAIN.stg_oracle__item_saftey_stocks  
+    ),
+
+     weekly_forecasted_orgs as (
+     SELECT distinct sr_organization_id as sr_organization_id,'Y' AS weekly_flag
+          FROM msd_dp_scn
+          WHERE start_time >=(current_date()-365)
+          AND BUCKET_TYPE   =2
+          
+    )
+select *
+ from plan_demand left outer join weekly_forecasted_orgs
+                    on plan_demand.organization_id = weekly_forecasted_orgs.sr_organization_id
+                    inner join msc_system
+                    on msc_system.sr_instance_id = plan_demand.sr_instance_id
+                    and msc_system.inventory_item_id = plan_demand.inventory_item_id
+                    and msc_system.organization_id = plan_demand.organization_id
+                    and msc_system.plan_id = plan_demand.plan_id
+                    inner join supply_chain_plans
+                    on supply_chain_plans.plan_id = plan_demand.plan_id
+                    inner join organization_plan
+                    on organization_plan.plan_id = plan_demand.plan_id
+                    and organization_plan.organization_id = plan_demand.organization_id
+                    and organization_plan.sr_instance_id = plan_demand.sr_instance_id
+                    and plan_demand.order_number is NULL and plan_demand.demand_source = 'Forecast'
+                    and plan_demand.using_assembly_demand_date  between '2023-06-01' and '2023-06-30' 
+                    and plan_demand.order_number ='24298874'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+select * from dev_discover.ORDER_MGMT.stg_oracle__order_details limit 10
+{source('oracle_order_mgmt','oe_order_headers_all')}
+
+where to_char(substr(order_number, 1, position('.' in order_number) - 1)) = '24220876'
+or order_number like '%24220876%';
+
+select * from "ODS"."ORACLE_SCP"."MSC_SALES_ORDERS" inner join
+            ods.oracle_scp.msc_plans
+                        on ods.oracle_scp.msc_plans.plan_id = ods.oracle_scp.msc_system_items.plan_id
+                        and (
+                            "ODS"."ORACLE_SCP". "MSC_SALES_ORDERS".demand_id
+                            in (select distinct sales_order_id from "ODS"."ORACLE_SCP". "MSC_FORECAST_UPDATES")
+                        )
+                        and ("ODS"."ORACLE_SCP". "MSC_SALES_ORDERS".completed_quantity > 0)
+                        and "ODS"."ORACLE_SCP". "MSC_SALES_ORDERS".sales_order_number  = '24024551'
+
+
+select * from DEV_ODS.ORACLE_SCP.MSC_FORECAST_UPDATES where sales_order_number = '24180088'
+select * from DEV_ODS.ORACLE_SCP.MSC_SALES_ORDERS where sales_order_number = '24180088'
+
+select * from dev_ods.oracle_order_mgmt.oe_order_lines_all where shipment_number = '24180088'
+select * from dev_ods.oracle_order_mgmt.oe_order_headers_all where order_number = '24180088'
+select * from "DEV_ODS"."ORACLE_SCP"."MSC_PLANS" WHERE SORDER_NUMBER  = '24180088'
+
+
+select * from dev_ods.oracle_order_mgmt.oe_order_lines_all limit 10
+desc table dev_ods.oracle_order_mgmt.oe_order_lines_all
+
+select * from dev_discover.SUPPLY_CHAIN.stg_oracle__consumed_demand WHERE sales_order_number = '24024551'
+
+select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where   demand_type  = 'Sales Orders' and sales_order_number  = '24160330' 
+select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where sales_order_number = '24024551'  AND DEMAND_TYPE = 'Sales Orders'
+
+select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number = '24024551'
+
+
+SELECT * FROM "DEV_ODS"."ORACLE_MASTER_DATA"."MTL_SYSTEM_ITEMS" a inner join "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" b
+on a.inventory_item_id||'~'||a.organization_id||'~'||100 = b.inventory_product_id
+
+select * from "DEV_ODS"."ORACLE_FINANCIALS"."GL_DAILY_RATES" 
+select * from dev_discover.FINANCIALS.stg_oracle__currency_exchange_rates where conversion_date  >= dateadd('MONTH', -7, date_trunc('MONTH', current_date()))
+
+
+-- gl_company_id
+SELECT  a.segment_id,a.segment_value_id,a.segment_value_code,b.sales_account,a.segment_name from   "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D" a left outer join "DEV_ODS"."ORACLE_MASTER_DATA"."MTL_SYSTEM_ITEMS"b
+on b.inventory_item_id::varchar = a.segment_value_code::varchar
+and a.segment_name in ('Location','Company')
+select distinct segment_name from  "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D" a
+
+select * from "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D"
+(select company_segment_key||'~'||100 from dev_discover.MASTER_DATA.stg_oracle__gl_account_combinations)
+
+(select company_segment_key||'~'||100 from dev_discover.MASTER_DATA.stg_oracle__gl_account_combinations)
+
+
+ left outer join w_gl_segment_d
+              on  plan_demand.inventory_item_id =  w_gl_segment_d.segment_value_id  and  w_gl_segment_d.segment_name = 'Product Line' and w_gl_segment_d.segment_name = 'Company'
+              and w_gl_segment_d.segment_name = 'Location'
+
+SELECT  SEGMENT_ID from   "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D" a  inner join "DEV_ODS"."ORACLE_ORDER_MGMT"."OE_ORDER_LINES_ALL" b 
+on b.inventory_item_id = a.SEGMENT_ID AND  a.SEGMENT_NAME = 'Company'
+
+SELECT   SEGMENT_ID from  "DEV_ODS"."ORACLE_SCP"."MSC_DEMANDS" b  inner join  "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D" a
+on  a.SEGMENT_VALUE_ID = b.inventory_item_id and  a.SEGMENT_NAME = 'Company'
+
+SELECT SEGMENT_ID from   "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D" a inner join "DEV_ODS"."ORACLE_SCP"."MSC_PLANS" b 
+on a.SEGMENT_VALUE_ID = b.plan_id and  a.SEGMENT_NAME = 'Company'
+
+SELECT SEGMENT_ID from   "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D" a inner join "DEV_ODS"."ORACLE_SCP"."MSC_SYSTEM_ITEMS" b 
+on a.SEGMENT_VALUE_ID = b.inventory_item_id and  a.SEGMENT_NAME = 'Company'
+
+SELECT SEGMENT_ID from   "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D" a inner join "DEV_ODS"."ORACLE_SCP"."MSC_SAFETY_STOCKS" b 
+on a.SEGMENT_VALUE_ID = b.inventory_item_id and  a.SEGMENT_NAME = 'Company'
+
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_INT_ORG_D" LIMIT 10 
+select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where integration_id = '663~2191153~~2024-03-08~2023-06-03~Forecast~EU-KTN-AMZ~~EMEA100~33396~Location~236446~Company~358451~Product Line~0.09000000000000000000'
+SELECT CURRENCY_CODE FROM "DEV_EDW"."EDW_OMNI"."W_INT_ORG_D" A LEFT OUTER JOIN "DEV_ODS"."ORACLE_SCP"."MSC_DEMANDS" b ON 
+A.ORGANIZATION_ID
+ = B.INVENTORY_ITEM_ID
+
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D" 
+
+select
+    integration_id as unique_field,
+    count(*) as n_records
+
+from dev_edw.edw_omni.w_sales_demand_f
+where integration_id is not null
+group by integration_id
+having count(*) > 1
+
+
+select * from  "DEV_EDW"."EDW_OMNI"."W_DAY_D" LIMIT 10
+DESC TABLE  "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+
+ select * from dev_discover.MASTER_DATA.stg_oracle__gl_account_combinations b
+ 
+select b.company_segment_id from dev_discover.MASTER_DATA.stg_oracle__gl_account_combinations b
+left  join  dev_discover.SUPPLY_CHAIN.stg__sales_demand c
+ where c.inventory_org_id = b.company_segment_key||'~'||100
+ 
+ sales_demand as (select * from dev_discover.SUPPLY_CHAIN.stg__sales_demand),
+ select * from dev_discover.MASTER_DATA.stg_oracle__inventory_products
+ 
+  select b.company_segment_id from dev_discover.MASTER_DATA.stg_oracle__inventory_products a, dev_discover.MASTER_DATA.stg_oracle__gl_account_combinations b
+ where a.sales_account::varchar = b.company_segment_key
+ 
+ 
+  select c.integration_id as gl_company_id from dev_discover.MASTER_DATA.stg_oracle__inventory_products a left join  dev_discover.SUPPLY_CHAIN.stg__sales_demand  b
+on a.inventory_item_id||'~'||a.organization_id||'~'||100 = b.inventory_product_id
+inner join  "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D"  c
+on a.sales_account::varchar = c.segment_value_code  
+
+select integration_id from  "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D" where segment_name = 'Product Line'
+select segment_name from "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D"
+  select c.integration_id as gl_company_id from  dev_discover.SUPPLY_CHAIN.stg__sales_demand  b
+inner join  "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D"  c
+on c.segment_value_code||'~'||100 = b.inventory_org_id
+
+
+ select location_segment_key as gl_company_id,company_segment_key as gl_company_id from dev_discover.SUPPLY_CHAIN.stg__sales_demand b left join  dev_discover.MASTER_DATA.stg_oracle__inventory_products a   
+on a.inventory_item_id||'~'||a.organization_id||'~'||100 = b.inventory_product_id
+left join  dev_discover.MASTER_DATA.stg_oracle__gl_account_combinations  c
+on a.sales_account = c.code_combination_id 
+
+select code_combination_id from dev_discover.MASTER_DATA.stg_oracle__gl_account_combinations 
+
+ 
+  select b.integration_id from dev_discover.MASTER_DATA.stg_oracle__inventory_products a left join  "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D"  b
+on a.sales_account::varchar = b.segment_value_code  and b.integration_id is not null
+ 
+select company_segment_key,company_segment_id,b.sales_account from dev_discover.MASTER_DATA.stg_oracle__gl_account_combinations a inner join dev_discover.MASTER_DATA.stg_oracle__inventory_products b
+on b.sales_account = a.company_segment_id
+
+Select to_char(substr(order_number,1,regexp_instr(ORDER_NUMBER, '.',1)-1)),demand_source from  dev_discover.supply_chain.stg_oracle__planned_demand  WHERE ORDER_NUMBER IS NOT  NULL
+SELECT  to_char(
+                            substr(
+                                dev_discover.supply_chain.stg_oracle__planned_demand.order_number,
+                                1,
+                                regexp_instr(dev_discover.supply_chain.stg_oracle__planned_demand.order_number, '.', 1) - 1
+                            )
+                        ) sales_order_number
+                        
+                        
+   -- old syntax
+   to_char(
+                            substr(
+                                plan_demand.order_number,
+                                1,
+                                regexp_instr(plan_demand.order_number, '.', 1) - 1
+                            )
+                        ) sales_order_number,
+                        
+                          to_char(
+                            substr(
+                                consumed_demand.sales_order_number,
+                                1,
+                                regexp_instr(consumed_demand.sales_order_number, '.', 1)
+                                - 1
+                            )
+                        ) sales_order_number,
+                        to_char(
+                            substr(
+                                shipped_demand.sales_order_number,
+                                1,
+                                regexp_instr(shipped_demand.sales_order_number, '.', 1)
+                                - 1
+                            )
+                        ) sales_order_number,
+                        
+                       
+                        Select
+       to_char(substr(order_number,1,position('.' in ORDER_NUMBER)-1)) SALES_ORDER_NUMBER
+from  dev_discover.supply_chain.stg_oracle__planned_demand where ordeR_number is not null and  order_number = '24180088'
+select * from dev_discover.supply_chain.stg_oracle__planned_demand
+select demand_type from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number IS NULL and DEMAND_TYPE  = 'Work order demand'
+select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number IS NOT  NULL and plan_name  = 'GLOBAL'AND sales_order_number  = '24180088'
+select DEMAND_TYPE,SALES_ORDER_NUMBER from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" wherE PLAN_NAME = 'EMEA' AND SALES_ORDER_NUMBER IS NOT NULL
+
+
+   --checking of order number insource and lan namem
+   Select
+       to_char(substr(order_number,1,position('.' in ORDER_NUMBER)-1)) SALES_ORDER_NUMBER
+from  dev_discover.supply_chain.stg_oracle__planned_demand where order_number = '24024551'
+
+SELECT to_char(
+                            substr(
+                                order_number,
+                                1,
+                                position('.' in order_number) - 1
+                            )
+                        ) FROM "DEV_ODS"."ORACLE_SCP"."MSC_DEMANDS"  
+ WHERE ORDER_NUMBER  = '24024551'
+ 
+select * from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number in (select sales_order_number from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number =  '24024551')
+select * from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number in (select sales_order_number from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number =  '24180088')
+select count(*) from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number in (select sales_order_number from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number = '10756841')
+
+
+ SELECT a.compile_designator,to_char(substr(b.order_number,1,position('.' in ORDER_NUMBER)-1)) sales_order_number FROM dev_ods.oracle_scp.msc_plans a left join dev_ods.oracle_scp.msc_demands b 
+on  to_char(substr(b.order_number,1,position('.' in ORDER_NUMBER)-1)) =  '24024551' and a.plan_id = b.plan_id
+
+select  * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F 
+
+select sales_order_id from "DEV_ODS"."ORACLE_SCP". "MSC_FORECAST_UPDATES" where sales_order_number = '10756841'
+select * from "DEV_ODS"."ORACLE_SCP". "MSC_SALES_ORDERS" inner join
+                     dev_ods.oracle_scp.msc_plans
+                        on dev_ods.oracle_scp.msc_plans.plan_id = dev_ods.oracle_scp.msc_system_items.plan_id
+                        and (
+                            "DEV_ODS"."ORACLE_SCP". "MSC_SALES_ORDERS".demand_id
+                            in (select distinct sales_order_id from "DEV_ODS"."ORACLE_SCP". "MSC_FORECAST_UPDATES")
+                        )
+                        and ("DEV_ODS"."ORACLE_SCP". "MSC_SALES_ORDERS".completed_quantity > 0)
+                        and "DEV_ODS"."ORACLE_SCP". "MSC_SALES_ORDERS".sales_order_number  = '24024551'
+                        
+                        to_char(substr(b.order_number,1,position('.' in ORDER_NUMBER)-1)) sales_order_number
+
+
+-- shippedd demand
+select * from dev_ods.oracle_scp.msc_system_items a inner join 
+"DEV_ODS"."ORACLE_SCP". "MSC_SALES_ORDERS"  b
+ on a.inventory_item_id
+                        =b.inventory_item_id
+                        and a.organization_id = b.organization_id 
+                        inner join
+                        dev_ods.oracle_scp.msc_plans c
+                        on c.plan_id = a.plan_id
+                        and (
+                           b.demand_id
+                            in (select distinct sales_order_id from  "DEV_ODS"."ORACLE_SCP". "MSC_FORECAST_UPDATES")
+                        )
+                        and (b.completed_quantity > 0)   and b.sales_order_number  = '24024551' 
+                        
+                        
+                        select * from dev_discover.SUPPLY_CHAIN.stg_oracle__shipped_demand where sales_order_number  = '24024551' 
+ 
+select * from    "DEV_ODS"."ORACLE_SCP". "MSC_SALES_ORDERS"    where sales_order_number  = '24024551'  
+select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number  = '24024551'  
+select * from"DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number  = '24024551'  
+
+             select * from dev_ods.oracle_order_mgmt.oe_order_lines_all  ola  
+                    left outer join  dev_ods.oracle_master_data.mtl_uom_conversions muc
+                        on muc.inventory_item_id = ola.inventory_item_id
+                        and muc.uom_code = ola.order_quantity_uom
+                    --    and ola.order_open_flag = 'Y'
+                    --    and ola.order_line_open_flag = 'Y'
+                        and ola.order_source_id <> 10
+                        and ola.line_category_code = 'ORDER'
+                    -- and ola.order_number = '24024551'           
+                      
+ select distinct compile_designator from  dev_ods.oracle_scp.msc_plans
+  select * from  dev_ods.oracle_scp.msc_plans where COMPILE_DESIGNATOR = 'GLOBAL'
+ SELECT a.compile_designator,to_char(substr(b.order_number,1,position('.' in ORDER_NUMBER)-1)) sales_order_number FROM dev_ods.oracle_scp.msc_plans a left join dev_ods.oracle_scp.msc_demands b 
+on  a.plan_id = b.plan_id  AND A.COMPILE_DESIGNATOR = 'GLOBAL'
+
+select DEMAND_TYPE,SALES_ORDER_NUMBER from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" WHERE PLAN_NAME  = 'GLOBAL'
+
+select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type = 'Consumption'
+select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where PLAN_NAME = 'GLOBAL'
+select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where PLAN_NAME = 'GLOBAL'
+
+select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type = 'Unschedule' and plan_name = 'NA'and sales_order_number = '10756841'
+
+
+select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where   demand_type = 'Unschedule'  and plan_name = 'NA' and sales_order_number = '10757760'
+select distinct demand_type,plan_name,sales_order_number from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where   demand_type = 'Consumption'  
+and plan_name = 'OXO' and sales_order_number = '24245408'
+
+-- FOR SALES ORDERS
+select distinct demand_type,plan_name,sales_order_number from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where   demand_type = 'Sales Orders'  
+select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type in (select demand_type from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"
+                                                                                                             where  demand_type = 'Sales Orders' )
+select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders' 
+select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"
+
+
+
+-- FOR COMSUMPTION FOR ONE SOURCE NUMBER
+select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where PLAN_NAME = 'GLOBAL'
+select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where demand_type = 'Sales Orders'
+
+select  COMPILE_DESIGNATOR from dev_ods.oracle_scp.msc_plans a ,  dev_ods.oracle_scp.msc_designators b
+
+
+ select to_char(substr(b.sales_order_number,1,position('.' in SALES_ORDER_NUMBER)-1)) from  "DEV_ODS"."ORACLE_SCP"."MSC_FORECAST_UPDATES" b 
+ where to_char(substr(b.sales_order_number,1,position('.' in SALES_ORDER_NUMBER)-1)) = '24273930'
+
+
+
+select DEMAND_TYPE,SALES_ORDER_NUMBER from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F wherE PLAN_NAME = 'EMEA' AND SALES_ORDER_NUMBER IS NOT NULL
+select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  sales_order_number = '' AND PLAN_NAME = 'EMEA'
+select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F  where sales_order_number = '24024551'
+select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F  where sales_order_number = '24180088'
+select * from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where sales_order_number = '24180088'
+
+
+SELECT ORDER_NUMBER FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" WHERE SALES_ORDER_NUMBER IS NOT  NULL
+select distinct PLAN_NAME from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"
+
+select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number  = '24024551'
+select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number  = '24024551'
+
+select distinct demand_type from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where SALES_ORDER_NUMBER = '24033474' AND PLAN_NAME = 'KMO'
+
+select count(*) from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where demand_type = 'Sales Orders'
+select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where demand_type = 'Consumption'  AND PLAN_NAME = 'GLOBAL' and sales_order_number  = '24194209'
+
+
+select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number  = '24180088' AND PLAN_NAME = 'EMEA'
+select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number  = '24180088' AND PLAN_NAME = 'KAZNA'
+select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where SALES_ORDER_NUMBER = '24033474' 
+select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where SALES_ORDER_NUMBER = '24033474' 
+select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number  = '24024551'
+select designator
+                                from msc_designators
+                                where disable_date is null)
+                                
+   SELECT designator FROM "dev_ods"."oracle_scp", "msc_designators" WHERE DISABLE_DATE IS NULL
+select  COMPILE_DESIGNATOR from dev_ods.oracle_scp.msc_plans a ,  dev_ods.oracle_scp.msc_designators b
+where  COMPILE_DESIGNATOR in (select designator from  dev_ods.oracle_scp.msc_designators where disable_date is null )
+
+SELECT COUNT(*) FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type not in ('Consumption','Unschedule','Shipped','Safety Stock','Sales Orders - LAD','Planned order demand','Forecast'
+) and  SALES_ORDER_NUMBER = '24033474'  
+
+select sales_order_number, demand_type  FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type not in ('Consumption','Unschedule','Shipped','Safety Stock','Sales Orders - LAD','Planned order demand','Forecast'
+) and sales_order_number not in 
+
+SELECT COUNT(*) FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type = 'Sales Orders' C
+select distinct plan_name,demand_type from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"
+
+select * from dev_ods.oracle_financials.gl_daily_rates
+desc table 
+
+select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where SALES_ORDER_NUMBER = '24033474'
+select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where SALES_ORDER_NUMBER = '24033474' AND PLAN_NAME = 'EMEA'
+
+SELECT* FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type not in ('Unschedule'
+) and  SALES_ORDER_NUMBER = '24033474'  
+
+101 Records - PLAN NAME = GLOBAL,EMEA--3195 Records - only PLAN NAME = GLOBAL
+select sales_Account from  dev_discover.MASTER_DATA.stg_oracle__inventory_products where sales_account = '437647'
+select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  sales_order_number = '270419';
+select * from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  Sales_order_number = '270419';
+
+ 
+ 
+ -- final result:
+ SELECT COUNT(*) FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type not in ('Consumption','Unschedule','Shipped','Safety Stock','Sales Orders - LAD')
+SELECT COUNT(*) FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"
+ 
+ 
+ 
+ SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"
+
+--      queries to check validation in sales demand f
+-- one
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type not in ('Consumption','Unschedule','Shipped','Safety Stock','Sales Orders - LAD') 
+
+and SALES_ORDER_NUMBER = '24033474' and sales_date = '2023-04-28'
+select distinct demand_type from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  due_date = '2023-04-28'and  SALES_ORDER_NUMBER = '24033474' 
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where SALES_ORDER_NUMBER = '24033474'
+SELECT * FROM DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where SALES_ORDER_NUMBER = '24033474'
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number = '24024551'
+
+select USING_ASSEMBLY_DEMAND_DATE::date
+ from "DEV_ODS"."ORACLE_SCP"."MSC_DEMANDS" where USING_ASSEMBLY_DEMAND_DATE >='2023-04-28'
+ select meaning from "DEV_ODS"."ORACLE_FINANCIALS"."MFG_LOOKUPS"
+   where (MEANING                   IN('Forecast','Payback Demand','Planned order demand','Interorganization Demand','Sales Orders','Work order demand','Safety Stock Demand'))
+ select USING_ASSEMBLY_DEMAND_DATE::date from "DEV_ODS"."ORACLE_SCP"."MSC_DEMANDS" where USING_ASSEMBLY_DEMAND_DATE between '2023-04-23'and '2023-04-26'
+ select * from  "DEV_ODS"."ORACLE_SCP"."MSC_FORECAST_UPDATES" where consumption_date between  '2023-04-25'and '2023-04-26' --(50)
+('oracle_order_mgmt','oe_order_lines_all'
+ 
+ select MAX(request_date) from  "DEV_ODS"."ORACLE_ORDER_MGMT"."OE_ORDER_LINES_ALL"  -- 2919-10-16 16:27:07.000
+
+ select MIN(request_date) from  "DEV_ODS"."ORACLE_ORDER_MGMT"."OE_ORDER_LINES_ALL" 
+ -- 0023-04-18 18:00:04.000
+ AND 
+ SELECT REQUEST_DATE::DATE FROM "DEV_ODS"."ORACLE_ORDER_MGMT"."OE_ORDER_LINES_ALL" where request_date between '2018-05-07' and '2021-06-07'
+  SELECT REQUEST_DATE::DATE FROM "DEV_ODS"."ORACLE_ORDER_MGMT"."OE_ORDER_LINES_ALL" where request_date between  '2018-08-30' and '2019-02-01'
+
+  SELECT last_update_date::DATE FROM "DEV_ODS"."ORACLE_ORDER_MGMT"."OE_ORDER_HEADERS_ALL" where last_update_date between  '2018-09-21' and '2018-10-19'
+
+ WHERE REQUEST_DATE BETWEEN '2919-10-16' AND '0023-04-18'
+ 
+ 
+ SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where SALES_DATE between  '2023-04-25'and '2023-04-26'
+  SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where SALES_DATE between  '2023-04-25'and '2023-04-26'
+   SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where SALES_DATE between  '2018-09-21' and '2018-10-19'
+    SELECT distinct demand_type FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where SALES_DATE between  '2018-08-30' and '2019-02-01'
+     SELECT demand_type,sales_date FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where SALES_DATE between  '2018-08-30' and '2019-02-01' --m12766
+
+DEMAND_TYPE Unschedule
+ SELECT demand_type,sales_date FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type  = 'Unschedule' and sales_order_number  = '24180088'
+  SELECT distinct demand_type,count(*) FROM DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F  where sales_order_number  = '24180088' group by demand_type
+   SELECT * FROM DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F  where sales_order_number  = '24180088'
+    SELECT * FROM DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F  where sales_order_number  is  null and plan_name = 'EMEA' and demand_type = 'Safety Stock'
+    SELECT * FROM DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F  where sales_order_number  = '24180088'
+
+
+
+   SELECT distinct demand_type,sales_date,sales_order_number FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where sales_order_number  = '24180088'
+ SELECT DISTINCT DEMAND_TYPE FROM  DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where DUE_DATE between  '2023-04-25'and '2023-04-26'
+  SELECT * FROM  DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where DUE_DATE between  '2023-04-25'and '2023-04-26'
+
+ SELECT DISTINCT DEMAND_TYPE FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where SALES_DATE between  '2023-04-25'and '2023-04-26'
+
+
+
+  
+  
+  SELECT SALES_DATE,DEMAND_TYPE FROM  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where SALES_DATE between  '2023-06-01'and '2024-03-15'
+  where SALES_DATE between  '2023-04-25'and '2023-04-26'
+  
+
+ 
+
+
+-- two
+
+select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number ='24034926'
+ select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number ='24039384'
+  select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number ='24039384'
+ and  demand_type not in ('Consumption','Unschedule','Shipped','Safety Stock','Sales Orders - LAD') 
+  select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number ='24270064'
+   select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type = 'Forecast'
+
+ and  demand_type not in ('Consumption','Unschedule','Shipped','Safety Stock','Sales Orders - LAD') 
+
+
+ select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number  = '24024551'
+  select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number is not null
+   select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number  ='24245898'
+  and  demand_type not in ('Consumption','Unschedule','Shipped','Safety Stock','Sales Orders - LAD') 
+ select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number  = '23969002'
+ and  demand_type not in ('Consumption','Unschedule','Shipped','Safety Stock','Sales Orders - LAD') 
+  select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where sales_order_number ='24257119'
+  and  demand_type not in ('Consumption','Unschedule','Shipped','Safety Stock','Sales Orders - LAD') 
+
+
+
+
+   select distinct demand_type from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where sales_order_number is  null
+    select * from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where demand_type = 'Sales Orders' and  sales_order_number is  null
+    select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where demand_type = 'Sales Orders' and  sales_order_number is  null
+
+
+   select distinct plan_name from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where demand_type = 'Forecast' --(1462468)
+ select distinct plan_name from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type = 'Forecast' -- 1670464
+
+
+ select distinct demand_type from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number is not null
+  select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number is not null
+   select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number ='23969002'
+
+ and  demand_type not in ('Consumption','Unschedule','Shipped','Safety Stock','Sales Orders - LAD') 
+   select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number ='24034926'
+
+   select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number ='24039384'
+  and  demand_type not in ('Consumption','Unschedule','Shipped','Safety Stock','Sales Orders - LAD') 
+    select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number ='24039384'
+     select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number ='24270064'
+  and  demand_type not in ('Consumption','Unschedule','Shipped','Safety Stock','Sales Orders - LAD') 
+
+select * from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number = '23821372'
+select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number = '23821372'
+ 
+  select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where demand_type = 'Sales Orders'
+  where  demand_type not in ('Consumption','Unschedule','Shipped','Safety Stock','Sales Orders - LAD') 
+ 
+  select*  from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type = 'Sales Orders'
+   select *  from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type ='Expired lot'
+    select *  from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type ='Forecast'
+ 
+ select count(*) from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"
+  select count(*) from  DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F
+
+
+  
+  (select demand_type  from  DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where demand_type ='Sales Orders')
+
+ -- important
+ -- unschedule
+ select distinct demand_type from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  sales_order_number = '23821372' and demand_type = 'Unschedule'
+  select sales_order_number,demand_type from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  sales_order_number = '24199579' and demand_type = 'Sales Orders - LAD' 
+   select sales_order_number,demand_type from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  sales_order_number = '24199579' and demand_type = 'Unschedule'
+    select sales_order_number,demand_type from   DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  sales_order_number = '24199579' and demand_type = 'Unschedule' and due_date between '2023-05-01' and '2023-05-31'
+     select sales_order_number,demand_type from   DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  sales_order_number = '24199579' and demand_type = 'Shipped' and due_date between '2023-05-01' and '2023-05-31'
+      select sales_order_number,demand_type from   DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  sales_order_number = '24199579' and demand_type =  'Sales Orders - LAD' and due_date between '2023-05-01' and '2023-05-31'
+       select sales_order_number,demand_type from   DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  sales_order_number = '24199579' and demand_type =  'Sales Orders' and due_date between '2023-05-01' and '2023-05-31'
+
+ 
+ -- stage for the number from date (May 2023)
+  select * from dev_discover.ORDER_MGMT.stg_oracle__order_details
+where to_char(substr(order_number, 1, position('.' in order_number) - 1)) = '24089660'
+or order_number like '%24089660%'
+ 
+  -- stage for the number from date (May 2023) -- sales orders lad
+
+   select * from dev_discover.ORDER_MGMT.stg_oracle__order_details
+where to_char(substr(order_number, 1, position('.' in order_number) - 1)) = '19683701'
+or order_number like '%19683701%' limit 10
+
+
+
+select 
+ and sales_order_number  in 
+ (select sales_order_number  from  DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  sales_order_number = '23821372' and demand_type <> 'Unschedule')
+  
+ (select sales_order_number  from  DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  sales_order_number = '23821372' and demand_type = 'Unschedule')
+
+  select distinct sales_order_number  from  DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Unschedule' and sales_order_number  in 
+   (select distinct  sales_order_number from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Unschedule' )
+ -- -- 11828268-
+ --26924
+ 
+
+
+ -- derived unschdule validation
+
+with
+
+  
+    order_details as (select * from dev_discover.ORDER_MGMT.stg_oracle__order_details),
+    mtl_uom_conv as (select * from dev_discover.MASTER_DATA.stg_oracle__item_uom_conversions)
+   
+
+select * from  mtl_uom_conv right outer join order_details
+                        on mtl_uom_conv.inventory_item_id
+                        = order_details.inventory_item_id
+                        and mtl_uom_conv.uom_code = order_details.order_quantity_uom
+                       and (
+                            order_details.order_status_code in ('BOOKED', 'ENTERED')
+                            and order_details.order_line_open_flag = 'Y'
+                            and order_details.line_category_code = 'ORDER'
+                            and order_details.order_number ='23821372' 
+                        )
+ 
+ select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Unschedule' and sales_order_number not  in 
+   (select distinct  sales_order_number from  DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Unschedule' )
+-- 11828268
+ --11801344
+  (select sales_order_number  from  DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  sales_order_number = '407436'and demand_type <> 'Unschedule')
+   (select sales_order_number  from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where  sales_order_number = '407436'and demand_type <> 'Unschedule')
+    (select sales_order_number,demand_type  from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where  sales_order_number = '407436'and demand_type <> 'Unschedule')
+
+
+
+ select * from dev_discover.ORDER_MGMT.stg_oracle__order_details
+where to_char(substr(order_number, 1, position('.' in order_number) - 1)) = '22329572'
+or order_number like '%22329572%'
+ 
+  select * from dev_discover.ORDER_MGMT.stg_oracle__order_details
+where to_char(substr(order_number, 1, position('.' in order_number) - 1)) = '407436'
+or order_number like '%407436%' -- sales oder lad, u schdule
+ 
+  
+  select * from dev_discover.ORDER_MGMT.stg_oracle__order_details
+where to_char(substr(order_number, 1, position('.' in order_number) - 1)) = '16352059'
+or order_number like '%16352059%' -- sales oder lad, u schdule
+ 
+ -- shipped same number validated
+  select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Shipped' and sales_order_number    in 
+   (select distinct  sales_order_number from  DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Shipped')
+ 
+ select sales_order_number,demand_type  from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where  sales_order_number = '22329572'
+ 
+ -- shipped demand stage
+ 
+with  plan_demand as (select * from {{ ref("stg_oracle__planned_demand") }}),
+    supply_chain_plans as (select * from {{ ref("stg_oracle__supply_chain_plans") }}),
+    organization_plan as (select * from {{ ref("stg_oracle__organization_plans") }}),
+    msc_system as (select * from {{ source("oracle_scp", "msc_system_items") }}),
+    msd_dp_scn as (
+        select * from {{ source("oracle_scp", "msd_dp_scn_entries_denorm") }}
+
+    ),
+    consumed_demand as (select * from {{ ref("stg_oracle__consumed_demand") }}),
+    order_details as (select * from {{ ref("stg_oracle__order_details") }}),
+    mtl_uom_conv as (select * from {{ ref("stg_oracle__item_uom_conversions") }}),
+    shipped_demand as (select * from {{ ref("stg_oracle__shipped_demand") }}),
+    item_safety_stocks as (select * from {{ ref("stg_oracle__item_saftey_stocks") }}),
+
+   
+ from msc_system
+                    inner join
+                        shipped_demand
+                        on msc_system.inventory_item_id
+                        = shipped_demand.inventory_item_id
+                        and msc_system.organization_id = shipped_demand.organization_id
+                    inner join
+                        supply_chain_plans
+                        on supply_chain_plans.plan_id = msc_system.plan_id
+                        and (
+                            shipped_demand.demand_id
+                            in (select distinct sales_order_id from consumed_demand)
+                        )
+                        and (shipped_demand.completed_quantity > 0)
+                   inner join
+                        order_details
+                        on shipped_demand.demand_source_line
+                        = order_details.order_line_id
+ 
+ 
+ select * from dev_discover.ORDER_MGMT.stg_oracle__order_details
+where to_char(substr(order_number, 1, position('.' in order_number) - 1)) = '24180123'
+or order_number like '%24180123%' -- sales oder lad, u schdule
+ 
+ -- planed demand
+ 
+ 
+ --16352059
+ 
+ select * from dev_discover.ORDER_MGMT.stg_oracle__order_details
+where to_char(substr(order_number, 1, position('.' in order_number) - 1))  like '%13663105%';
+select * from dev_discover.ORDER_MGMT.stg_oracle__order_details
+where to_char(substr(order_number, 1, position('.' in order_number) - 1)) IN 
+ ('13663105', -- valiared
+'14130797')  -- validated 
+407436  -- VALIDATED
+13775376,
+12835614,
+13927956,
+12334450,
+13194857,
+13194988,
+12333922,
+13861304,
+12333902,
+13193769,
+13967271,
+12835793,
+13906607,
+13775641,
+13732975,
+13733751,
+12339534,
+14130994,
+13907043,
+13677818,
+13863802,
+12356666,
+13205145,
+13948140,
+13948479,
+13678478,
+13868508,
+13948852,
+14168150,
+14039896,
+14130787,
+12344546,
+14131181,
+13735053,
+13775599,
+13864555,
+13697211,
+13804219,
+13698134,
+13952878,
+14150583,
+13812634,
+13608833,
+15065356,
+15066044,
+13164688,
+14220292,
+13826927,
+13197651,
+13244220,
+13708031,
+13787813,
+13205162,
+15065372,
+14168433,
+13165618,
+13815708,
+234151,
+1349518,
+13662062,
+13797532,
+14278983,
+13188070,
+12835667,
+12833642,
+13798681,
+14130746,
+13906717,
+226756,
+13804221,
+13987112,
+18982003,
+13793281,
+13838914,
+13622208,
+13862741,
+12338911,
+12356194,
+13735158,
+12835738,
+13735818,
+14130881,
+12833713,
+14131099,
+12355923,
+12356047,
+13798329,
+14146311,
+13868557,
+13804429,
+12362995,
+13870051,
+13954040,
+13642719,
+12839025,
+14039829,
+14039796
+)
+or order_number like '%13663105%';
+
+
+ 
+
+ 
+ select a.sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" a, 
+ 
+  select sales_order_number,demand_type  from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where demand_type not in ('Consumption','Shipped','Safety Stock','Sales Orders - LAD','Forecast') 
+and demand_type not  in
+   (select sales_order_number  from  DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Unschedule')
+
+
+ 
+     select *  from  DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F  where demand_type ='Forecast' and demand_type   in 
+ (select demand_type  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type ='Forecast')
+ 
+   select *  from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type ='Forecast' and demand_type not  in 
+ (select demand_type  from  DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where demand_type ='Forecast')
+ 
+  select* from  DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F  where  sales_order_number = '23821372' and sales_order_number   in 
+ (select sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" )
+ 
+ select* from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  sales_order_number = '23821372' and sales_order_number   in 
+ (select sales_order_number  from  DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F)
+ 
+  select* from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  sales_order_number = '23821372' and sales_order_number  not  in 
+ (select sales_order_number  from  DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F)
+ 
+ 
+ 
+  (select*  from  DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where demand_type ='Forecast')
+
+
+
+
+    demand_type not in (select demand_type from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F) 
+ 
+ select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where demand_type = 'Forecast' 
+ and demand_class not in ('NA')
+ and sales_order_number is not null
+  select * from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type = 'Forecast'
+ and demand_class not in ('NA')
+ and sales_order_number is not null
+  where sales_order_number ='24245898'
+ 
+  select * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where demand_type = 'Sales Orders'
+  select * from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type = 'Sales Orders'
+
+
+ 
+SELECT distinct demand_type FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type not in ('Consumption','Unschedule','Shipped','Safety Stock','Sales Orders - LAD') 
+and SALES_ORDER_NUMBER = '24024551'
+
+-- three 
+select distinct sales_date from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where sales_order_number  = '24180088' and demand_type  = 'Sales Orders'
+ and  demand_type not in ('Consumption','Sales Orders - LAD')
+select distinct  DUE_DATE_WID from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number  = '24180088' 
+select distinct demand_type from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where demand_type not in ('Consumption','Unschedule','Shipped','Safety Stock','Sales Orders - LAD')  
+ select count(*) from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where demand_type not in ('Consumption','Unschedule','Shipped','Safety Stock','Sales Orders - LAD')  
+  select count(*) from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where demand_type not in ('Consumption','Unschedule','Shipped','Safety Stock','Sales Orders - LAD')  
+
+
+select distinct demand_type,plan_name,count(*) from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number  = '24180088'  group by demand_type,plan_name
+ select distinct demand_type,plan_name,count(*) from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number  = '24024551'  group by demand_type,plan_name
+
+ and demand_type not in ('Consumption','Sales Orders - LAD')
+select  *from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number  = '24180088' 
+ select  * from DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number  = '24024551'
+ and demand_type not in ('Consumption','Sales Orders - LAD')
+ 
+
+and demand_type = 'Sales Orders'
+
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type not in ('Consumption','Unschedule','Shipped','Safety Stock','Sales Orders - LAD')  and plan_name  = 'GLOBAL'
+and sales_order_number  = '24180088'  
+ 
+
+ SELECT count(*) FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"
+where SALES_ORDER_NUMBER = '24180088' 
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type = 'EMEA'
+and SALES_ORDER_NUMBER = '24180088' 
+
+
+

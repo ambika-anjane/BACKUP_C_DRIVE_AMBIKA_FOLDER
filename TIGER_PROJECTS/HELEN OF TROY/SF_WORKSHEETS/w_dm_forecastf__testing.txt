@@ -1,0 +1,74 @@
+with source as (
+
+    select * from dev_ods.oracle_scp.sales_data),
+    forecast_his as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__forecast_history),
+    cal as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__inputs),
+    ep as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__engine_profile),
+    mp as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__mdp_matrix),
+
+  
+v_f as (
+select
+fore_column_name as v_fore
+
+from forecast_his
+/*where
+            engine_profiles_id = 1
+            and time_sig                                         
+            = (select max(time_sig) from forecast_his where engine_profiles_id = 1) */
+group by 1),
+
+
+    mx_dt as (
+        select trunc(time_sig, 'mm') as v_max_date
+        
+        from forecast_his
+where
+            engine_profiles_id = 1
+            and time_sig
+            = (select max(time_sig) from forecast_his where engine_profiles_id = 1)
+group by 1),
+    
+-- only T
+    max_period_num as (
+        select c.t, mx_dt.v_max_date as v_max_period_num
+        from cal c, mx_dt
+        where c.datet = mx_dt.v_max_date
+    ),
+    
+    e_p as (
+        select min(engine_profiles_id) as v_uplift
+        from ep
+        where profile_type_id = 1
+    ),
+
+--- directly use in select
+    max_date_difference as (
+        select DATEDIFF(month, s.sales_date::DATE, mx_dt.v_max_date::DATE) as max_date_diff
+       -- select date_diff(s.sales_date - mx_dt.v_max_date) 
+        from source s, mx_dt   
+        
+    ),
+
+/*
+    period_diff as(
+     select cal.T-to_number(max_period_num.v_max_period_num)
+     from cal,max_period_num
+    ),
+
+*/
+
+sales as (
+select v_f.v_fore
+         
+ from v_f
+ )
+select * from sales  ;
+
+select * --fore_column_name as v_fore
+from dev_ods.oracle_scp.forecast_history
+where
+engine_profiles_id = 1
+and time_sig = (select max(time_sig) from  dev_ods.oracle_scp.forecast_history where engine_profiles_id = 1);
+
+

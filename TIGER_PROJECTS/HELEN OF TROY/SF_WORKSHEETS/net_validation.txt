@@ -1,0 +1,433 @@
+  drop view  dev_discover.FINANCIALS.stg__trade_funds
+
+
+with
+    secondary_inventory as (select * from dev_discover.MASTER_DATA.stg_oracle__secondary_inventories),
+    org_location as (select * from dev_discover.MASTER_DATA.stg_oracle__organization_locations),
+    org_definition as (select * from dev_discover.MASTER_DATA.stg_oracle__organization_definitions),
+    org_units as (select * from dev_discover.MASTER_DATA.stg_oracle__organization_units),
+    item_location as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__item_locations),
+    org_profile as (select * from dev_discover.MASTER_DATA.stg_oracle__organization_information where org_information_context = 'Accounting Information')
+
+select
+    org_location.location_code location_number,
+    org_location.description location_description,
+    null subinventory_code,
+    null subinventory_description,
+    org_definition.organization_code,
+    'RECIPIENT_LOC' physical_location_type,
+    NVL(org_location.inventory_organization_id||'~'||org_location._source_id,'0') organization_id,
+    NULL building,
+    NULL subinventory_type_code,
+    NVL(org_location.location_id||'~'||org_location._source_id,'0') location_id,
+    null locator_type_code,
+    null Availability_type,
+    null reservable_type,
+    org_location.active_flag,
+    NVL(org_location.created_by_id||'~'||org_location._source_id,'0') created_by_id,
+    nvl(org_location.last_updated_by_id ||'~'||org_location._source_id,'0') changed_by_id,
+    org_location.creation_date created_on_date,
+    org_location.last_update_date changed_on_date,
+    null aux1_changed_on_date,
+    null aux2_changed_on_date,
+    org_location.telephone_number_1,
+    org_location.telephone_number_2,
+    org_location.telephone_number_3,
+    org_location.style address_type_code,
+    org_location.county_code,
+    org_location.state_province_code,
+    org_location.region_2,
+    org_location.region_3,
+    org_location.address_line_1,
+    org_location.address_line_2,
+    org_location.address_line_3,
+    org_location.city_code town_or_city,
+    org_location.postal_code postal_code,
+    org_location.country_code country,
+    'N' delete_flg,
+    nvl('RECIPIENT_LOC'
+        || '~'
+        ||org_location.location_id
+        || '~'
+        ||org_location._source_id,'0') integration_id,
+    org_location._source_id datasource_num_id,
+
+    9999::number(32)  etl_proc_id
+from  org_location left outer join org_definition on org_location.inventory_organization_id = org_definition.organization_iD
+
+
+-- base table check 
+-- sales invoice
+
+
+select quantity_invoiced,quantity_credited from   dev_ods.oracle_financials.ra_customer_trx_lines_all where customer_trx_line_id = '269588055'   
+SELECT * FROM DEV_EDW.EDW_OMNI.W_SALES_INVOICE_LINE_f WHERE INTEGRATION_ID = '269588055~100'
+-- customer location d
+select  CREATION_DATE from   dev_ods.oracle_master_data.HZ_CUST_ACCT_SITES_ALL where CUST_ACCT_SITE_ID = '7005534'
+ select  CREATION_DATE from   dev_ods.oracle_master_data.HZ_CUST_ACCT_SITES_ALL where CUST_ACCT_SITE_ID = '6860500'
+ 
+ 
+with
+    cust_sites as (select * from dev_discover.MASTER_DATA.stg_oracle__customer_sites),
+    party_sites as (select * from dev_discover.MASTER_DATA.stg_oracle__party_sites),
+    contact_points as (select * from dev_discover.MASTER_DATA.stg_oracle__customer_contact_points),
+    location as (select * from dev_discover.MASTER_DATA.stg_oracle__party_locations)
+    
+ select distinct  NVL(cust_sites.customer_account_id|| '~' ||cust_sites._source_id,'0')::VARCHAR(200) customer_account_id,
+       NVL(cust_sites.party_site_id|| '~' ||cust_sites._source_id,'0')::VARCHAR(200) party_site_id
+       
+     from cust_sites  
+    left outer join party_sites  on cust_sites.party_site_id=party_sites.party_site_id
+    left outer join location  on party_sites.location_id=location.location_id
+        and cust_sites.party_site_id like '%6962272~100%'
+
+    left outer join lkp_email on party_sites.party_site_id =lkp_email.party_site_id
+    left outer join  lkp_phone on party_sites.party_site_id =lkp_phone.party_site_id
+    left outer join  lkp_fax on party_sites.party_site_id=lkp_fax.party_site_id
+    left outer join   lkp_url on party_sites.party_site_id=lkp_url.party_site_id
+    
+    SELECT * FROM DEV_EDW.EDW_OMNI.W_CUSTOMER_LOCATION_D WHERE INTEGRATION_ID = '6903943~100'
+    
+     select  CREATION_DATE from   dev_ods.oracle_master_data.HZ_CUST_ACCT_SITES_ALL where CUST_ACCT_SITE_ID = '6903943'
+          select  CREATION_DATE from   dev_ods.oracle_master_data.HZ_CUST_ACCT_SITES_ALL where party_site_id= '6903943'
+                    select  CREATION_DATE from   dev_ods.oracle_master_data.HZ_PARTY_SITES where party_site_id= '6903943'
+           select  CREATION_DATE from   dev_ods.oracle_master_data.HZ_LOCATIONS where location_id= '6903943'
+           select  CREATION_DATE from   dev_ods.oracle_master_data.HZ_CONTACT_POINTS where owner_table_id= '6903943'
+    
+-- customer _loc_use_d
+ select  CREATION_DATE from   dev_ods.oracle_master_data.HZ_CUST_ACCT_SITES_ALL where CUST_ACCT_SITE_ID = '8183493'
+ select  CREATION_DATE from   dev_ods.oracle_master_data.HZ_CUST_SITE_USES_ALL where CUST_ACCT_SITE_ID = '8183493'
+ select  CREATION_DATE from   dev_ods.oracle_master_data.HZ_CUST_SITE_USES_ALL where SITE_USE_ID = '8183493'
+select * from dev_edw.edw_omni.w_customer_location_use_d where integration_id = '9468470~100'
+ -- claims_f
+-- 3256398~98431104~2627277~81035718,
+-- 3508268~~2835184~ 
+-- 2803816~77616429~2354382~58540749
+-- 3256398~98431104~2627277~81035718
+-- 2803816~77600881~2354382~58539731
+--3473104~~2814086~
+-- --3032230~80092503~2487985~68449
+-- 4929472~287502234~3823786~146472705~100
+-- 3186700~110150390~2581267~75647163
+
+
+
+
+ 
+ select  CREATION_DATE,last_update_date from   dev_ods.oracle_financials.ozf_claims_all where claim_id = '3186700'
+
+ select  CREATION_DATE,last_update_date from   dev_ods.oracle_financials. ozf_funds_utilized_all_b where utilization_id = '110150390'  --present
+
+ select  CREATION_DATE,last_update_date from   dev_ods.oracle_financials.ozf_claim_lines_all where  claim_line_id = '2581267'
+  select  CREATION_DATE,last_update_date from   dev_ods.oracle_financials.ozf_claim_lines_util_all where claim_line_util_id ='75647163'-- present 
+ 
+ 
+-- inventory_location_d
+----
+--RECIPIENT_LOC~7530964
+-- RECIPIENT_LOC~6478220
+-- STORAGE_LOC~1159~SZWIP~
+-- STORAGE_LOC~1159~RTSZ~
+--RECIPIENT_LOC~6478220
+--RECIPIENT_LOC~7292517
+-- STORAGE_LOC~1159~QCJD~
+
+-- new
+-- RECIPIENT_LOC~7298931
+-- RECIPIENT_LOC~7311973
+-- STORAGE_LOC~1159~STSZ~
+-- STORAGE_LOC~1139~~
+-- STORAGE_LOC~c
+-- STORAGE_LOC~238~FTIO~
+-- STORAGE_LOC~238~INTO~
+
+
+with
+    secondary_inventory as (select * from dev_discover.MASTER_DATA.stg_oracle__secondary_inventories),
+    org_location as (select * from dev_discover.MASTER_DATA.stg_oracle__organization_locations),
+    org_definition as (select * from dev_discover.MASTER_DATA.stg_oracle__organization_definitions),
+    org_units as (select * from dev_discover.MASTER_DATA.stg_oracle__organization_units),
+    item_location as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__item_locations)
+
+select coalesce(to_char(secondary_inventory.organization_id),'')
+        || '~'
+        ||coalesce(to_char(secondary_inventory.secondary_inventory_name),'')
+        || '~'
+        ||coalesce(to_char(item_location.inventory_location_id),'')
+        || '~'
+        ||coalesce(to_char(secondary_inventory._source_id),'') integration_id
+        from item_location
+right outer join
+    secondary_inventory
+    on item_location.organization_id = secondary_inventory.organization_id
+    and item_location.subinventory_code = secondary_inventory.secondary_inventory_name
+    inner join org_definition on secondary_inventory.organization_id = org_definition.organization_id
+    left  JOIN org_units     ON secondary_inventory.ORGANIZATION_ID=org_units.ORGANIZATION_ID 
+   AND  org_units.ORGANIZATION_ID = org_definition.organization_id
+ 
+left outer join
+    org_location on org_units.location_id = org_location.location_id
+    AND   secondary_inventory.location_id = org_location.location_id
+where
+   integration_id like '%238~RTIO~~100%'
+
+
+
+ select  CREATION_DATE from   dev_ods.oracle_master_data.hr_locations_all where location_id  = '7298931'
+ select * from dev_edw.edw_omni.w_inventory_location_d  where integration_id = '1159~STSZ~~100'
+  select * from dev_edw.edw_omni.w_inventory_location_d  where integration_id = '238~INTO~~100'
+   select * from dev_edw.edw_omni.w_inventory_location_d  where integration_id = '1159~OXOFG~~100'
+  -- STORAGE_LOC~238~RTIO~
+      select * from dev_edw.edw_omni.w_inventory_location_d  where integration_id = '1159~DBFG~~100'
+      
+      select  a.organization_id,a.secondary_inventory_name,b.inventory_location_id,b.creation_date  from   dev_ods.oracle_master_data.mtl_secondary_inventories  a ,
+      dev_ods.oracle_inventory.mtl_item_locations  b 
+     where  b.organization_id = a.organization_id
+    and b.subinventory_code = a.secondary_inventory_name
+       and  a.organization_id  = '1159' and a.secondary_inventory_name = 'DBFG'
+
+ select * from  dev_ods.oracle_master_data.mtl_secondary_inventories where organization_id  = '1159' and secondary_inventory_name = 'DBFG'
+  select * from  dev_ods.oracle_master_data.mtl_secondary_inventories where organization_id  = '238' and secondary_inventory_name = 'INTO'
+
+ 
+  
+  select * from dev_edw.edw_omni.w_inventory_location_d where integration_id = '238~INTO~0~100'
+  select  CREATION_DATE from   dev_ods.oracle_inventory.mtl_item_locations where inventory_location_id  = '474655'
+--sales invoice lines
+
+  select  CREATION_DATE from   dev_ods.oracle_financials.ra_customer_trx_lines_all where customer_trx_line_id = '267046156'
+  select * from dev_edw.edw_omni.w_sales_invoice_line_f where integration_id = '267046156~100'
+  select * from dev_discover.FINANCIALS.stg_oracle__sales_invoice_details where sales_invoice_line_id = '259805050'
+    select * from dev_discover.FINANCIALS.stg__sales_invoice_lines where sales_invoice_line_id = '259805050'
+   
+
+select  CREATION_DATE from   dev_ods.oracle_master_data.HZ_CUST_SITE_USES_ALL where SITE_USE_ID = '265275809'
+      select b.using_assembly_demand_date::date from dev_edw.edw_omni.w_day_d a,  dev_ods.oracle_scp.msc_demands b where b.using_assembly_demand_date = a.CALENDAR_DATE
+      
+select integration_id from dev_edw.edw_omni.w_day_d 
+desc table dev_edw.edw_omni.w_day_d 
+
+  -- TRADE_FUNDS _F
+   select  CREATION_DATE,LAST_UPDATE_DATE,acctd_amount from   dev_ods.oracle_financials. ozf_funds_utilized_all_b where utilization_id = '225056064'
+   desc table dev_ods.oracle_financials. ozf_funds_utilized_all_b
+   select gl.location_segment_key gl_location_id,
+                        gl.company_segment_key gl_company_id,
+                        gl.product_line_segment_key gl_product_line_id from dev_discover.MASTER_DATA.stg_oracle__gl_account_combinations gl left join dev_discover.MASTER_DATA.stg_oracle__inventory_products p
+   on  p.sales_account = gl.code_combination_id
+               select integration_id from TEST_edw.edw_omni.w_sales_forecast_f  where integration_id = '132039~511889~20231101~100'
+               
+
+  --132039~511889~20231101 
+  -- 420315~511447~20230201
+  -- 523~6526~2023-07-01~100
+  -- 1836439~502065~20231001
+  -- 132039~511889~20231101
+   select sales_data.sdata8,sales_data.item_id,sales_data.location_id,sales_data.sales_date from dev_ods.oracle_scp.sales_data  sales_data   
+   where  sales_data.sales_date =  '2023-11-01' and sales_data.item_id = '132039' and sales_data.location_id = '511889'
+   
+   select location_id from  dev_discover.MASTER_DATA.stg_oracle__customer_group_and_lob b where location_id = '511889'
+
+   
+   select sales_data.sdata8,sales_data.item_id,sales_data.location_id,sales_data.sales_date from dev_ods.oracle_scp.sales_data  sales_data  
+   inner join   dev_discover.MASTER_DATA.stg_oracle__customer_group_and_lob b 
+   where sales_data.location_id  = b.location_id and sales_data.sales_date =  '2023-11-01' and sales_data.item_id = '132039' and b.location_id = '511889'
+   
+   
+ --  where sales_data.sales_date =  '2023-04-01' and sales_data.item_id = '1149170' and sales_data.location_id = '513743'
+
+
+-- 1185453~510798~20230501
+
+
+  
+ --on sales_data.t_ep_ebs_account_ep_id = b.t_ep_ebs_account_ep_id
+ -- 18047~511372~20230901
+ -- 1149170~513743~20230401
+ -- 1344138~517403~20230801 (present in table)
+ --and mp.item_id = '1344120' and mp.location_id = '524158' and  year(s.sales_date) = '2023'
+ -- 132039~511889~20231101
+ -- 1093186~513338~20230201
+ -- '1381752~511977~20230501~100'
+ --1093186~513338~20230201
+ -- 188141~263106~2023-10-01
+ -- 638081~517594~20220901
+
+   
+
+
+select sales_data.sdata8,sales_data.item_id,sales_data.location_id,sales_data.sales_date from dev_ods.oracle_scp.sales_data  sales_data  
+  inner join   dev_discover.MASTER_DATA.stg_oracle__customer_group_and_lob b
+ --on sales_data.t_ep_ebs_account_ep_id = b.t_ep_ebs_account_ep_id
+where sales_data.location_id  = b.location_id and sales_data.sales_date =  '2023-07-01' and sales_data.item_id = '1344120' and sales_data.location_id = '524158'
+
+--present 
+
+  select a.final_forecast_amount,b.sales_date,b.item_id,b.location_id from dev_discover.SUPPLY_CHAIN.stg__sales_forecast a inner join test_ods.oracle_scp.sales_data b inner join
+   test_ods.oracle_scp.mdp_matrix c
+   on c.item_id = b.item_id and  b.item_id = '1344120' and  b.location_id ='524158'  and  b.sales_date like '%2023-07-01%'  and final_forecast like '%175.95%'
+
+select t_ep_ebs_account_ep_id from dev_ods.oracle_scp.sales_data
+
+
+-- sales forecast
+-- 32592~511769~20241201
+-- 13846~517287~20250201
+-- 1149047~513545~20230501
+-- 1344313~120848~20240201
+-- 318034~511389~20230301
+-- 344188~514928~20230601
+
+--14745~6526~2023-07-01 00:00:00.000~
+ -- 132039~511889~20231101
+
+   select sdata8,sales_date from   DEV_ods.oracle_scp.sales_data where item_id = '132039'and  location_id ='511889'  and  sales_date = '2023-11-01'
+      select sdata8,sales_date from   DEV_ods.oracle_scp.sales_data where item_id = '14745'and  location_id ='6526'  and  sales_date = '2023-07-01'
+
+     select a.final_forecast_amount,b.sales_date,b.item_id,b.location_id from dev_discover.SUPPLY_CHAIN.stg__sales_forecast a inner join test_ods.oracle_scp.sales_data b inner join
+   test_ods.oracle_scp.mdp_matrix c
+   on c.item_id = b.item_id and  b.item_id = '344188' and  b.location_id ='514928'  and  b.sales_date like '%2023-08-01%'  and final_forecast like '%175.95%'
+   
+   select a.item_id,b.item_id,a.location_id,b.location_id,a.sales_date from test_ods.oracle_scp.sales_data a left join test_ods.oracle_scp.mdp_matrix b on 
+   a.item_id = b.item_id and a.location_id = b.location_id and b.item_id = '344188' and  b.location_id ='514928' and  year(a.sales_date) like '%2023%' order by a.sales_date
+   
+   
+   select a.final_forecast_amount,b.sales_date,b.item_id,b.location_id from dev_discover.SUPPLY_CHAIN.stg__sales_forecast a inner join test_ods.oracle_scp.sales_data b inner join
+   test_ods.oracle_scp.mdp_matrix c
+   on c.item_id = b.item_id and  b.item_id = '523' and  b.location_id ='6526'  and  b.sales_date like '%2023-07-01%'  and final_forecast like '%175.95%'
+   
+   -- trade 
+      select item_id,location_id,sales_date from   test_ods.oracle_scp.sales_data where item_id = '318034' and location_id = '511389' and  year(sales_Date) = '2023' order by sales_date asc
+            select sales_date from   dev_ods.oracle_scp.sales_data where sales_date = '20230301'
+            
+            select sales_date from  test_ods.oracle_scp.sales_data
+            where item_id = '14745' and  location_id ='6526'  and  year(sales_Date) = '2023' order by sales_date asc
+            --00:00:00.000~100 
+            
+           select forecast_amount  from dev_discover.SUPPLY_CHAIN.stg_oracle__forcasted_sales a,  test_ods.oracle_scp.sales_data b
+            select item_id,location_id from  test_ods.oracle_scp.mdp_matrix where item_id = '14745' and  location_id ='6526'
+            select integration_id from dev_edw.edw_omni.w_sales_forecast_f 
+   select  nvl(dev_ods.oracle_scp.sales_data.item_id
+    || '~'
+    ||  dev_ods.oracle_scp.sales_data.location_id
+    || '~'
+    || dev_ods.oracle_scp.sales_data.sales_date::date
+    || '~'
+    || dev_ods.oracle_scp.sales_data._source_id,0) integration_id
+    
+    from dev_ods.oracle_scp.sales_data 
+    where
+    dev_ods.oracle_scp.sales_data.item_id = '1344313' and
+    dev_ods.oracle_scp.sales_data.location_id = '120848'
+    and dev_ods.oracle_scp.sales_data.sales_date = '20240201'
+    
+    
+
+             select * from dev_discover.MASTER_DATA.stg_oracle__currency_exchange_rates WHERE TO_CURRENCY_CODE = 'USD' and conversion_date  = TO_DATE(CURRENT_TIMESTAMP())  ORDER BY  CONVERSION_DATE DESC
+             
+            with  plan_demand as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__planned_demand),
+            w_int_org_d as (select * from dev_edw.edw_omni.w_int_org_d),
+           exchange_rate as (select * from dev_discover.MASTER_DATA.stg_oracle__currency_exchange_rates),
+               msc_system as (select * from dev_ods.oracle_scp.msc_system_items),
+                   inventory_products as (select * from dev_discover.MASTER_DATA.stg_oracle__inventory_products)
+
+
+            select
+            plan_demand.organization_id,
+            inventory_products.inventory_item_id,
+             case
+                            when w_int_org_d.currency_code = 'USD'
+                            then 1
+                            else exchange_rate.exchange_rate
+                        end usd_conv_rate,
+             w_int_org_d.currency_code
+            from plan_demand
+            left join
+                        w_int_org_d
+                        on w_int_org_d.integration_id
+                        = plan_demand.organization_id || '~' || 100
+                        and (w_int_org_d.inv_org_flag = 'Y')
+                        left join
+                        exchange_rate
+                        on exchange_rate.from_currency_code = w_int_org_d.currency_code
+                        and exchange_rate.to_currency_code = 'USD'
+                        and (
+                            exchange_rate.conversion_date
+                            = current_date
+                        )
+                        inner join msc_system
+                            on msc_system.inventory_item_id = plan_demand.inventory_item_id
+                     left join
+                        inventory_products
+                        on inventory_products.inventory_item_id
+                        = msc_system.sr_inventory_item_id
+                        and inventory_products.organization_id
+                        = plan_demand.organization_id
+
+                        
+                   where   inventory_products.inventory_item_id = '2165197' and plan_demand.organization_id = '398' and plan_demand.using_assembly_demand_date between '2023-08-01' and '2023-08-31'
+                   and plan_demand.demand_source = 'Sales Orders';
+                   
+
+
+
+
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+  select  * from   dev_ods.oracle_master_data.HZ_CUST_SITE_USES_ALL  LIMIT 10 
+
+
+-- 1161785 present in source
+-- 5416076
+
+
+ select  CREATION_DATE
+ from   dev_ods.oracle_master_data.HZ_LOCATIONS WHERE LOCATION_ID = '7236035'
+ SELECT * FROM DEV_EDW.EDW_OMNI.W_CUSTOMER_LOCATION_D  WHERE INTEGRATION_ID = '7236035~100'
+ 
+ 
+--- trade balance
+
+  Select 
+  SUM(T507647.PAID_AMOUNT),
+  SUM(T507647.ADJUSTMENT_AMOUNT),
+  SUM(T507647.ACCRUAL_AMOUNT),
+  SUM(T507647.ENDING_ACCRUAL),
+  SUM(T507647.BEGINNING_ACCRUAL) FROM  PROD_EDW.BI11G_DW.WC_TRADE_BALANCES_F T507647 Where PERIOD_WID = '120230531000' and FUND_WID =  '1230790'; 
+ desc table dev_ods.oracle_scp.sales_data
+ select sales_date::date from dev_ods.oracle_scp.sales_data
+select invoiced_quantity,quantity_credited,unit_standard_price,NET_AMOUNT from dev_discover.FINANCIALS.stg__sales_invoice_lines where invoiced_quantity is not null and quantity_credited is  not null 
+AND sales_invoice_line_id ='79006590'
+select count(*) from dev_discover.FINANCIALS.stg__sales_invoice_lines
+and  exchange_date::date between '2023-06-01' and '2023-06-30'
+-- trade balance f
+ select fund_id from "DEV_EDW"."EDW_OMNI"."W_TRADE_BALANCES_F" where fund_id = '1260789~100' ORDER BY  ENT_PERIOD_START_DATE
+ select fund_id from dev_ods.oracle_financials.ozf_fund_details_v where fund_id = '1260789'
+ select fund_id from dev_ods.oracle_financials.ozf_funds_utilized_all_b where fund_id = '1260789'
+
+
+
+select quantity_invoiced,unit_standard_price from dev_discover.FINANCIALS.stg_oracle__sales_invoice_details where quantity_invoiced is not null
+where
+secondary_inventory.organization_id
+ = '1299'
+ and secondary_inventory.secondary_inventory_name = 'BTBOXO'
+AND  integration_id = '1299~BTBOXO~474672~100' 
+ select * from "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F"
+    
+     select * from "DEV_EDW"."BI11G_DW"."WC_TRADE_BALANCES_F" where fund_wid = '62' order by period_wid
+     select * from "DEV_EDW"."EDW_OMNI"."W_TRADE_BALANCES_F" where fund_id = '127134~100' ORDER BY  ENT_PERIOD_START_DATE
+

@@ -1,0 +1,70 @@
+
+New Worksheet
+hyerion
+
+CUSTOMER_NET_SALES
+
+CUSTOMER NET SALES_PRECENT TEST
+tesing_all_mocels
+customer_location_d testing
+New Worksheet
+New Worksheet
+hyerion
+CUSTOMER_NET_SALES
+CUSTOMER NET SALES_PRECENT TEST
+tesing_all_mocels
+customer_location_d testing
+New Worksheet
+Find database objects
+Starting with...
+RunAll QueriesSaved 1 week ago
+Select SchemaSelect DatabaseSelect WarehouseSelect Role
+  drop view  dev_discover.FINANCIALS.stg__trade_funds
+​
+​
+with
+    secondary_inventory as (select * from dev_discover.MASTER_DATA.stg_oracle__secondary_inventories),
+    org_location as (select * from dev_discover.MASTER_DATA.stg_oracle__organization_locations),
+    org_definition as (select * from dev_discover.MASTER_DATA.stg_oracle__organization_definitions),
+    org_units as (select * from dev_discover.MASTER_DATA.stg_oracle__organization_units),
+    item_location as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__item_locations),
+    org_profile as (select * from dev_discover.MASTER_DATA.stg_oracle__organization_information where org_information_context = 'Accounting Information')
+​
+select
+    org_location.location_code location_number,
+    org_location.description location_description,
+    null subinventory_code,
+    null subinventory_description,
+    org_definition.organization_code,
+    'RECIPIENT_LOC' physical_location_type,
+    NVL(org_location.inventory_organization_id||'~'||org_location._source_id,'0') organization_id,
+    NULL building,
+    NULL subinventory_type_code,
+    NVL(org_location.location_id||'~'||org_location._source_id,'0') location_id,
+    null locator_type_code,
+    null Availability_type,
+    null reservable_type,
+    org_location.active_flag,
+    NVL(org_location.created_by_id||'~'||org_location._source_id,'0') created_by_id,
+    nvl(org_location.last_updated_by_id ||'~'||org_location._source_id,'0') changed_by_id,
+    org_location.creation_date created_on_date,
+    org_location.last_update_date changed_on_date,
+ResultsData Preview Open History
+Query results will appear here.
+History0
+Status
+Getting StartedWorksheet
+Worksheets provide a way for formulating and submitting SQL statements. Let's get started by running a sample query:
+To run a sample query:
+1. 
+Set your worksheet context (warehouse, database, etc.) as needed.
+2. 
+Open a tutorial. Snowflake provides two different tutorials to choose from.
+3. 
+Select All Queries and click Run!
+Take a tour of the Worksheet
+Next steps...
+View all queries executed in the past 14 days
+Related documentation
+Overview of Worksheet Features
+SQL Command Reference

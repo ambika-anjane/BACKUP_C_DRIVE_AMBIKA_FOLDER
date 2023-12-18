@@ -1,0 +1,262 @@
+SELECT * FROM ORACLE_FINANCIALS.IBY_PAYMENT_METHODS_TL 
+SELECT * FROM ORACLE_MASTER_DATA.FND_LOOKUPS
+SELECT * FROM ORACLE_FINANCIALS.AR_RECEIPT_METHODS
+WHERE PAYMENT_METHOD_CODE IN (SELECT PAYMENT_METHOD_CODE FROM "DEV_EDW"."EDW_OMNI"."W_PAYMENT_METHOD_D" WHERE PAYMENT_METHOD_CODE  = '1082')
+UPDATE ORACLE_FINANCIALS.IBY_PAYMENT_METHODS_TL  SET PAYMENT_METHOD_NAME = 'CHECK1' WHERE PAYMENT_METHOD_CODE = 'CHECK'
+UPDATE ORACLE_FINANCIALS.IBY_PAYMENT_METHODS_TL  SET LAST_UPDATE_DATE = CURRENT_TIMESTAMP() WHERE PAYMENT_METHOD_CODE = 'CHECK'
+
+SELECT * FROM  ORACLE_FINANCIALS.IBY_PAYMENT_METHODS_TL WHERE  PAYMENT_METHOD_CODE = 'CHECK'
+
+UPDATE ORACLE_FINANCIALS.IBY_PAYMENT_METHODS_B  SET PAYMENT_METHOD_CODE = 'ACH' WHERE PAYMENT_METHOD_CODE = 'ACE'
+
+DROP TABLE  "DEV_EDW"."EDW_OMNI"."W_PAYMENT_METHOD_D"
+drop table "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" 
+select
+integration_id as unique_field,
+    count(*) as n_records
+from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  
+group by integration_id
+having count(*) > 1
+select count(*)  from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  
+SELECT * FROM  "DEV_EDW"."EDW_OMNI"."W_PAYMENT_METHOD_D" WHERE INTEGRATION_ID  = 'AR~1082~100'
+SELECT * FROM  "DEV_EDW"."EDW_OMNI"."W_PAYMENT_METHOD_D"
+DELETE FROM "DEV_EDW"."EDW_OMNI"."W_PAYMENT_METHOD_D" WHERE PAYMENT_METHOD_CODE  = '1082'
+SELECT * FROM ORACLE_FINANCIALS.AR_RECEIPT_METHODS WHERE RECEIPT_METHOD_ID = '1082'
+select NAME   from ORACLE_FINANCIALS.AR_RECEIPT_METHODS WHERE RECEIPT_METHOD_ID = '1082'
+--Bank Fees - BofA Oper
+UPDATE ORACLE_FINANCIALS.AR_RECEIPT_METHODS  SET NAME ='Bank Fees_NEW' WHERE RECEIPT_METHOD_ID = '1082'
+UPDATE ORACLE_FINANCIALS.AR_RECEIPT_METHODS   SET _BATCH_UPDATE_DATE = CURRENT_TIMESTAMP() WHERE RECEIPT_METHOD_ID = '1082'
+SELECT RECEIPT_METHOD_ID FROM  ORACLE_FINANCIALS.AR_RECEIPT_METHODS WHERE  RECEIPT_METHOD_ID = '1083'
+
+UPDATE ORACLE_FINANCIALS.IBY_PAYMENT_METHODS_TL  SET LAST_UPDATE_DATE = CURRENT_TIMESTAMP() WHERE PAYMENT_METHOD_CODE = 'ACH'
+UPDATE ORACLE_FINANCIALS.IBY_PAYMENT_METHODS_B  SET LAST_UPDATE_DATE = CURRENT_TIMESTAMP() WHERE PAYMENT_METHOD_CODE = 'ACH'
+
+
+SELECT * FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__EXTERNAL_USER_PAYMENT_METHODS"
+    SELECT * FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__IBY_PAYMENT_METHODS_B"
+
+
+
+
+SELECT PAYMENT_METHOD_CODE FROM 
+SELECT * FROM ORACLE_FINANCIALS.IBY_PAYMENT_METHODS_B
+SELECT DISTINCT(PAYMENT_METHOD_CODE) FROM ORACLE_FINANCIALS.IBY_PAYMENT_METHODS_TL WHERE PAYMENT_METHOD_CODE  = 'ACH'
+DESC TABLE ORACLE_FINANCIALS.IBY_PAYMENT_METHODS_B
+DESC TABLE  "DEV_EDW"."EDW_OMNI"."W_PAYMENT_METHOD_D" WHERE PAYMENT_METHOD_CODE  = 1082
+SELECT * FROM ORACLE_FINANCIALS.AR_RECEIPT_METHODS where RECEIPT_METHOD_ID = 35793
+
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_PAYMENT_METHOD_D" WHERE PAYMENT_METHOD_CODE  = '1082'
+(SELECT PAYMENT_METHOD_CODE FROM ORACLE_FINANCIALS.IBY_PAYMENT_METHODS_B
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_PAYMENT_METHOD_D" WHERE PAYMENT_METHOD_CODE NOT   IN 
+(SELECT LANGUAGE  FROM ORACLE_MASTER_DATA.FND_LOOKUPS)
+ DESC TABLE ORACLE_MASTER_DATA.FND_LOOKUPS
+ DROP VIEW ORACLE_MASTER_DATA.FND_LOOKUPS
+ 
+ 
+ SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_PAYMENT_METHOD_D" WHERE PAYMENT_METHOD_CODE = 'Unspecified'
+ delete from "DEV_EDW"."EDW_OMNI"."W_PAYMENT_METHOD_D" WHERE PAYMENT_METHOD_CODE = 'Unspecified'
+
+
+   IN (SELECT CREATED_BY
+ FROM ORACLE_FINANCIALS.AR_RECEIPT_METHODS)
+ SELECT TO_ASCII('ACH') FROM DUAL
+
+SELECT PAYMENT_METHOD_CODE,INTEGRATION_ID FROM "DEV_EDW"."EDW_OMNI"."W_PAYMENT_METHOD_D" WHERE INTEGRATION_ID = 'OM~000001_AVBIY_T_GND100'
+ FROM SELECT "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__AR_RECEIPT_METHODS"
+ 
+SELECT * FROM ORACLE_FINANCIALS.IBY_PAYMENT_METHODS_B WHERE PAYMENT_METHOD_CODE NOT IN 
+(SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_PAYMENT_METHOD_D")
+ DROP TABLE "DEV_EDW"."EDW_OMNI"."W_PAYMENT_METHOD_D"
+
+SELECT * FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__ORDER_PAYMENT_METHODS"
+ DROP VIEW  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__ORDER_PAYMENT_METHODS"
+ SELECT * FROM "DEV_DISCOVER"."MASTER_DATA"."STG_ORACLE__FND_LOOKUPS" where lookup_type LIKE 'ACCOUNT_TYPE'
+ 
+SELECT PAYMENT_METHOD_CODE  FROM "DEV_EDW"."EDW_OMNI"."W_PAYMENT_METHOD_D" WHERE  PAYMENT_METHOD_CODE IS NULL
+(SELECT LOOKUP_CODE FROM ORACLE_MASTER_DATA.FND_LOOKUP_VALUES)
+SELECT * FROM "DEV_EDW"."BI11G_DW"."W_DOMAIN_MEMBER_G"
+select table_schema, 
+       table_name, 
+       created as create_date,
+       last_altered as modify_date
+from information_schema.tables 
+where table_name in ('IBY_PAYMENT_METHODS_B')
+order by table_schema,
+        table_name
+
+
+with 
+    fnd_lookup as (select * from dev_discover.MASTER_DATA.stg_oracle__find_lookup_values),
+    iby_payment_tl as (select * from dev_discover.FINANCIALS.stg_oracle__iby_payment_methods_tl),
+    iby_payment_b as (select * from dev_discover.FINANCIALS.stg_oracle__iby_payment_methods_b),
+    rec_method as (select * from dev_discover.FINANCIALS.stg_oracle__ar_receipt_methods),
+
+
+lkp_iby_payment_tl as (
+select
+     TO_CHAR(iby_payment_tl.payment_method_code) PAYMENT_METHOD_CODE,
+    (CASE WHEN iby_payment_b.INACTIVE_DATE IS NULL THEN 'Y' ELSE 'N'END ) ACTIVE_FLG,
+	iby_payment_tl.created_by_id	   CREATED_BY_ID,
+	iby_payment_tl.last_updated_by_id	   CHANGED_BY_ID,
+	iby_payment_tl.created_on_date   CREATED_ON_DATE,
+	iby_payment_tl.last_update_date	   CHANGED_ON_DATE,
+	'N'	   DELETE_FLAG,
+    'ING~'||TO_CHAR(iby_payment_tl.PAYMENT_METHOD_CODE)||(iby_payment_tl._source_id)   INTEGRATION_ID
+    from	iby_payment_tl  INNER JOIN iby_payment_b   
+    ON iby_payment_tl.PAYMENT_METHOD_CODE=iby_payment_b.PAYMENT_METHOD_CODE
+    where	
+      (1=1)
+       And iby_payment_tl.language='US'
+    ),
+lkp_rec_method   as (
+select
+    (CASE WHEN rec_method.END_DATE IS NULL THEN 'Y' ELSE 'N'END )	   ACTIVE_FLG,
+	rec_method.created_by_id	   CREATED_BY_ID,
+	TO_CHAR(rec_method.last_updated_by_id)	  CHANGED_BY_ID,
+	rec_method.created_on_date	   CREATED_ON_DATE,
+	rec_method.last_update_date	   CHANGED_ON_DATE,
+	'N'	   DELETE_FLG,
+	'AR~'||TO_CHAR(rec_method.receipt_method_id)||(rec_method._source_id)   INTEGRATION_ID,
+	rec_method.receipt_method_id	   RECEIPT_METHOD_ID
+    from	rec_method
+    where	
+        (1=1)
+        
+),
+
+lkp_fnd_lookup   as (
+select
+    COALESCE(fnd_lookup.lookup_code,'__UNASSIGNED__')	   PAYMENT_METHOD_CODE,
+	COALESCE(fnd_lookup.enabled_flag,'Y')	   ACTIVE_FLG,
+	TO_CHAR(fnd_lookup.created_by_id)	   CREATED_BY_ID,
+	TO_CHAR(fnd_lookup.last_updated_by_id)	   CHANGED_BY_ID,
+	fnd_lookup.created_on_date	   CREATED_ON_DATE,
+	fnd_lookup.last_update_date   CHANGED_ON_DATE,
+	'N' DELETE_FLG,
+	'OM~'||fnd_lookup.LOOKUP_CODE||fnd_lookup._source_id	   INTEGRATION_ID,
+	fnd_lookup.lookup_code	   LOOKUP_CODE
+    from	fnd_lookup
+    where	
+        (1=1)
+         
+),    
+
+
+final as (
+   select 
+
+       CREATED_BY_ID,
+       CREATED_ON_DATE,
+       CHANGED_BY_ID,
+       CHANGED_ON_DATE,
+       INTEGRATION_ID,
+       'N' DELETE_FLAG,
+       ACTIVE_FLG
+    From lkp_iby_payment_tl
+    union all 
+    select
+     
+       CREATED_BY_ID,
+       CREATED_ON_DATE,
+       CHANGED_BY_ID,
+       CHANGED_ON_DATE,
+       INTEGRATION_ID,
+       'N' DELETE_FLAG,
+       ACTIVE_FLG
+    from lkp_rec_method
+    union all
+    select
+  
+       CREATED_BY_ID,
+       CREATED_ON_DATE,
+       CHANGED_BY_ID,
+       CHANGED_ON_DATE,
+       INTEGRATION_ID,
+       'N' DELETE_FLAG,
+       ACTIVE_FLG
+    from lkp_fnd_lookup
+    
+    WHERE 
+       (1=1)
+       
+)
+select * from  final
+limit 500
+/* limit added automatically by dbt cloud */
+
+
+with 
+    iby_payment_tl as (select * from dev_discover.FINANCIALS.stg_oracle__iby_payment_methods_tl),
+    iby_payment_b as (select * from dev_discover.FINANCIALS.stg_oracle__iby_payment_methods_b),
+
+lkp_iby_payment_tl as (
+select
+    TO_CHAR(iby_payment_tl.payment_method_code) PAYMENT_METHOD_CODE,
+    iby_payment_tl.created_by_id	   CREATED_BY_ID,
+    iby_payment_tl.created_on_date   CREATED_ON_DATE,
+    iby_payment_tl.last_updated_by_id	   CHANGED_BY_ID,
+    iby_payment_tl.last_update_date	   CHANGED_ON_DATE,
+    'N'	   DELETE_FLAG,
+    (CASE WHEN iby_payment_b.INACTIVE_DATE IS NULL THEN 'Y' ELSE 'N'END ) ACTIVE_FLG,
+    iby_payment_tl._source_id SOURCE_ID
+from iby_payment_tl  left outer join iby_payment_b   
+    ON iby_payment_tl.PAYMENT_METHOD_CODE=iby_payment_b.PAYMENT_METHOD_CODE
+    where	
+       (1=1)
+       And iby_payment_tl.language='US'
+    )
+    SELECT * FROM lkp_iby_payment_tl  WHERE PAYMENT_METHOD_CODE NOT IN 
+ (SELECT TO_CHAR(PAYMENT_METHOD_CODE) FROM "DEV_EDW"."EDW_OMNI"."W_PAYMENT_METHOD_D")
+ 
+    
+    with
+    fnd_lookup as (select * from dev_discover.MASTER_DATA.stg_oracle__find_lookup_values),    
+
+lkp_fnd_lookup   as (
+select
+    COALESCE(fnd_lookup.lookup_code,'__UNASSIGNED__')	   PAYMENT_METHOD_CODE,
+	COALESCE(fnd_lookup.enabled_flag,'Y')	   ACTIVE_FLG,
+	TO_CHAR(fnd_lookup.created_by_id)	   CREATED_BY_ID,
+	TO_CHAR(fnd_lookup.last_updated_by_id)	   CHANGED_BY_ID,
+	fnd_lookup.created_on_date	   CREATED_ON_DATE,
+	fnd_lookup.last_update_date   CHANGED_ON_DATE,
+	'N' DELETE_FLG,
+	fnd_lookup.lookup_code	   LOOKUP_CODE,
+    fnd_lookup._source_id source_id
+    from	fnd_lookup
+    where	
+        (1=1)
+        And (fnd_lookup.lookup_type='PAYMENT TYPE')
+        And (fnd_lookup.view_application_id=660)
+        And (fnd_lookup.security_group_id=0)
+        And (fnd_lookup.LANGUAGE='US')
+    
+)
+SELECT LOOKUP_CODE FROM LKP_FND_LOOKUP WHERE LOOKUP_CODE IN 
+ (SELECT TO_CHAR(PAYMENT_METHOD_CODE) FROM "DEV_EDW"."EDW_OMNI"."W_PAYMENT_METHOD_D")
+ 
+ 
+with    
+rec_method as (select * from dev_discover.FINANCIALS.stg_oracle__ar_receipt_methods),
+lkp_rec_method   as (
+select
+    (CASE WHEN rec_method.END_DATE IS NULL THEN 'Y' ELSE 'N'END )	   ACTIVE_FLG,
+	rec_method.created_by_id	   CREATED_BY_ID,
+	TO_CHAR(rec_method.last_updated_by_id)	  CHANGED_BY_ID,
+	rec_method.created_on_date	   CREATED_ON_DATE,
+	rec_method.last_update_date	   CHANGED_ON_DATE,
+	'N'	   DELETE_FLG,
+	'AR~'||TO_CHAR(rec_method.receipt_method_id)||(rec_method._source_id)   INTEGRATION_ID,
+	rec_method.receipt_method_id	   RECEIPT_METHOD_ID
+    from	rec_method
+    where	
+        (1=1)
+        
+)
+select * from lkp_rec_method WHERE RECEIPT_METHOD_ID IN (SELECT PAYMENT_METHOD_CODE FROM "DEV_EDW"."EDW_OMNI"."W_PAYMENT_METHOD_D")
+
+
+
+
+
+

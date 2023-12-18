@@ -1,0 +1,618 @@
+-- un schdule
+select * from PROD_EDW.BI11G_DW.WC_HYPERION_BUDGET_F LIMIT 10
+
+ select * from PROD_EDW.BI11G_DW.WC_HYPERION_BUDGET_F where CUSTOMER_ACCOUNT_INTGID
+ = 'TESCO UK' AND ENT_PERIOD = 'Apr-23' 
+ SELECT * FROM PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F LIMIT 10
+ 
+              
+-- difference -- 157726 , 48 (diff-- ) -- distinct 157678
+   select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Unschedule' and 
+    sales_date between '2023-05-01' and '2023-05-31'and sales_order_number not  in 
+   (select distinct  sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Unschedule' and due_date  between '2023-05-01' and '2023-05-31') 
+  
+
+  select distinct sales_order_number  from   PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Unschedule' and 
+    due_date between '2023-05-01' and '2023-05-31'and sales_order_number    in 
+   (select distinct  sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where demand_type = 'Unschedule' and sales_date  between '2023-05-01' and '2023-05-31') 
+   
+    select  sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Unschedule' and 
+    sales_date between '2023-05-01' and '2023-05-31'and sales_order_number not  in 
+   (select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Unschedule' and due_date  between '2023-05-01' and '2023-05-31') 
+   
+    select  sales_order_number  from   PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Unschedule' and 
+    due_date between '2023-05-01' and '2023-05-31'and sales_order_number  not  in 
+   (select  sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where demand_type = 'Unschedule' and sales_date  between '2023-05-01' and '2023-05-31') 
+   
+   -- difference -- 81 , 31 (diff-- ) -- distinct 157678 -- SALES ORDER LAD
+   select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders - LAD' and 
+    sales_date between '2023-05-01' and '2023-05-31'and sales_order_number NOT  in 
+   (select distinct  sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders - LAD' and due_date  between '2023-05-01' and '2023-05-31') 
+   
+    select distinct sales_order_number  from   PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders - LAD' and 
+    due_date between '2023-05-01' and '2023-05-31'and sales_order_number  not  in 
+   (select distinct  sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where  demand_type = 'Sales Orders - LAD' and sales_date  between '2023-05-01' and '2023-05-31') 
+   
+   select  sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders - LAD' and 
+    sales_date between '2023-05-01' and '2023-05-31'and sales_order_number  NOT  in 
+   (select  sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders - LAD' and due_date  between '2023-05-01' and '2023-05-31') 
+   
+   -- 391 (IN PROD)
+   -- 6 (NOT IN PROD)
+   -- 397 (TOTAL)
+   
+    select  sales_order_number  from   PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders - LAD' and 
+    due_date between '2023-05-01' and '2023-05-31'and sales_order_number  NOT  in 
+   (select   sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where  demand_type = 'Sales Orders - LAD' and sales_date  between '2023-05-01' and '2023-05-31') 
+   
+   -- 391
+   -- 283 (NOT IN OMNI)
+   -- 674
+   
+   
+   -- SHIPPED
+   
+   SELECT DISTINCT DEMAND_TYPE FROM  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"
+   
+    -- difference -- 0 , 27976  -- Shipped
+   select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Shipped' and 
+    sales_date between '2023-05-01' and '2023-05-31'and sales_order_number    in 
+   (select distinct  sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Shipped' and due_date  between '2023-05-01' and '2023-05-31') 
+   
+    select distinct sales_order_number  from   PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Shipped' and 
+    due_date between '2023-05-01' and '2023-05-31'and sales_order_number  in 
+   (select distinct  sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where  demand_type = 'Shipped' and sales_date  between '2023-05-01' and '2023-05-31') 
+   
+    select sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Shipped' and 
+    sales_date between '2023-05-01' and '2023-05-31'and sales_order_number   in 
+   (select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Shipped' and due_date  between '2023-05-01' and '2023-05-31') 
+   
+    select sales_order_number  from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Shipped' and 
+    due_date between '2023-05-01' and '2023-05-31'and sales_order_number   in 
+   (select   sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Shipped' and sales_date  between '2023-05-01' and '2023-05-31') 
+   
+    select sales_order_number  from   PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Shipped' 
+   and sales_order_number    in 
+   (select   sales_order_number from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Shipped') 
+   
+   select sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Shipped' 
+   and sales_order_number    in 
+   (select   sales_order_number from    PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Shipped') 
+   
+    select  sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Shipped' and 
+    sales_date between '2023-05-01' and '2023-05-31'
+    
+    select sales_order_number  from   PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Shipped' and 
+    due_date between '2023-05-01' and '2023-05-31'
+    
+   -- Consumption
+   
+      SELECT DISTINCT DEMAND_TYPE FROM  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"
+
+
+ select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Consumption' and 
+    sales_date between '2023-05-01' and '2023-05-31'and sales_order_number    in 
+   (select distinct  sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Consumption' and due_date  between '2023-05-01' and '2023-05-31') 
+   
+    select distinct sales_order_number  from   PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Consumption' and 
+    due_date between '2023-05-01' and '2023-05-31'and sales_order_number   in 
+   (select distinct  sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where  demand_type = 'Consumption' and sales_date  between '2023-05-01' and '2023-05-31') 
+   
+ -- PLANNED ORDER DEMAND
+   
+   SELECT DISTINCT DEMAND_TYPE FROM  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"
+
+   select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Planned order demand' and 
+    sales_date between '2023-05-01' and '2023-05-31'and sales_order_number    in 
+   (select distinct  sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Planned order demand' and due_date  between '2023-05-01' and '2023-05-31') 
+   
+    select distinct sales_order_number  from   PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Planned order demand' and 
+    due_date between '2023-05-01' and '2023-05-31'and sales_order_number not  in 
+   (select distinct  sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where  demand_type = 'Planned order demand' and sales_date  between '2023-05-01' and '2023-05-31') 
+    
+    select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type =  'Planned order demand' and sales_order_number is null
+      select   sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  demand_type =  'Planned order demand' and sales_order_number is  null
+      
+        select sales_order_number  from   PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Planned order demand'
+   and sales_order_number    in 
+   (select distinct  sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where  demand_type = 'Planned order demand')
+    
+    select sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Planned order demand'
+   and sales_order_number not  in 
+   (select  sales_order_number from PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Planned order demand')
+    
+   
+   
+   -- WORK ORDER DEMAND
+  
+  SELECT DISTINCT DEMAND_TYPE FROM  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"
+
+   select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Work order demand' and 
+    sales_date between '2023-05-01' and '2023-05-31'and sales_order_number     in 
+   (select distinct  sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Work order demand' and due_date  between '2023-05-01' and '2023-05-31') 
+   
+    select distinct sales_order_number  from   PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Work order demand' and 
+    due_date between '2023-05-01' and '2023-05-31'and sales_order_number    in 
+   (select distinct  sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where  demand_type = 'Work order demand' and sales_date  between '2023-05-01' and '2023-05-31') 
+    select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Work order demand' and  sales_order_number is null
+   
+      select   sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  demand_type = 'Work order demand' and  sales_order_number = ''
+   
+   -- SAFETY STOCK
+   
+   
+  
+  SELECT DISTINCT DEMAND_TYPE FROM  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"
+
+   select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Safety Stock' and 
+    sales_date between '2023-05-01' and '2023-05-31'and sales_order_number     in 
+   (select distinct  sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Safety Stock' and due_date  between '2023-05-01' and '2023-05-31')
+      select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Safety Stock'
+      select   sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  demand_type = 'Safety Stock'
+
+   
+    select distinct sales_order_number  from   PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Safety Stock' and 
+    due_date between '2023-05-01' and '2023-05-31'and sales_order_number   NOT in 
+   (select distinct  sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where  demand_type = 'Safety Stock' and sales_date  between '2023-05-01' and '2023-05-31') 
+   
+     select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where demand_type = 'Safety Stock' and  sales_order_number is null
+   
+      select   sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  demand_type = 'Safety Stock' and  sales_order_number is null
+   
+   
+   -- EXPORED LOT
+  
+   SELECT DISTINCT DEMAND_TYPE FROM  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"
+
+   select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Expired lot' and 
+    sales_date between '2023-05-01' and '2023-05-31'and sales_order_number     in 
+   (select distinct  sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Expired lot' and due_date  between '2023-05-01' and '2023-05-31')
+   
+      select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Expired lot'
+      select   sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  demand_type = 'Expired lot'
+
+   
+    select distinct sales_order_number  from   PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where demand_type = 'Expired lot' and 
+    due_date between '2023-05-01' and '2023-05-31'and sales_order_number    in 
+   (select distinct  sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where  demand_type = 'Expired lot' and sales_date  between '2023-05-01' and '2023-05-31') 
+   
+   -- SALES ORDERS
+   
+     
+   
+      SELECT DISTINCT DEMAND_TYPE FROM  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"
+
+
+ select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders' and 
+    sales_date between '2023-05-01' and '2023-05-31'and sales_order_number     in 
+   (select distinct  sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders' and due_date  between '2023-05-01' and '2023-05-31') 
+   
+    select distinct sales_order_number  from   PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders' and 
+    due_date between '2023-05-01' and '2023-05-31'and sales_order_number   in 
+   (select distinct  sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where  demand_type = 'Sales Orders' and sales_date  between '2023-05-01' and '2023-05-31') 
+ -- 623681, 81211
+    select  sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders' and 
+ sales_order_number   in 
+   (select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders') 
+   
+    
+   -- 83760, 5547 , 73696
+    select  sales_order_number  from    PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders' and 
+ sales_order_number   in 
+   (select  sales_order_number from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders') 
+   
+   
+   select a.sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" a,  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F b
+   where a.demand_type = 'Sales Orders' and b.demand_type = 'Sales Orders' and a.sales_date = b.due_date and a.sales_date between '2023-03-01' and '2023-06-30'
+   
+   select a.sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" a,  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F b
+   where a.sales_order_number not in  (b.sales_order_number) and a.demand_type = 'Sales Orders'  and b.demand_type = 'Sales Orders' and a.sales_date between '2023-06-15' and '2023-06-30'
+   and  b.due_date between '2023-06-15' and '2023-06-30'limit 1000
+   
+   select a.sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" a,  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F b
+   where a.demand_type = 'Sales Orders'  and b.demand_type = 'Sales Orders' and a.sales_date between '2023-06-15' and '2023-06-30'
+   and  b.due_date between '2023-06-15' and '2023-06-30'AND  a.sales_order_number not in  (b.sales_order_number)
+   
+   
+   -- prod in omni  (73696)
+   -- prod not in omni (5547) -- 11372
+   -- omni in prod  (81211)
+   
+   --- forecast
+    select  sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Forecast' and 
+ sales_order_number  not  in 
+   (select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Forecast') 
+   
+    select distinct demand_type from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"
+   -- 83760, 5547 , 73696
+    select  sales_order_number  from    PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Forecast' and 
+ sales_order_number  not  in 
+  
+  (select  sales_order_number from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Forecast' and   sales_date between '2023-05-01' and '2023-05-31') -- 1630197
+      (select  sales_order_number from PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Forecast' and   due_date between '2023-05-01' and '2023-05-31') -- 1256103
+
+   
+   
+   select a.sales_order_number,b.sales_order_number,a.inventory_org_id from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" a,  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F b
+   where a.demand_type = 'Forecast' and b.demand_type = 'Forecast'  and a.sales_date between '2023-06-01' and '2023-06-30' and  b.due_date between '2023-06-01' and '2023-06-30'
+   
+   select a.sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" a,  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F b
+   where a.sales_order_number not in  (b.sales_order_number) and a.demand_type = 'Forecast' and b.demand_type ='Forecast'and a.sales_date between '2023-06-15' and '2023-06-30'
+   and  b.due_date between '2023-06-15' and '2023-06-30'limit 1000
+   
+   select a.sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" a,  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F b
+   where a.demand_type = 'Sales Orders'  and b.demand_type = 'Sales Orders' and a.sales_date between '2023-06-15' and '2023-06-30'
+   and  b.due_date between '2023-06-15' and '2023-06-30'AND  a.sales_order_number not in  (b.sales_order_number)
+   
+   
+   
+select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where   demand_type = 'Sales Orders' and sales_order_number = '24211123'
+         select distinct  sales_order_number,demand_type from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F    where   demand_type = 'Sales Orders' and sales_order_number =  '24211123'
+
+ -- 132554 , 11173, 10121
+   -- 478242,82,674,80170
+     select  distinct sales_order_number from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders' and 
+      sales_date between '2023-03-01' and '2023-10-31'and sales_order_number not  in 
+     (select distinct sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders' and due_date  between '2023-03-01' and '2023-10-31') 
+
+     --11173 - 1051
+   select distinct sales_order_number  from    PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders' and 
+    due_date between '2023-03-01' and '2023-10-31'and sales_order_number   in 
+   (select distinct  sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders' and sales_date  between '2023-03-01' and '2023-10-31') 
+      (select distinct  sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders' and sales_date  between '2023-03-01' and '2023-10-31' 
+       and sales_order_number = '24328575')
+        select distinct sales_order_number  from    PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders' and 
+    due_date between '2023-03-01' and '2023-10-31' and sales_order_number = '24244742'
+
+  -- chk in omni for one source number that is present in prod but not in omni
+      select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Unschedule' and sales_order_number = '24107469'
+         select distinct  sales_order_number,demand_type from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where   sales_order_number = '24107469' and demand_type = 'Unschedule'
+         
+         select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders - LAD' and sales_order_number = '24089660'
+         select distinct  sales_order_number,demand_type from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where   sales_order_number = '2408966' and demand_type = 'Sales Orders - LAD'
+         
+          select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Shipped' and sales_order_number = '24212465'
+         select distinct  sales_order_number,demand_type from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where   sales_order_number = '24212465' and demand_type = 'Shipped'
+         
+         select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Consumption' and sales_order_number = '23873691'
+         select distinct  sales_order_number,demand_type from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where   sales_order_number = '23873691' and demand_type = 'Consumption'
+         
+         select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where   demand_type = 'Planned order demand' and sales_order_number IS NULL
+         select distinct  sales_order_number,demand_type from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where   sales_order_number IS NUL and  demand_type = 'Planned order demand'
+
+ 
+        select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where   demand_type = 'Sales Orders' and sales_order_number =  '24034926'
+         select distinct  sales_order_number,demand_type from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F    where   demand_type = 'Sales Orders' and sales_order_number =  '24034926'
+
+
+  
+  
+  select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders' and 
+    sales_date between '2023-05-01' and '2023-05-31'and sales_order_number not  in 
+   (select distinct  sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Seales Orders' and due_date  between '2023-05-01' and '2023-05-31') 
+   
+    select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders' and 
+    sales_date between '2023-05-01' and '2023-05-31'and sales_order_number not  in 
+   (select distinct  sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Seales Orders' and due_date  between '2023-05-01' and '2023-05-31') 
+   
+    select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders' and 
+    sales_date between '2023-06-01' and '2023-06-30'and sales_order_number  not  in 
+   (select distinct  sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders' and due_date  between '2023-06-01' and '2023-06-30') 
+
+ 
+ select * from PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where sales_order_number = '24024551'
+
+ -- sales orer number -- 552825,527  (552214)
+      select  sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  
+    sales_date between '2023-05-01' and '2023-05-31'
+    select  sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders - LAD' and 
+    sales_date between '2023-05-01' and '2023-05-31'and sales_order_number  NOT  in 
+
+   (select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders - LAD' and due_date  between '2023-05-01' and '2023-05-31') 
+      (select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F WHERE due_date  between '2023-05-01' and '2023-05-31') 
+
+   -- recods present in omni an prod
+    (select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Unschedule' and due_date  between '2023-06-01' and '2023-06-30' and sales_order_number = '241074696')
+        (select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Unschedule' and due_date  between '2023-06-01' and '2023-06-30')
+
+
+
+-- query to find out for particular demsn type and for particular date
+    select   sales_order_number,demand_type  from"DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Forecast' and sales_date  between '2023-06-01' and '2023-06-30' 
+        select   sales_order_number,demand_type  from PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Forecast' and due_date  between '2023-06-01' and '2023-06-30'
+        
+        
+  --SALES ORDERS
+    select  sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders' and 
+    sales_date between '2023-05-01' and '2023-05-31'and sales_order_number not    in 
+    (select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders' and due_date  between '2023-05-01' and '2023-05-31') 
+    
+     select  sales_order_number  from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders' and 
+    due_date  between '2023-05-01' and '2023-05-31'and sales_order_number  not   in  
+    (select   sales_order_number from    "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  demand_type = 'Sales Orders' and sales_date  between '2023-05-01' and '2023-05-31') 
+    
+    -- 406931
+    -- 66155
+    -- 68946
+    
+     select  sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders' and 
+    sales_date  between '2023-06-01' and '2023-06-30'and sales_order_number     in 
+    (select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders' and due_date  between '2023-06-01' and '2023-06-30') 
+   
+    select  sales_order_number  from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders' and 
+    due_date between '2023-06-01' and '2023-06-30'and sales_order_number  in  
+    (select   sales_order_number from    "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  demand_type = 'Sales Orders' and sales_date  between '2023-06-01' and '2023-06-30' ) 
+    
+ select  *  from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F a, "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  b where  a.demand_type  = b.demand_type 
+   and b.sales_date  between '2023-06-01' and '2023-06-30' 
+   
+   select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders'and 
+    sales_date  between '2023-06-01' and '2023-06-30' and sales_order_number   in 
+   (select distinct  sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders' and due_date   between '2023-06-01' and '2023-06-30' ) 
+   
+    select distinct sales_order_number  from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders'and 
+    due_date  between '2023-06-01' and '2023-06-30' and sales_order_number   in 
+   (select distinct  sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders' and sales_date   between '2023-06-01' and '2023-06-30' ) 
+ 
+ 
+        
+         select   sales_order_number,demand_type  from"DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders' and sales_date  between '2023-06-01' and '2023-06-30' 
+        select   sales_order_number,demand_type  from PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders' and due_date  between '2023-06-01' and '2023-06-30' 
+
+    
+     
+     (select   sales_order_number,demand_type from"DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  sales_date  between '2023-06-01' and '2023-06-30' and sales_order_number = '24180088')
+     select sales_order_number,demand_type,sales_date from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  sales_order_number = '24180088'
+     
+     
+       select  sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where   demand_type = 'Unschedule'and 
+    sales_date   between '2023-06-01' and '2023-06-30' AND sales_order_number   in 
+    (select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where   demand_type = 'Unschedule' and due_date  between '2023-06-01' and '2023-06-30') 
+    
+     select  sales_order_number  from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F  where    demand_type = 'Unschedule'and 
+    due_date   between '2023-06-01' and '2023-06-30' AND sales_order_number NOT  in 
+    (select   sales_order_number from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where     demand_type = 'Unschedule' and sales_date  between '2023-06-01' and '2023-06-30') 
+    
+     select  sales_order_number  from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F  where    demand_type = 'Unschedule'and 
+    due_date   between '2023-06-01' and '2023-06-30' AND sales_order_number  = '24263916' and sales_order_number   in 
+    (select   sales_order_number from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where     demand_type = 'Unschedule' and sales_date  between '2023-06-01' and '2023-06-30' 
+     and sales_order_number =  '24263916')
+    
+     
+      select  sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders' and 
+    sales_date   between '2023-06-01' and '2023-06-30' AND sales_order_number  not  in 
+    (select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders' and due_date  between '2023-06-01' and '2023-06-30') 
+    
+     select  sales_order_number  from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F  where demand_type = 'Sales Orders'and 
+    due_date   between '2023-06-01' and '2023-06-30' AND sales_order_number   not  in 
+    (select   sales_order_number from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders' and sales_date  between '2023-06-01' and '2023-06-30') 
+    
+   Select * from APPS.MSC_DEMANDS where ORDER_NUMBER='24298874'
+select* from "ODS"."ORACLE_SCP"."MSC_DEMANDS" WHERE ORDER_NUMBER  = '24298874'
+
+    
+     select  sales_order_number,DEMAND_TYPE  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  
+   sales_order_number = '24180088'
+   
+    select  sales_order_number,DEMAND_TYPE  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Consumption' and 
+    sales_date   between '2023-06-01' and '2023-06-30' AND sales_order_number   NOT in 
+    (select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Consumption' and due_date  between '2023-06-01' and '2023-06-30') 
+    
+ ---present in omni and not in prod (15)
+    
+     select  sales_order_number,DEMAND_TYPE  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Consumption' and 
+    sales_date   between '2023-06-01' and '2023-06-30'and sales_order_number = '24180088' AND sales_order_number  not   in 
+    (select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Consumption' and due_date  between '2023-06-01' and '2023-06-30') 
+    
+ ---present in omni and not in prod (15)
+ 
+ select  sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  demand_type = 'Unschedule' and 
+    sales_date   between '2023-06-01' and '2023-06-30'and sales_order_number = '24180088' AND sales_order_number  not  in 
+    (select   sales_order_number from    PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where due_date  between '2023-06-01' and '2023-06-30' and sales_order_number = '24180088' and demand_type = 'Unschedule')
+    
+    -- present in omni and prod (15)
+    
+      select  sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  demand_type = 'Sales Orders - LAD' and 
+    sales_date   between '2023-06-01' and '2023-06-30'and sales_order_number = '24180088' AND sales_order_number   in 
+    (select   sales_order_number from    PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where due_date  between '2023-06-01' and '2023-06-30' and sales_order_number = '24180088' and demand_type = 'Sales Orders - LAD')
+    
+    -- present in prod not in omni (50)
+    
+     select  sales_order_number,DEMAND_TYPE  from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F  where demand_type = 'Consumption'and 
+    due_date   between '2023-06-01' and '2023-06-30'and sales_order_number = '24180088' AND sales_order_number  not   in 
+    (select   sales_order_number from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Consumption' and sales_date  between '2023-06-01' and '2023-06-30') 
+    
+     select  sales_order_numbeR  from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F  where demand_type = 'Consumption'and 
+    due_date   between '2023-06-01' and '2023-06-30' AND sales_order_number    in 
+    (select   sales_order_number,demand_type from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Consumption' and sales_date  between '2023-06-01' and '2023-06-30') 
+    
+     select  sales_order_number,demand_type from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where sales_order_number is  not null
+    sales_date   between '2023-05-01' and '2023-05-30' AND sales_order_number   in 
+    (select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Consumption' and due_date  between '2023-06-01' and '2023-06-30') 
+    
+    
+    
+    -- present inprod not in omni (15)
+    
+  select  sales_order_number,DEMAND_TYPE  from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F  where demand_type = 'Sales Orders - LAD' and 
+    due_date   between '2023-06-01' and '2023-06-30'and sales_order_number = '24180088' AND sales_order_number     in 
+    (select   sales_order_number from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type =  'Sales Orders - LAD' and sales_date  between '2023-06-01' and '2023-06-30'
+     and sales_order_number = '24180088')
+     
+     
+     -- ptesent in prod not in omni (15)
+      select  sales_order_number,DEMAND_TYPE  from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F  where demand_type = 'Sales Orders' and 
+    due_date   between '2023-06-01' and '2023-06-30'and sales_order_number = '24180088' AND sales_order_number  not   in 
+    (select   sales_order_number from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type =  'Sales Orders' and sales_date  between '2023-06-01' and '2023-06-30'
+     and sales_order_number = '24180088')
+    
+   -- at the end 80 in prod and 30 in omni
+
+
+ select  sales_order_number  from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F  where  demand_type = 'Unschedule' and 
+    due_date   between '2023-06-01' and '2023-06-30'and sales_order_number = '24180088' AND sales_order_number   NOT   in 
+    (select   sales_order_number from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Unschedule' and sales_date  between '2023-06-01' and '2023-06-30' and sales_order_number = '24180088')
+
+ select  sales_order_number,DEMAND_TYPE,due_date  from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  sales_order_number = '24180088' and  due_date   between '2023-06-01' and '2023-06-30'
+-- for date
+   select sales_order_number,demand_type  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where 
+    sales_date between '2023-05-01' and '2023-05-31' and sales_order_number = '24199579' and demand_type = 'Unschedule'
+    
+    
+    -- at bi11g
+   select sales_order_number,demand_type from   DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  sales_order_number = '24199579' and demand_type = 'Unschedule' and due_date between '2023-05-01' and '2023-05-31'
+     select sales_order_number,demand_type from   DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  sales_order_number = '24199579' and demand_type = 'Shipped' and due_date between '2023-05-01' and '2023-05-31'
+      select sales_order_number,demand_type from   DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  sales_order_number = '24199579' and demand_type =  'Sales Orders - LAD' and due_date between '2023-05-01' and '2023-05-31'
+       select sales_order_number,demand_type from   DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  sales_order_number = '24199579' and demand_type =  'Sales Orders' and due_date between '2023-05-01' and '2023-05-31'
+       
+       
+       
+   --sales orers lad
+
+-- difference --159944 , 95 (diff-- ) -- distinct (159849)
+   select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders - LAD' and 
+    sales_date between '2023-05-01' and '2023-05-31'and sales_order_number not  in 
+   (select distinct  sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders - LAD' and due_date  between '2023-05-01' and '2023-05-31') 
+ 
+ 
+ -- sales orer number -- 542853,818  - 541814
+    select  sales_order_number,sales_date  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders - LAD' and  sales_date between '2023-05-01' and '2023-05-31'
+   and sales_order_number not  in 
+   (select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders - LAD' and  due_date  between '2023-05-01' and '2023-05-31') 
+   and  sales_order_number = '19683701'
+ 
+   
+   -- recods present in omni an prod
+    (select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where   demand_type = 'Sales Orders - LAD' and due_date  between '2023-05-01' and '2023-05-31' and sales_order_number = '19683701')
+    (select   sales_order_number,CUSTOMER_ACCOUNT_ID from"DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders - LAD' and sales_date  between '2023-05-01' and '2023-05-31' and sales_order_number = '19683701')
+     (select   sales_order_number,demand_type from"DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  sales_date  between '2023-05-01' and '2023-05-31' and sales_order_number = '19683701')
+     select sales_order_number,demand_type,sales_date from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  sales_order_number = '24199579'
+
+-- for date
+   select sales_order_number,demand_type  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where 
+    sales_date between '2023-05-01' and '2023-05-31' and sales_order_number = '19683701' and demand_type ='Sales Orders - LAD'
+    
+    
+    -- at bi11g
+       select sales_order_number,demand_type from   DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  sales_order_number = '19683701'and demand_type =  'Sales Orders - LAD' and due_date between '2023-05-01' and '2023-05-31'
+    
+--  forecast
+
+-- difference --159944 , 95 (diff-- ) -- distinct (159849)
+   select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Forecast' and 
+    sales_date between '2023-06-01' and '2024-06-30'and sales_order_number is null and sales_order_number not  in 
+   (select distinct  sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Forecast' and due_date between '2023-06-01' and '2024-06-30') 
+   
+   select * from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Forecast' and 
+    due_date between '2023-06-01' and '2024-06-30' and plan_name = 'GLOBAL'
+   (select* from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Forecast' and sales_date  between '2023-06-01' and '2024-06-30' and plan_name = 'GLOBAL')
+ 
+select demand_type from   PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F
+ -- sales orer number -- 542853,818  - 541814
+    select  sales_order_number,sales_date  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders - LAD' and  sales_date between '2023-05-01' and '2023-05-31'
+   and sales_order_number not  in 
+   (select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders - LAD' and  due_date  between '2023-05-01' and '2023-05-31') 
+   and  sales_order_number = '19683701'
+ 
+   
+   -- recods present in omni an prod
+    (select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where   demand_type = 'Sales Orders - LAD' and due_date  between '2023-05-01' and '2023-05-31' and sales_order_number = '19683701')
+    (select   sales_order_number from"DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders - LAD' and sales_date  between '2023-05-01' and '2023-05-31' and sales_order_number = '19683701')
+     (select   sales_order_number,demand_type from"DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  sales_date  between '2023-05-01' and '2023-05-31' and sales_order_number = '19683701')
+     select sales_order_number,demand_type,sales_date from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  sales_order_number = '24199579'
+
+-- for date
+   select sales_order_number,demand_type  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where 
+    sales_date between '2023-05-01' and '2023-05-31' and sales_order_number = '19683701' and demand_type ='Sales Orders - LAD'
+    
+    
+    -- at bi11g
+       select sales_order_number,demand_type from   DEV_EDW.BI11G_DW.WC_SALES_DEMAND_F where  sales_order_number = '19683701'and demand_type =  'Sales Orders - LAD' and due_date between '2023-05-01' and '2023-05-31'
+    
+--     
+  
+       
+   
+-- query at stage and dev_ods
+ -- unschedule
+  select sales_order_number,demand_type from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  sales_order_number = '24199579' and demand_type = 'Sales Orders - LAD' 
+   select sales_order_number,demand_type from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  where  sales_order_number = '24199579' and demand_type = 'Unschedule'
+ 
+
+ -- stage for the number from date (May 2023)
+  select * from dev_discover.ORDER_MGMT.stg_oracle__order_details
+where to_char(substr(order_number, 1, position('.' in order_number) - 1)) = '19683701'
+or order_number like '%19683701%'
+
+
+
+
+    
+-- 11828268
+ --11801344
+
+  
+
+     (select sales_order_number  from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  sales_order_number = '407436'and demand_type ='Sales Orders - LAD')
+
+-- sales order lad
+ select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Sales Orders - LAD' and sales_order_number not  in 
+   (select distinct  sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Sales Orders - LAD' )
+    (select sales_order_number  from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  sales_order_number = '407436')
+  -- case 1
+  (select sales_order_number,demand_type  from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where  sales_order_number = '22329572' and demand_type <> 'Unschedule')
+              (select sales_order_number,demand_type  from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where  sales_order_number = '22329572' and demand_type <> 'Sales Orders - LAD')
+-- case 2
+ (select sales_order_number  from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  sales_order_number = '16352059' and demand_type <> 'Unschedule')
+              (select sales_order_number,demand_type  from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"where  sales_order_number = '16352059' and demand_type <> 'Sales Orders - LAD')
+              
+   -- SHIPPED
+    select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Shipped' and sales_order_number not  in 
+   (select distinct  sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Shipped')
+   
+   select distinct sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Shipped' and sales_order_number  in 
+   (select distinct  sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Shipped')
+   
+   
+   select  sales_order_number  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Shipped' and sales_order_number  in 
+   (select   sales_order_number from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Shipped')
+   
+   SELECT a.sales_order_number from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" a,  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F b
+   where a.sales_order_number  = b.sales_order_number and a.demand_type = b.demand_type 
+   
+   select sales_order_number,demand_type  from   "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  demand_type = 'Shipped'
+      select sales_order_number  from    PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  demand_type = 'Shipped'
+
+   select sales_order_number,demand_type  from  PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F where  sales_order_number = '24180123'  --61
+      select sales_order_number,demand_type  from  "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where  sales_order_number = '24180123' and demand_type = 'Shipped' --62
+
+   
+              
+     select distinct demand_type from      PROD_EDW.BI11G_DW.WC_SALES_DEMAND_F   
+          select distinct demand_type from     "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"
+
+     
+              
+              
+select * from "PROD_EDW"."BI11G_DW"."WC_SALES_DEMAND_F" where sales_order_number = '24024551'
+select * from "PROD_EDW"."BI11G_DW"."WC_SALES_DEMAND_F" where sales_order_number = '24180088'
+
+       
+
+   
+   --11,828,268
+   -- 94,241
+   --11734028
+   --- final
+   
+   -- 133042
+   -- 122254
+   
+   select sales_order_number, demand_type  FROM "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" where demand_type not in ('Consumption','Unschedule','Shipped','Safety Stock','Sales Orders - LAD','Planned order demand','Forecast'
+) and sales_order_number  in (select sales_order_number from "PROD_EDW"."BI11G_DW"."WC_SALES_DEMAND_F")
+
+ select sales_order_number, demand_type  FROM"PROD_EDW"."BI11G_DW"."WC_SALES_DEMAND_F" where demand_type not  in ('Consumption','Unschedule','Shipped','Safety Stock','Sales Orders - LAD','Planned order demand','Forecast'
+) and sales_order_number  in (select sales_order_number from"DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" )
+
+-- 83973
+-- 76545

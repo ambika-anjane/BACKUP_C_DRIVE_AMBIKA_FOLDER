@@ -1,0 +1,1100 @@
+list @azure_stage/Hyperion
+SELECT * FROM  "DEV_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" limit 10
+desc table "DEV_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"
+desc table "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F"
+
+
+---sales_invoice_validation and two cols to add in load left out can i do it develop itself?
+-- to chkwith venkat for discount_amount and list_amount
+select * from "DEV_EhyeDW"."BI11G_DW"."W_SALES_INVOICE_LINE_F" where SALES_ORDLN_ID = '67531827'
+select * from "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F" where SALES_ORDER_LINE_ID = '67531827~100'
+select * from "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F" limit 10
+select  CUSTOMER_ACCOdevUNT_INTGID ,BUDGETED_UNITS from "DEV_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" where CUSTOMER_ACCOUNT_INTGID = 'TESCO UK'
+select integration_id from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where integration_id in
+(select integration_id from "DEV_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F")
+select * from "hye"."BI11G_DW"."WC_HYPERION_BUDGET_F" limit 1
+desc table "DEV_EDW"."BI11  G_DW"."WC_HYPERION_BUDGET_F"
+
+ 
+ select account,customer, INVORG from "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST" where  CUSTOMER = 'TESCO UK'
+ 
+ SELECT BUDGETED_AMOUNT,ENT_PERIOD_WID FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE ENT_PERIOD_WID BETWEEN '20230501' AND '20230531' AND BUDGETED_AMOUNT = '24358.7200000000'
+ SELECT BUDGETED_AMOUNT,CUSTOMER_INTGID FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE ENT_PERIOD_WID BETWEEN '20230501' AND '20230531'AND  CUSTOMER_ACCOUNT_INTGID
+ LIKE '%CG_TESCO%'
+
+ SELECT BUDGETED_AMOUNT,CUSTOMER_ACCOUNT_INTGID,FORECAST_AMOUNT
+ FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE CUSTOMER_ACCOUNT_INTGID LIKE 'TESCO%' AND ENT_PERIOD_WID BETWEEN '20230501' AND '20230531'
+ 
+  SELECT BUDGETED_AMOUNT FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE CUSTOMER_ACCOUNT_INTGID = 'TESCO'  AND ENT_PERIOD_WID BETWEEN '20230501' AND '20230531'
+
+  SELECT BUDGET_AMOUNT FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'May-23' AND CUSTOMER = 'TESCO_UK'   
+   SELECT CUSTOMER,budget_amount,inventory_org_id,gl_account_code FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'May-23' AND CUSTOMER = '30419'
+   order by customer,budget_amount,inventory_org_id,gl_account_code
+   
+ --  ALL OTHER OXO UK
+      SELECT CUSTOMER,budget_amount,inventory_org_id,gl_account_code FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'May-23' AND CUSTOMER = 'ALL OTHER OXO UK'
+    and gl_Account_code = '401000' order by customer,budget_amount,inventory_org_id,gl_account_code
+    
+    
+-- CONSUMER RELATIONS 
+SELECT CUSTOMER,budget_amount,inventory_org_id,gl_account_code FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'May-23' AND CUSTOMER = 'CONSUMER RELATIONS'
+    and gl_Account_code <> '401000'  order by customer,budget_amount,inventory_org_id,gl_account_code
+    
+    slect may from dev_ods.
+   
+   SELECT CUSTOMER,budget_amount,inventory_org_id,gl_account_code FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'May-23' AND  CUSTOMER = 'TESCO UK'
+   order by customer,budget_amount,inventory_org_id,gl_account_code
+   
+   select * from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ent_period= 'Apr-23' and customer = 'OXO BENELUX'  and gl_Account_code <> '401000'
+   
+   
+   
+select* from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" 
+
+ SELECT BUDGET_AMOUNT,ENT_PERIOD FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'May-23' AND CUSTOMER = 'TESCO UK' AND  BUDGET_AMOUNT = '-150.5500000000'
+   SELECT BUDGET_AMOUNT FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'May-23'
+ AND GL_ACCOUNT_CODE = '401000' AND CUSTOMER = 'AMAZON EMEA'
+   SELECT BUDGET_AMOUNT FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'May-23'
+ AND GL_ACCOUNT_CODE <>'401000' AND CUSTOMER = 'AMAZON EMEA'
+    SELECT BUDGET_AMOUNT FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'May-23'
+ AND GL_ACCOUNT_CODE <>'401000' AND CUSTOMER = 'AMAZON EMEA'AND BUDGET_AMOUNT = 218.5100000000
+ 
+    SELECT GL_ACCOUNT_CODE,BUDGET_AMOUNT,INVENTORY_ORG_ID FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'May-23'
+ AND GL_ACCOUNT_CODE <>'401000' AND CUSTOMER = 'AMAZON EMEA' ORDER BY  GL_ACCOUNT_CODE,BUDGET_AMOUNT,INVENTORY_ORG_ID
+ 
+    SELECT GL_ACCOUNT_CODE,BUDGET_AMOUNT,INVENTORY_ORG_ID,budget_units FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'May-23'
+  AND  CUSTOMER = 'TESCO UK' ORDER BY  GL_ACCOUNT_CODE,BUDGET_AMOUNT,INVENTORY_ORG_ID,budget_units
+ 
+  SELECT BUDGETED_AMOUNT,CUSTOMER_ACCOUNT_INTGID FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE CUSTOMER_ACCOUNT_INTGID LIKE 'TESCO%' AND ENT_PERIOD_WID BETWEEN '20230501' AND '20230531'
+ AND  GL_ACCOUNT_NUM <> '401000' 
+  SELECT BUDGETED_AMOUNT,CUSTOMER_ACCOUNT_INTGID FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE ENT_PERIOD_WID BETWEEN '20230501' AND '20230531'
+ AND GL_ACCOUNT_NUM = '401000' AND CUSTOMER_ACCOUNT_INTGID = 'AMAZON EMEA'
+  SELECT BUDGETED_AMOUNT,CUSTOMER_ACCOUNT_INTGID FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE ENT_PERIOD_WID BETWEEN '20230401' AND '20230430'
+ AND GL_ACCOUNT_NUM <> '401000' AND CUSTOMER_ACCOUNT_INTGID = 'OXO BENELUX' IN 
+ 
+   SELECT GL_ACCOUNT_NUM,ORG_ID,BUDGETED_AMOUNT FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE ENT_PERIOD_WID BETWEEN '20230501' AND '20230531'
+ AND GL_ACCOUNT_NUM <> '401000' AND CUSTOMER_ACCOUNT_INTGID = 'AMAZON EMEA'   ORDER BY GL_ACCOUNT_NUM,ORG_ID,BUDGETED_AMOUNT
+ SELECT GL_ACCOUNT_NUM,ORG_ID,BUDGETED_AMOUNT FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE ENT_PERIOD_WID BETWEEN '20230501' AND '20230531'
+ 
+ 
+    SELECT * FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE ENT_PERIOD_WID BETWEEN '20230501' AND '20230531'
+ AND GL_ACCOUNT_NUM <> '401000' AND CUSTOMER_ACCOUNT_INTGID = 'AMAZON EMEA'   ORDER BY GL_ACCOUNT_NUM 
+ 
+ 
+  SELECT BUDGETED_AMOUNT,CUSTOMER_ACCOUNT_INTGID FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE ENT_PERIOD_WID BETWEEN '20230401' AND '20230430'
+ AND CUSTOMER_ACCOUNT_INTGID =  'OXO BENELUX'  and gl_Account_num < '401000'  IN (  SELECT BUDGET_AMOUNT FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'Apr-23'
+  AND CUSTOMER =  'OXO BENELUX' and gl_Account_code <> '401000'
+)
+
+
+-- RONA INC
+  SELECT BUDGETED_AMOUNT,CUSTOMER_ACCOUNT_INTGID FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE ENT_PERIOD_WID BETWEEN '20230401' AND '20230430'
+ AND CUSTOMER_ACCOUNT_INTGID =  'RONA INC.'   IN (  SELECT BUDGET_AMOUNT FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'Apr-23'
+  AND CUSTOMER =  'RONA INC.' 
+)
+
+--OXO BENELUX
+ SELECT BUDGETED_AMOUNT,CUSTOMER_ACCOUNT_INTGID FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE ENT_PERIOD_WID BETWEEN '20230401' AND '20230430'
+ AND CUSTOMER_ACCOUNT_INTGID =  'OXO BENELUX' AND   GL_ACCOUNT_NUM <> '401000'   IN (  SELECT BUDGET_AMOUNT FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'Apr-23'
+  AND CUSTOMER =  'OXO BENELUX' AND GL_aCCOUNT_CODE <>'401000'
+)
+
+-- TECO UK
+  SELECT BUDGETED_AMOUNT,CUSTOMER_ACCOUNT_INTGID FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE ENT_PERIOD_WID BETWEEN '20230501' AND '20230531'
+ AND CUSTOMER_ACCOUNT_INTGID =  'TESCO UK'  and gl_Account_num <> '401000'   IN (  SELECT BUDGET_AMOUNT FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'May-23'
+  AND CUSTOMER =  'TESCO UK' and gl_Account_code <> '401000'
+)
+
+
+--CG_MEA ALL OTHER
+
+ SELECT BUDGETED_AMOUNT,CUSTOMER_ACCOUNT_INTGID FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE ENT_PERIOD_WID BETWEEN '20230401' AND '20230430'
+ AND CUSTOMER_ACCOUNT_INTGID =  'MEA ALL OTHER' AND  gl_Account_NUM <>'401000' NOT  IN (  SELECT BUDGET_AMOUNT FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'Apr-23'
+  AND CUSTOMER =  'MEA ALL OTHER'and gl_Account_code = '401000'
+)
+
+ SELECT BUDGETED_UNITS,CUSTOMER_ACCOUNT_INTGID FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE ENT_PERIOD_WID BETWEEN '20230401' AND '20230430'
+ AND CUSTOMER_ACCOUNT_INTGID =  'MEA ALL OTHER' AND  gl_Account_NUM <>'401000'   IN (  SELECT BUDGET_UNITS FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'Apr-23'
+  AND CUSTOMER =  'MEA ALL OTHER'and gl_Account_code = '401000'
+)
+
+
+-- CG_STAPLES 
+SELECT BUDGETED_UNITS,CUSTOMER_ACCOUNT_INTGID FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE ENT_PERIOD_WID BETWEEN '20230501' AND '20230531'
+ AND CUSTOMER_ACCOUNT_INTGID =  'STAPLES'  and gl_Account_num = '401000'   IN (  SELECT BUDGET_ FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'Aug-23'
+  AND CUSTOMER =  'STAPLES' and gl_Account_code = '401000'
+)
+
+ SELECT BUDGETED_AMOUNT,CUSTOMER_ACCOUNT_INTGID FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE ENT_PERIOD_WID BETWEEN '20230401' AND '20230430'
+ AND CUSTOMER_ACCOUNT_INTGID =   'STAPLES' AND  gl_Account_NUM <>'401000' NOT  IN (  SELECT BUDGET_AMOUNT FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'Apr-23'
+  AND CUSTOMER =   'STAPLES'and gl_Account_code <> '401000'
+)
+--
+  SELECT BUDGETED_UNITS,CUSTOMER_ACCOUNT_INTGID FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE ENT_PERIOD_WID BETWEEN '20230401' AND '20230430'
+ AND CUSTOMER_ACCOUNT_INTGID =  'RONA INC.'  and gl_Account_num ='401000'  IN (  SELECT BUDGET_UNITS FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'Apr-23'
+  AND CUSTOMER =  'RONA INC.' and gl_Account_code = '401000'
+)
+ 
+  SELECT BUDGET_AMOUNT FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'Apr-23'and customer = 'RONA INC.' and gl_Account_code <> '401000'
+  select distinct customer from  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F"where customer like '%RONA%'
+ AND GL_ACCOUNT_CODE = '401000' AND CUSTOMER = 'AMAZON EMEA' AND BUDGET_AMOUNT  IN 
+ (SELECT BUDGETED_AMOUNT FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE ENT_PERIOD_WID BETWEEN '20230501' AND '20230531'
+ AND GL_ACCOUNT_NUM = '401000' AND CUSTOMER_ACCOUNT_INTGID = 'AMAZON EMEA')
+ 
+ select customer from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F"
+ 
+ SELECT BUDGETED_AMOUNT FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE GL_ACCOUNT_NUM = '401000' AND CUSTOMER_ACCOUNT_INTGID = 'AMAZON EMEA'
+ 
+ 
+ 
+ SELECT ENT_PERIOD_WID,CUSTOMER_ACCOUNT_INTGID FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE GL_ACCOUNT_NUM = '401000' AND CUSTOMER_ACCOUNT_INTGID = 'AMAZON EMEA'
+ DESC TABLE "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"
+ 
+ DESC TABLE "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F"
+ DESC TABLE "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+ 
+ 
+ 
+  
+    SELECT * FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE CUSTOMER_ACCOUNT_INTGID LIKE 'TESCO%' AND ENT_PERIOD_WID BETWEEN '20230501' AND '20230531' 
+    
+  with   ecal as (
+        select ent_year
+            month_name, month, ent_period, ent_period_start_date, ent_period_end_date,ent_year
+        from dev_edw.edw_omni.w_day_d
+        where current_ent_year_code = 'Current'
+    )
+    SELECT * FROM ecal where ent_year = '2023'
+
+select * from dev_ods.oracle_financials.hyperion_financial_forecast where scenario = '6PLUS6'
+desc table dev_ods.oracle_financials.hyperion_financial_forecast
+
+update dev_ods.oracle_financials.hyperion_financial_forecast set year = case when trim(year) = 'FY23' Then '2023' when trim(year) = 'FY24' then '2024' end where trim(year) in ('FY23', 'FY24');
+select distinct year from dev_ods.oracle_financials.hyperion_financial_forecast
+update dev_ods.oracle_financials.hyperion_financial_forecast set year = case  when trim(year) = 'FY24' then '2024' end where trim(year) in ('FY24');
+
+ AND BUDGET_AMOUNT ='-157.5000000000'
+ select FC6PLUS6_AMOUNT from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE FC6PLUS6_AMOUNT = '-21.34'
+ 
+select * from "DEV_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" where GL_ACCOUNT_NUM  = '464000' AND BUDGETED_UNITS  IS NOT NULL AND CUSTOMER_ACCOUNT_INTGID = 'AMAZON.COM (HC)'
+AND ENT_PERIOD_WID = '20230301'
+
+SELECT CUSTOMER_ACCOUNT_INTGI FROM "DEV_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"
+
+select * from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F"
+select ENT_PERIOD,BUDGET_UNITS,INTEGRATION_ID,BUDGET_AMOUNT from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where  ENT_PERIOD = 'Mar-23'  AND CUSTOMER = 'AMAZON.COM (HC)' and  GL_ACCOUNT_CODE = '464000' 
+select ENT_PERIOD,BUDGET_UNITS,INTEGRATION_ID,BUDGET_AMOUNT from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where  ENT_PERIOD = 'Mar-23'  AND CUSTOMER = 'CONSUMER RELATIONS' and  GL_ACCOUNT_CODE = '514000' 
+select ENT_PERIOD,BUDGET_UNITS,INTEGRATION_ID,BUDGET_AMOUNT from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where  ENT_PERIOD = 'Mar-23'  AND CUSTOMER = 'AMAZON EMEA' and  GL_ACCOUNT_CODE = '479000' 
+
+select ENT_PERIOD,BUDGETED_UNITS,INTEGRATION_ID,BUDGETED_AMOUNT from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where  ENT_PERIOD = 'Mar-23'  AND CUSTOMER = 'UK ALL OTHER' and  GL_ACCOUNT_CODE = '401000' 
+
+
+select GL_ACCOUNT_CODE from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE GL_ACCOUNT_CODE = 'GROSSUNITS'
+-- AND CUSTOMER = 'AMAZON.COM (HC)'
+-- AND BUDGETED_UNITS IS NOT NULL
+-- GL_ACCOUNT_CODE = '401000'  
+
+DESC TABLE  "DEV_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"
+
+select month from  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_LOAD"
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE CUSTOMER LIKE '%20%'
+DROP table  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F"
+SELECT * FROM   "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_E" where integration_id = 'MEIJER INC~10~3~17~83~100~000~0000~401000~2088142~82~2023-06-30~3PLUS9'
+
+select
+    integration_id as unique_field,
+    count(*) as n_records
+
+from dev_edw.edw_omni.w_hyperion_budget_f
+where integration_id is not null
+group by integration_id
+having count(*) > 1
+
+insert into  "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST"
+SELECT 
+$1  BU_CODE ,
+$2  LE ,
+$3  CH_CODE ,
+$4  LC_CODE ,
+$5  DEPT ,
+$6  BR_CODE ,
+$7  PL_CODE ,
+$8  CUSTOMER ,
+$9  SKU ,
+$10  INVORG ,
+$11 ACCOUNT,
+replace($12,',','') Mar,
+replace($13,',','') Apr,
+replace($14,',','') May,
+replace($15,',','') Jun,
+replace($16,',','') Jul,
+replace($17,',','') Aug,
+replace($18,',','') Sep,
+replace($19,',','') Oct,
+replace($20,',','') Nov,
+replace($21,',','') Dec,
+replace($22,',','') Jan,
+replace($23,',','') Feb,
+UPPER(split_part(replace(METADATA$FILENAME,'Hyperion/'),'_',1))SCENARIO,
+UPPER(split_part(replace(METADATA$FILENAME,'Hyperion/'),'_',2))FORECAST_LEVEL,
+UPPER(split_part(replace(METADATA$FILENAME,'Hyperion/'),'_',3))YEAR,
+current_Timestamp() _BATCH_INSERT_DATE,
+current_Timestamp() _BATCH_UPDATE_DATE,
+100 _SOURCE_ID
+FROM @azure_stage/Hyperion/Budget_corporate_fy24_units.csv (file_format => 'HYPERION_FILE_FORMAT');
+desc table dev_ods.oracle_financials.hyperion_financial_forecast
+
+--delete from dev_ods.oracle_financials.hyperion_financial_forecast --174519
+select  from dev_ods.oracle_financials.hyperion_financial_forecast where mar is not null CUSTOMER = 'CONSUMER RELATIONS'
+         select    trim(substr(le, 1))  from dev_ods.oracle_financials.hyperion_financial_forecast  
+
+list @azure_stage
+select get_ddl('FILE_FORMAT', 'HYPERION_FILE_FORMAT'
+)
+
+select get_ddl('FILE_FORMAT', 'NEW_FILE_FORMAT'
+)
+
+CREATE OR REPLACE FILE FORMAT NEW_FILE_FORMAT
+    SKIP_HEADER = 1
+    FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+;
+-- new code"DEV_ODS"."INFORMATION_SCHEMA"."FILE_FORMATS"
+
+insert into  "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST"
+SELECT 
+$1  BU_CODE ,
+$2  LE ,
+$3  CH_CODE ,
+$4  LC_CODE ,
+$5  DEPT ,
+$6  BR_CODE ,
+$7  PL_CODE ,
+$8  CUSTOMER ,
+$9  SKU ,
+$10  INVORG ,
+$11 ACCOUNT,
+case when $12 is null or $12 = 0 then 0 else replace($12,',','') end Mar,
+case when $13 is null or $13 = 0 then 0 else replace($13,',','') end Apr,
+case when $14 is null or $14 = 0 then 0 else replace($14,',','') end  May,
+case when $15 is null or $15 = 0 then 0 else replace($15,',','') end Jun,
+case when $16 is null or $16 = 0 then 0 else replace($16,',','') end Jul,
+case when $17 is null or $17 = 0 then 0 else replace($17,',','') end Aug,
+case when $18 is null or $18 = 0 then 0 else replace($18,',','') end Sep,
+case when $19 is null or $19 = 0 then 0 else replace($19,',','') end  Oct,
+case when $20 is null or $20 = 0 then 0 else replace($20,',','') end Nov,
+case when $21 is null or $21 = 0 then 0 else replace($21,',','') end Dec,
+case when $22 is null or $22 = 0 then 0 else replace($22,',','') end Jan,
+case when $23 is null or $23 = 0 then 0 else replace($23,',','') end Feb,
+UPPER(split_part(replace(METADATA$FILENAME,'Hyperion/'),'_',1))SCENARIO,
+UPPER(split_part(replace(METADATA$FILENAME,'Hyperion/'),'_',2))FORECAST_LEVEL,
+UPPER(split_part(replace(METADATA$FILENAME,'Hyperion/'),'_',3))YEAR,
+current_Timestamp() _BATCH_INSERT_DATE,
+current_Timestamp() _BATCH_UPDATE_DATE,
+500 _SOURCE_ID
+FROM @azure_stage/Hyperion/3PLUS9_corporate_fy24_amount.csv (file_format => 'NEW_FILE_FORMAT');
+
+insert into  "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST"
+SELECT 
+$1  BU_CODE ,
+$2  LE ,
+$3  CH_CODE ,
+$4  LC_CODE ,
+$5  DEPT ,
+$6  BR_CODE ,
+$7  PL_CODE ,
+$8  CUSTOMER ,
+$9  SKU ,
+$10  INVORG ,
+$11 ACCOUNT,
+$12   Mar,
+$13  Apr,
+$14 May,
+$15 Jun,
+$16 Jul,
+$17 Aug,
+$18 Sep,
+$19 Oct,
+$20 Nov,
+$21 Dec,
+$22 Jan,
+$23 Feb,
+UPPER(split_part(replace(METADATA$FILENAME,'Hyperion/'),'_',1))SCENARIO,
+UPPER(split_part(replace(METADATA$FILENAME,'Hyperion/'),'_',2))FORECAST_LEVEL,
+UPPER(split_part(replace(METADATA$FILENAME,'Hyperion/'),'_',3))YEAR,
+current_Timestamp() _BATCH_INSERT_DATE,
+current_Timestamp() _BATCH_UPDATE_DATE,
+500 _SOURCE_ID
+FROM @azure_stage/Hyperion/3PLUS9_corporate_fy24_units.csv (file_format => 'NEW_FILE_FORMAT');
+
+CREATE TABLE hyprion_budget_bkup CLONE dev_edw.edw_omni.w_hyperion_budget_f BEFORE (STATEMENT => '8e5d0ca9-005e-44e6-b858-a8f5b37c5726');
+
+select * from hyprion_budget_bkup
+-- new table
+create or replace TABLE dev_ods.oracle_financials.HYPERION_FINANCIAL_FORECAST ( BU_CODE VARCHAR(16777216), LE VARCHAR(16777216), CH_CODE VARCHAR(16777216),
+                                                     LC_CODE VARCHAR(16777216), DEPT VARCHAR(16777216), BR_CODE VARCHAR(16777216),
+                                                     PL_CODE VARCHAR(16777216), CUSTOMER VARCHAR(16777216), SKU VARCHAR(16777216), INVORG VARCHAR(16777216), 
+                                                     ACCOUNT VARCHAR(16777216), MAR VARCHAR(16777216), APR VARCHAR(16777216), MAY VARCHAR(16777216), 
+                                                     JUN VARCHAR(16777216), JUL VARCHAR(16777216), AUG VARCHAR(16777216), SEP VARCHAR(16777216), 
+                                                     OCT VARCHAR(16777216), NOV VARCHAR(16777216), DEC VARCHAR(16777216), JAN VARCHAR(16777216), 
+                                                     FEB VARCHAR(16777216), SCENARIO VARCHAR(150),FORECAST_LEVEL VARCHAR(150),YEAR VARCHAR(150),_BATCH_INSERT_DATE TIMESTAMP_NTZ(9),
+                                                     _BATCH_UPDATE_DATE TIMESTAMP_NTZ(9), _SOURCE_ID NUMBER(10,0) );
+
+desc table "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST"
+delete from  "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST" 
+--where scenario = '6PLUS6'
+select customer from  "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST" where scenario = 'BUDGET' and account<> 'GrossUnits' and customer LIKE 'CG_OXO Germany'
+select customer,jun,account from  "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST"  WHERE  customer LIKE 'CG_OXO Germany' AND SCENARIO = 'BUDGET'and account <> 'GrossUnits' 
+select distinct customer from  "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST" where  account = '475000'
+select distinct customer from  "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST"  where account = '475000' and scenario = 'BUDGET'
+select distinct acc from  "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST"  where account = '475000' and scenario = 'BUDGET'
+
+select mar,apr,may,jun,jul from  "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST" 
+
+
+
+update  "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST" set _source_id = '500'
+select * from "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST"  WHERE SCENARIO = '3PLUS9'  and sku = 'SKUadj'
+
+-- 138251
+--where account <>'GrossUnits'and customer = 'CG_STAPLES' and jun is not null
+select  trim(substr(ch_code, 5)) from "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST" gl_sales_channel_code where trim(substr(ch_code, 5)) = '02'
+select trim(substr(dept, 1))from "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST"  gl_business_unit_code  where le <> 'NoLegalEntity'
+select substr(invorg, 4) from "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST"  where dept not in  ('MarginDept', 'RoyaltyDept')
+select pl_code from "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST" 
+select  trim(substr(invorg, 1, 2)) != 'IO'from "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST"
+select  trim(substr(invorg, 1, 2)) from "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST"
+
+select * from "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST"   where scenario = '3PLUS9' AND SKU = 'SKUadj'
+with stage as (select distinct trim(scenario) scenario, 1 X  from dev_discover.FINANCIALS.stg_oracle__hyperion_financial_forecast 
+    where  period_load._batch_update_date >= $batch_start_time
+                        and period_load._batch_update_date <= $batch_end_time and 
+ SELECT sku,customer,gl_account_code FROM dev_discover.FINANCIALS.stg_oracle__hyperion_financial_forecast where  SCENARIO = '3PLUS9'  and customer = 'US ALL OTHERS' and sku = 'SKUadj'
+               select * from dev_discover.FINANCIALS.stg_oracle__hyperion_financial_forecast
+
+               
+
+               --AT(TIMESTAMP => 'Sat, 01 July 2023 16:20:00 -0700'::timestamp);
+ AT(TIMESTAMP => 'Fri, 01 May 2015 16:20:00 -0700'::timestamp);
+               
+              select substr(trim(year), 1,2) from dev_ods.oracle_financials.hyperion_financial_forecast
+               select case when substr(trim(year), 1, 2) = 'FY' then '2024' else '2023' end year from dev_ods.oracle_financials.hyperion_financial_forecast
+               
+           select    case when trim(year) = 'FY23' Then '2023' when trim(year) = 'FY24' then '2024' end from  dev_ods.oracle_financials.hyperion_financial_forecast where trim(year) in ('FY23', 'FY24')  ;
+          --  month_name, month, ent_period, ent_period_start_date, ent_period_end_date,ENT_YEAR
+
+        from dev_edw.edw_omni.w_day_d
+        where current_ent_year_code = 'Current'
+               
+               
+               select ent_period from dev_edw.edw_omni.w_hyperion_budget_f   where ent_period like '%Jul%'
+               where ent_period = 'Jul-23' where integration_id = 'AMAZON EMEA~210~32~120~021~5300~000~0000~479000~2019205~2019205~663~663~CORPORATE~2024-02-29~500'
+         select
+    integration_id as unique_field,
+    count(*) as n_records
+
+from dev_edw.edw_omni.w_hyperion_budget_f
+where integration_id is not null
+group by integration_id
+having count(*) > 1
+
+                     
+
+               
+ --  need to check the source table to eliminate zeros and more trimming              
+ select distinct inventory_product_id from dev_edw.edw_omni.w_hyperion_budget_f  where inventory_product_id <> '0'
+                select a.integration_id,b.sku_org_id from dev_edw.edw_omni.w_inventory_product_d a , dev_discover.FINANCIALS.stg_oracle__hyperion_financial_forecast b 
+                  where  a.integration_id = '2202185~66~100'
+               
+              select integration_id from dev_edw.edw_omni.w_int_org_d where integration_id <> '82~100'
+
+               --b.sku_org_id||'~'||100
+               
+               select a.integration_id from dev_edw.edw_omni.w_inventory_product_d a where   a.integration_id not in (
+
+               select b.sku_org_id||'~'||100 from dev_discover.FINANCIALS.stg_oracle__hyperion_financial_forecast b where b.sku_org_id||'~'||100   in (
+                 select a.integration_id from dev_edw.edw_omni.w_inventory_product_d a where a.integration_id = '2003371~398~100' 
+          select * from dev_discover.FINANCIALS.stg_oracle__hyperion_financial_forecast     
+               
+               
+
+               
+
+ select * from dev_discover.FINANCIALS.stg_oracle__hyperion_financial_forecast where gl_account_code = '401000'and customer like '%STAPLES' and month = 'SEP' and scenario = '6PLUS6'
+  select * from dev_edw.edw_omni.w_hyperion_budget_f where ENT_PERIOD = 'Jun-23' 
+               --and gl_Account_code = '401000'
+             --  and customer = 'SPAIN ALL OTHER' 
+              and budget_amount is not null and FORECAST_3PLUS9_AMOUNT
+is not null
+               SELECT * FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" a WHERE  a.CUSTOMER_ACCOUNT_INTGID =  'SPAIN ALL OTHER' and a.gl_Account_num = '401000' 
+               AND  ENT_PERIOD_WID BETWEEN '20230601' AND '20230630' AND FC3PLUS9_AMOUNT IS NOT NULL
+               SELECT DISTINCT SCENARIO FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"
+               
+                SELECT * FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" limit 10
+               
+                 select * from "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"  where  ENT_PERIOD_WID = '20230630' 
+               --and gl_Account_code = '401000'
+             --  and customer = 'SPAIN ALL OTHER' 
+              and budgeted_amount is not null and FC3PLUS9_AMOUNT
+is not null and integration_id = 'CG_TARGET STORES ALL DIV (US)~L110~Chnl18~B617~PL333~BU5100~NoLegalEntity~MarginDept~488100~S2123941~IO666~Jun-23'
+               
+               select
+    integration_id as unique_field,
+    count(*) as n_records
+
+from dev_edw.edw_omni.w_hyperion_budget_f
+where integration_id is not null
+group by integration_id
+having count(*) > 1
+               
+               SELECT SUM(a.FC3PLUS9_UNITS)
+ FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"  a WHERE ENT_PERIOD_WID BETWEEN '20230601' AND '20230630'
+ AND a.CUSTOMER_ACCOUNT_INTGID =  'SPAIN ALL OTHER' and a.gl_Account_num = '401000'  IN (  SELECT b.FORECAST_3PLUS9_AMOUNT
+FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" b WHERE b.ENT_PERIOD = 'Jun-23'
+  AND b.CUSTOMER =  'BENELUX ALL OTHER'and b.gl_Account_code = '407500'
+                                                                                                                    
+)
+               SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE INTEGRATION_ID = 'SPAIN ALL OTHER~280~10~628~344~5300~000~0000~407500~S2011251~S2011251~63~82~2023-06-30~100'
+               select sum(budget_amount) from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '401000' 
+          select SUM(SALES_AMOUNT) from  dev_discover.FINANCIALS.stg_oracle__hyperion_financial_forecast where month = 'JUN' and gl_Account_code = '407500'  and CUSTOMER =  'SPAIN ALL OTHER' AND SCENARIO = 'BUDGET'
+               select * from dev_discover.FINANCIALS.stg_oracle__hyperion_financial_forecast
+               
+                 SELECT  SUM(a.FC6PLUS6_AMOUNT)
+ FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"  a WHERE ENT_PERIOD_WID = '20230630'
+AND  a.gl_Account_num = '407500' and a.scenario = 'BUDGET' and customer = 'SPAIN ALL OTHER'
+                 
+                  SELECT *
+ FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" limit 10
+               
+                 -- budget amount
+               
+                select sum(budget_amount) from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '407500'
+               and customer = 'SPAIN ALL OTHER' budget_amount is not null
+                 
+                 -- prod
+ SELECT  sum(BUDGETED_UNITS)
+ FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"  a WHERE ENT_PERIOD_WID ='20230630'
+ AND a.CUSTOMER_ACCOUNT_INTGID =  'SPAIN ALL OTHER' and a.gl_Account_num = '401000'  AND a.scenario = 'BUDGET'
+                 
+                  SELECT *
+ FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE CUSTOMER_WID =  '8234'
+                 
+SELECT  sum(budgeted_amount)
+ FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"  a WHERE ENT_PERIOD_WID ='20230630'
+ AND a.CUSTOMER_ACCOUNT_INTGID =  'SPAIN ALL OTHER' and a.gl_Account_num = '401000'  AND a.scenario = 'BUDGET'    
+                 
+  SELECT  inventory_product_wid
+ FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"  a WHERE ENT_PERIOD_WID ='20230630'
+ AND a.CUSTOMER_ACCOUNT_INTGID =  'OXO Germany' and a.gl_Account_num = '407500'  AND a.scenario = 'BUDGET'   and budgeted_amount is not null    
+                 
+   SELECT  sum(BUDGETED_AMOUNT
+ FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"  a WHERE ENT_PERIOD_WID ='20230630'
+ AND a.CUSTOMER_ACCOUNT_INTGID = 'BENELUX ALL OTHER' and a.gl_Account_num = '511000'  AND a.scenario = 'BUDGET'      
+     
+                 
+                 select * from "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"
+ -- unique val
+  select sum(budget_units) from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jul-23' and gl_Account_code = '401000'
+  and customer = 'SPAIN ALL OTHER'and budget_amount is not null
+                 
+                  select sum(budget_amount) from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '407500' and customer = 'OXO Germany' and  budget_amount is not null
+  
+   select budget_amount from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '407500'
+   and customer = 'OXO Germany' and budget_amount is not NULL
+                 
+                  select inventory_org_id,inventory_product_id  from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where    inventory_org_id  <> '82~100'
+            
+   select budget_amount,inventory_org_id,inventory_product_id from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '511000'
+   and customer = 'BENELUX ALL OTHER' and budget_amount is not null
+                
+   select * from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '407500'                 
+                 -- budget UNITS
+                   select BUDGET_UNITS from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '401000'
+               and customer = 'TESCO UK' and budget_units is not null
+                    select sum(BUDGET_UNITS) from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '401000'
+               and customer = 'STAPLES' and budget_units is not null
+                       select BUDGET_UNITS from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '401000'
+               and customer = 'STAPLES' and budget_units is not null
+                 
+                 
+                 -- 3plus9 amount
+                  select sum(FORECAST_3PLUS9_UNITS)  from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '401000'
+               and customer = 'WALGREENS' and FORECAST_3PLUS9_UNITS is not null -- 84247
+                 
+                 --3plus9
+                 select sum(FORECAST_3PLUS9_UNITS)  from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '401000'
+               and customer = 'WALGREENS'
+                 
+                 
+                  -- 6PLUS6 amount
+                  select SUM(FORECAST_6PLUS6_AMOUNT) from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where FORECAST_6PLUS6_AMOUNT  is not null 
+                 and  ENT_PERIOD = 'Sep-22' and gl_Account_code = '401000'
+               and customer = 'WALGREENS' -- 84247
+               
+               select SUM(FORECAST_6PLUS6_AMOUNT) from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where FORECAST_6PLUS6_AMOUNT  is not null 
+                 and  ENT_PERIOD = 'Sep-22' and gl_Account_code = '511000'
+               and customer = '142773'
+               
+               
+                select sum(FORECAST_6PLUS6_units) from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Sep-22' and gl_Account_code = '401000'
+   and customer = '142773'    and FORECAST_6PLUS6_units is not null
+                 
+                 --6PLUS6
+                 select *from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE FORECAST_6PLUS6_AMOUNT is not null
+                 
+               
+                 SELECT sum(FORECAST_6PLUS6_UNITS) FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE
+               ENT_PERIOD = 'Sep-23' and gl_Account_code = '401000'
+                 
+                      SELECT FORECAST_6PLUS6_AMOUNT FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE
+               ENT_PERIOD = 'Sep-23' and gl_Account_code = '401000'
+                 
+                
+                 -- year,ent_period,GL_ACCOUNT_CODE,FORECAST_6PLUS6_AMOUNT
+                 SELECT FORECAST_6PLUS6_AMOUNT  FROM "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" 
+                 where FORECAST_6PLUS6_AMOUNT is not null AND GL_ACCOUNT_CODE = '401000' AND ENT_PERIOD = 'Sep-23' and customer = 'WALGREENS'
+             
+                 SELECT  sum(BUDGETED_AMOUNT)
+ FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"  a WHERE ENT_PERIOD_WID ='20230630'
+ AND a.CUSTOMER_ACCOUNT_INTGID =  'TESCO UK' and a.gl_Account_num = '462000'  AND a.scenario = 'BUDGET'
+
+ select budget_amount,inventory_product_id,inventory_org_id from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '462000'
+   and customer = 'TESCO UK'  and budget_amount is not null
+   select sum(budget_amount) from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '462000'
+   and customer = 'TESCO UK'  and budget_amount is not null
+   select budget_units,inventory_product_id,inventory_org_id from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '401000'
+   and customer = 'TESCO UK'   and budget_units is not null
+      select sum(budget_units) from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '401000'
+   and customer = 'TESCO UK'   and budget_units is not null
+               
+               SELECT 
+               
+        SELECT *  from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST" where month = 'JUN' and CUSTOMER_ACCOUNT_INTGID =  'SPAIN ALL OTHER' and a.gl_Account_num = '407500'   AND SCENARIO = 'BUDGET' and sales_amount is not null 
+
+               
+               
+               select sum(FORECAST_3PLUS9_AMOUNT) from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '401000' --138695992.7900000007
+
+               
+                SELECT a.BUDGETED_AMOUNT
+ FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"  a WHERE ENT_PERIOD_WID BETWEEN '20230601' AND '20230630'
+ AND a.CUSTOMER_ACCOUNT_INTGID =  'SPAIN ALL OTHER' and a.gl_Account_num = '407500'   IN (  SELECT BUDGET_AMOUNT
+FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" b WHERE b.ENT_PERIOD = 'Jun-23'
+  AND b.CUSTOMER =  'SPAIN ALL OTHER'and b.gl_Account_code = '407500'
+)
+
+  SELECT a.BUDGETED_AMOUNT
+ FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"  a WHERE ENT_PERIOD_WID BETWEEN '20230601' AND '20230630'
+ AND a.CUSTOMER_ACCOUNT_INTGID =  'SPAIN ALL OTHER' and a.gl_Account_num = '407500'   IN (  SELECT BUDGET_AMOUNT
+FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" b WHERE b.ENT_PERIOD = 'Jun-23'
+  AND b.CUSTOMER =  'SPAIN ALL OTHER'and b.gl_Account_code = '407500'
+)              
+               
+               
+               
+        select * from prod_edw.bi11g_dw.wc_hyperion_budget_f where gl_account_num = '401000'and CUSTOMER_ACCOUNT_INTGID like '%CG_STAPLES' and ent_period = 'Aug-23'
+    select * from dev_edw.edw_omni.w_hyperion_budget_f where customer  = 'SPAIN ALL OTHER' and ENT_PERIOD = 'Jun-23' and gl_account_code = '407500' 
+               select INVENTORY_PRODUCT_ID from dev_edw.edw_omni.w_hyperion_budget_f 
+               select distinct segment_value_code from dev_edw.edw_omni.w_gl_segment_d where segment_value_code = 'SKUadj'
+               trim(substr(lc_code, 3))
+               select  trim(substr(ch_code, 5)) from "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST" gl_sales_channel_code where trim(substr(ch_code, 5)) = '02'
+ select   trim(substr(lc_code, 2))from "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST" gl_location_code 
+                select   lc_code from "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST" gl_location_code 
+             select  trim(substr(bu_code, 3)) from "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST" gl_business_unit_code
+             select   trim(substr(pl_code, 3)) from "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST"
+                            select pl_code from "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST"
+               select ltrim(substr(ltrim(rtrim(sku)), 1), ' 0')from "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST"
+               select substr(invorg, 3)from "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST"
+               select * from  "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST" WHERE SCENARIO = '6PLUS6'
+
+               
+           select     ltrim(substr(ltrim(rtrim(sku)), 1), ' 0')
+            || '~'
+            || case
+                when substr(invorg, 1, 2) <> 'IO' then '82' else substr(invorg, 3)
+                || '~'||100
+            end org_id,
+               CONCAT(SPLIT_PART(org_id,'~',2)||'~'||100) sku_org_id
+             from    "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST" 
+
+select integration_id,CONCAT(SPLIT_PART(integration_id,'~',2),'~',SPLIT_PART(integration_id,'~',3)) from dev_edw.edw_omni.w_inventory_product_d
+select a.integration_id inventory_product_id,
+                  ltrim(substr(ltrim(rtrim(b.sku)), 1), ' 0')
+           
+            || '~'
+            || case
+                when substr(b.invorg, 1, 2) <> 'IO' then '82' else substr(b.invorg, 3)
+               || '~'||100
+            end sku_org_id,
+              CONCAT(SPLIT_PART(sku_org_id,'~',2)||'~'||100) new
+             from   dev_edw.edw_omni.w_inventory_product_d a left join "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST" b
+               
+          on  CONCAT(SPLIT_PART(a.integration_id,'~',2),'~',SPLIT_PART(a.integration_id,'~',3)) = new limit 10
+               --CONCAT(SPLIT_PART(a. integration_id,'~',2)||'~'||100) = new limit 10
+               --  replace(a.integration_id,'~100','')
+
+desc table dev_ods.oracle_financials.HYPERION_FINANCIAL_FORECAST
+select * from dev_ods.oracle_financials.hyperion_financial_forecast where scenario = '3PLUS9' 
+               desc table dev_ods.oracle_financials.hyperion_financial_forecast
+select * from dev_edw.edw_omni.W_DOMAIN_MEMBER_G
+
+select * from  dev_ods.oracle_Financials.hyperion_financial_forecast where account ='GrossUnits'
+               desc view "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST"
+
+
+              select *  from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST" where customer  = 'SPAIN ALL OTHER' and month = 'JUN' limit 10
+
+
+select * from dev_edw.edw_omni.w_hyperion_budget_f where customer  = 'SPAIN ALL OTHER' and ENT_PERIOD = 'Jun-23' and gl_account_code = '407500' 
+               
+create or replace table dev_ods.oracle_financials.hyperion_financial_forecast 
+(
+  FILE_NAME VARCHAR(250),
+  _BATCH_UPDATE_DATE TIMESTAMP_NTZ(9),
+  _SOURCE_ID NUMBER(10,0),
+   DATA VARIANT
+)
+
+
+create or replace table dev_ods.oracle_financials.hyperion_financial_forecast
+(
+    BU_CODE VARCHAR(16777216),
+    LE	VARCHAR(16777216),
+  CH_CODE	VARCHAR(16777216),
+LC_CODE	VARCHAR(16777216),
+DEPT	VARCHAR(16777216),
+BR_CODE	VARCHAR(16777216),
+PL_CODE	VARCHAR(16777216),
+CUSTOMER	VARCHAR(16777216),
+ SKU	VARCHAR(16777216),
+   INVORG	VARCHAR(16777216),
+ACCOUNT VARCHAR(16777216),
+MAR	VARCHAR(16777216),
+APR	VARCHAR(16777216),
+MAY	VARCHAR(16777216),
+JUN	VARCHAR(16777216),
+JUL	VARCHAR(16777216),
+AUG	VARCHAR(16777216),
+SEP	VARCHAR(16777216),
+OCT	VARCHAR(16777216),
+NOV VARCHAR(16777216),
+DEC	VARCHAR(16777216),
+JAN VARCHAR(16777216),
+FEB	VARCHAR(16777216),
+SCENARIO VARCHAR(200),
+_BATCH_INSERT_DATE TIMESTAMP_NTZ,
+_BATCH_UPDATE_DATE TIMESTAMP_NTZ,
+_SOURCE_ID VARCHAR(100)
+)
+ 
+         
+select * from dev_ods.oracle_financials.hyperion_financial_forecast where account <> 'GrossUnits'
+
+DESC TABLE dev_ods.oracle_financials.hyperion_financial_forecast
+
+
+select * from "DEV_EDW"."EDW_OMNI"."W_CUSTOMER_ACCOUNT_D" c inner join "DEV_EDW"."EDW_OMNI"."W_INVENTORY_PRODUCT_D" b
+where 
+
+
+
+--- tables listed
+select DELETE_FLAG from "DEV_EDW"."EDW_OMNI"."W_INVENTORY_PRODUCT_D" -- PRESNT 
+DESC TABLE "DEV_EDW"."EDW_OMNI"."W_INVENTORY_PRODUCT_D" 
+select * from "DEV_EDW"."EDW_OMNI"."W_CUSTOMER_ACCOUNT_D" where CUSTOMER_GROUP IS NOT NULL AND CUSTOMER_ACCOUNT_NAME IS NOT NULL
+AND CUSTOMER_GROUP = 'INDEPENDENTS OXO UK'
+
+select * from "DEV_EDW"."EDW_OMNI"."W_PARTY_D" -- NOT PRESENT
+
+SELECT * FROM "DEV_EDW"."BI11G_DW"."W_MCAL_PERIOD_D"
+SELECT * FROM "DEV_EDW"."DEV_OMNI"."W_MCAL_PERIOD_D" --NOT PRESENT
+
+SELECT * FROM "DEV_EDW"."BI11G_DW"."W_ENT_PERIOD_D"
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_ENT_PERIOD_D" -- NOT PRESENT
+
+SELECT * FROM "DEV_EDW"."BI11G_DW"."W_NATURAL_ACCOUNT_D"
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_NATURAL_ACCOUNT_D" -- NOT PRESENT
+
+SELECT * FROM "DEV_EDW"."BI11G_DW"."W_GL_SEGMENT_D"
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D"where SEGMENT_NAME = 'Product Line'
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D"where SEGMENT_VALUE_CODE = '68063'
+
+select * from  "DEV_EDW"."EDW_OMNI"."W_PRODUCT_D"
+
+SELECT * FROM "DEV_EDW"."BI11G_DW"."W_PROD_D"
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_INVENTORY_PRODUCT_D" -- NOT PRESENT
+
+desc table "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST" --
+
+
+create temporary stage hyperion_stage
+  file_format = (csv)
+
+--PUT file:///tmp/data/mydata.csv @my_int_stage;
+PUT file:///C:/ambika/Tiger_Projects/Hyperion_Budget_F/Upload1 @hyperion_stage;
+
+-- can i take fact tables instead of dimension table to proceed with?
+-- 
+
+desc table "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_LOAD"
+
+select account,jan,feb,mar,apr,may,jun,jul,aug,sep,nov,dec from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDEGET_LOAD" where account = 608000 
+
+select bu_code, lc_code, customer, ch_code, br_code, pl_code,sku,invorg,dept,le,account,'USD' currency
+,'Mar 23', mar sales from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDEGET_LOAD"
+union
+
+select bu_code, lc_code, customer, ch_code, br_code, pl_code,sku,invorg,dept,le,account,'USD' currency
+,'Apr-23',Apr sales
+
+from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDEGET_LOAD"
+
+union
+
+select bu_code, lc_code, customer, ch_code, br_code, pl_code,sku,invorg,dept,le,account,'USD' currency
+,'May-23',May sales
+
+from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDEGET_LOAD"
+
+select bu_code, lc_code, customer, ch_code, br_code, pl_code,sku,invorg,dept,le,account,'USD' currency,
+May sales
+
+from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDEGET_LOAD" where sales is not null
+
+
+ SELECT ACTIVE_FLAG FROM "DEV_EDW"."EDW_OMNI"."W_CUSTOMER_ACCOUNT_D"  WHERE CUSTOMER_aCCOUNT_ID = '475000' LIMIT 10
+ 
+ SELECT CUSTOMER_GROUP FROM "DEV_EDW"."EDW_OMNI"."W_CUSTOMER_ACCOUNT_D" WHERE CUSTOMER_GROUP IS NOT NULL
+ desc table "DEV_EDW"."EDW_OMNI"."W_CUSTOMER_ACCOUNT_D" 
+  desc table "DEV_EDW"."EDW_OMNI"."W_GL_ACCOUNT_D" 
+
+ SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_CUSTOMER_ACCOUNT_D" LIMIT 10
+ --727973
+  SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_CUSTOMER_ACCOUNT_D" WHERE PARTY_ID = '727973'
+FINANCIAL
+
+ 
+select current_timestamp()
+CREATE OR REPLACE STAGE hyperion_stage
+  file_format = (type = 'CSV' FIELD_DELIMITER = '|' SKIP_HEADER = 1);
+  
+  select sales_units from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST" where sales_units is not null
+-- new files
+ drop table "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" and
+               select ENT_PERIOD from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F"  
+               and GL_ACCOUNT_CODE = '401000'
+               select * from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST" where gl_account_code = 'GrossUnits' and CUSTOMER = 'TESCO UK'AND MONTH = 'May' 
+               desc
+
+                 SELECT * FROM  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST"  WHERE  CUSTOMER= 'CG_UK ALL OTHER' AND GL_aCCOUNT_CODE = 'GrossUnits' and month = 'MAY'
+               and sales_amount is null
+ 
+  select * from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE CUSTOMER= 'TESCO UK' and ENT_PERIOD = 'May-23'
+
+ drop table "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_LOAD"
+ desc table "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_LOAD"
+ update "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_LOAD" set account = account_
+ alter table "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_LOAD" add column account_ varchar(50) copy data from account column to account_ column.
+ alter table "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_LOAD" drop column account
+  alter table "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_LOAD" rename column account_ to account  
+  
+  drop view "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST"
+               
+     -- inportant          
+   SELECT SALES_AMOUNT FROM  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST"  WHERE CUSTOMER= 'TESCO UK' and month= 'MAY' AND GL_aCCOUNT_CODE = '401000' 
+            select BUDGET_AMOUNT from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F"  where CUSTOMER = 'TESCO UK' AND ENT_PERIOD = 'May-23'      
+               select *from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F"  where CUSTOMER = 'TESCO UK' AND ENT_PERIOD = 'May-23' 
+
+               
+               
+               
+               
+
+                  SELECT SALES_AMOUNT FROM  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST"  WHERE CUSTOMER= 'TESCO UK' and month= 'MAY' AND GL_ACCOUNT_CODE <> 'GrossUnits'
+
+
+                              select * from dev_ods.oracle_financials.hyperion_financial_forecast WHERE CUSTOMER LIKE  '%AUSTRIA ALL OTHER%'AND ACCOUNT = 'GrossUnits' and MAY IS NOT NULL
+
+                  SELECT * FROM  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST"  WHERE  CUSTOMER= 'AUSTRIA ALL OTHER' AND GL_aCCOUNT_CODE = '401000' and month = 'MAY'
+               and ORGANIZATION_ID = '663'
+               
+               
+                  SELECT * FROM  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST"  WHERE  CUSTOMER= 'AUSTRIA ALL OTHER' AND GL_aCCOUNT_CODE = 'GrossUnits' and month = 'MAY'
+               and ORGANIZATION_ID = '663'
+               and sales_units is null
+             
+               
+               WHERE CUSTOMER= 'TESCO UK' and month= 'MAY' AND GL_aCCOUNT_CODE = '401000'
+
+               
+               
+               
+               
+               
+ SELECT TRIM(SUBSTR(CUSTOMER,2)) FROM  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST"  WHERE CUSTOMER_LEVEL ='customer' and TRIM(SUBSTR(CUSTOMER,2))<> '999999'
+  SELECT * FROM  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST"  WHERE CUSTOMER_LEVEL ='customer group' and TRIM(CUSTOMER) = 'ITALY ALL OTHER'
+  SELECT * FROM "DEV_DISCOVER"."FINANCIA    SELECT * FROM  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST"  WHERE  CUSTOMER= 'TESCO UK' AND GL_aCCOUNT_CODE = '401000' and month = 'MAY'
+               and sales_amount is nullLS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST"  WHERE CUSTOMER = '999999'
+ SELECT a.CUSTOMER,a.customer_level,b.customer_account_number FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST" a, "DEV_EDW"."EDW_OMNI"."W_CUSTOMER_ACCOUNT_D" b
+ where b.customer_account_number = a.customer
+ 
+  SELECT * FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST"  WHERE CUSTOMER = '209091'
+
+             SELECT     case
+                when trim(customer) in ('NewCustomers', 'NoCustomer')
+                then '9999999'
+               -- when regexp_instr(customer, 'V', 1, 1) > 0
+               -- then trim(substr(customer, 2, regexp_instr(customer, 'V', 1, 1) - 1))
+               when customer  like '%CG%' then trim(substr(customer, 5)) 
+               when customer  like '%C%' then trim(substr(customer, 2))
+               else  trim(customer)
+               end customer
+
+  SELECT customer FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_LOAD"  WHERE CUSTOMER like '%CG%'
+  SELECT CUST,CUSTOMER FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_LOAD"  WHERE CUSTOMER LIKE '9999999'
+    SELECT GL_PRODUCT_LINE_CODE FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_LOAD"  WHERE GL_PRODUCT_LINE_CODE LIKE '099'
+        SELECT CUST,CUSTOMER,GL_BRAND_CODE FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_LOAD"  WHERE GL_BRAND_CODE = '999'
+
+    
+
+
+
+
+ copy data from account column to account_ column.
+ SELECT * FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_FILE_PERIOD_LOAD" 
+  SELECT * FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_ERROR_TABLE" 
+
+
+ select CUSTOMER from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_FILE_PERIOD_LOAD" WHERE CUSTOMER LIKE '%C%'
+ stg_oracle__w_hyperion_budget_period
+
+ desc table "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_LOAD"
+  desc table "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F"
+  SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" limit 10
+    SELECT customer FROM "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" 
+        SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F"
+
+
+select gl_pro from "DEV_EDW"."EDW_OMNI"."W_INVENTORY_PRODUCT_D"
+select * from "DEV_EDW"."EDW_OMNI"."W_CUSTOMER_ACCOUNT_D" limit 10
+select * from "DEV_EDW"."EDW_OMNI"."W_INT_ORG_D"
+
+  SELECT BUDGETED_AMOUNT,CUSTOMER_ACCOUNT_INTGID,BUDGETED_UNITS FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F" WHERE ENT_PERIOD_WID BETWEEN '20230501' AND '20230531'																			
+ AND CUSTOMER_ACCOUNT_INTGID =  'TESCO UK'  and gl_Account_num <> '401000'   IN (  SELECT BUDGET_AMOUNT FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE ENT_PERIOD = 'May-23'																			
+  AND CUSTOMER =  'TESCO UK' and gl_Account_code <> '401000')																			
+
+
+
+ drop table "DEV_EDW"."EDW_OMNI"."W_DM_DAILY_SNAP_SHOT_F"
+ select * from "DEV_EDW"."EDW_OMNI"."W_SALES_FORECAST_DAILY_SNAPSHOT_F"
+ sel
+  select actuals_total_value,hot_abc_flag from "DEV_EDW"."EDW_OMNI"."W_SALES_FORECAST_F" limit 10
+  -- need to check ttl_dol in stage file and check with ttl_value
+desc table "DEV_EDW"."EDW_OMNI"."W_SALES_FORECAST_F"
+--BRAND_SEGMENT_ID
+--PRODUCT_LINE_SEGMENT_ID
+-- SALES_CHANNEL_SEGMENT_ID
+--BUSINESS_UNIT_SEGMENT_ID
+-- segment_2
+
+
+
+
+ 
+ --PROD
+ 
+ SELECT * FROM "DEV_EDW"."BI11G_DW"."WC_HYP_BUDGET_FILE_LOAD" WHERE FY_YEAR IS NOT NULL
+ SELECT * FROM "DEV_EDW"."BI11G_DW"."WC_HYP_BUDGET_FILE_PERIOD_LOAD" WHERE FY_YEAR  = 'FY21'
+  SELECT * FROM "DEV_EDW"."BI11G_DW"."W_CUSTOMER_ACCOUNT_D" LIMIT 10
+  select min(row_wid) from "DEV_EDW"."BI11G_DW"."W_CUSTOMER_ACCOUNT_D" where row_wid < 0;
+    select row_wid from "DEV_EDW"."BI11G_DW"."W_CUSTOMER_ACCOUNT_D" where row_wid > 0;
+
+select * from "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST" where account <> 'GrossUnits'
+               desc table "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST"
+               select * from "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST" where account = 'GrossUnits'
+
+SELECT SYSTEM$CANCEL_QUERY('01ad106f-0604-9727-000b-ab871afe2a76')
+               select 
+
+
+desc table "DEV_ODS"."ORACLE_FINANCIALS"."HYPERION_FINANCIAL_FORECAST"
+-- steps for hyperion (with w_dayd_d)
+
+SELECT month FROM "DEV_EDW"."EDW_OMNI"."W_DAY_D" where calendar_date = current_date()
+SELECT ENT_PERIOD_START_DATE,ENT_PERIOD_END_DATE,ADJUSTMENT_PERIOD_FLAG FROM "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+desc table "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+desc table  "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D"
+desc table  "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D"
+SELECT GL_ACCOUNT_CODE FROM "DEV_EDW"."EDW_OMNI"."W_HYPERION"
+
+desc table  "DEV_EDW"."EDW_OMNI"."W_GL_ACCOUNT_D"
+select integration_id from "DEV_EDW"."EDW_OMNI"."W_GL_ACCOUNT_D"
+
+
+desc table  "DEV_EDW"."EDW_OMNI"."W_INT_ORG_D"
+select * from "DEV_EDW"."EDW_OMNI"."W_INT_ORG_D"
+
+
+
+
+
+
+
+desc table "DEV_EDW"."EDW_OMNI"."W_INT_ORG_D"
+desc table  "DEV_EDW"."EDW_OMNI"."W_INVENTORY_PRODUCT_D"
+
+
+desc table "DEV_EDW"."EDW_OMNI"."CALL_NOTES_ALL_D"
+desc table "DEV_ODS"."ORACLE_CRM"."OSC_CALL_NOTES"
+select distinct ent_cal_name from "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+select upper(left(ent_period,3))  from "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+select  *from "DEV_EDW"."EDW_OMNI"."W_GL_ACCOUNT_D" limit 10
+select distinct ent_cal_name from "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+select upper(left(ent_period,3))  from "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+select  *from "DEV_EDW"."EDW_OMNI"."W_GL_ACCOUNT_D" limit 10
+seLEct * from "DEV_EDW"."EDW_OMNI"."W_MCAL_PERIOD_D"
+select distinct month_name from "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+select * from "DEV_EDW"."EDW_OMNI"."W_INVENTORY_PRODUCT_D"
+
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_LOAD"
+drop view  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_LOAD"
+-- account make it as varchar
+SELECT * FROM  "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D"
+select SEGMENT_VALUE_CODE from "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D" WHERE SEGMENT_VALUE_CODE = '479000' AND SEGMENT_NAME = 'BRAND'
+select SEGMENT_VALUE_CODE from "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D" WHERE SEGMENT_VALUE_CODE = '479000' AND SEGMENT_NAME = 'BRAND'
+select SEGMENT_VALUE_CODE,SEGMENT_NAME from "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D" WHERE   SEGMENT_NAME = 'Product_line' AND SEGMENT_VALUE_CODE = '912'
+select SEGMENT_VALUE_CODE,SEGMENT_NAME from "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D" WHERE   SEGMENT_NAME = 'Product_line' AND SEGMENT_VALUE_CODE = '912'
+
+
+select SKU_ORG_ID,GL_ACCOUNT_CODE,GL_BRAND_CODE,GL_PRODUCT_LINE_CODE from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_LOAD"
+select * from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_TEST" LIMIT 10
+DROP VIEW "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_TEST"
+
+desc view "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_LOAD"
+where GL_BRAND_CODE = '500'
+select GL_BRAND_CODE from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_LOAD" where GL_BRAND_CODE = '100'
+select trim(substr(customer,2)) from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST" where customer = 'C209091'
+select * from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST" where sales_units is not null
+               select * from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST" where sales_amount is not null
+
+               desc view "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST"
+
+
+
+SELECT case when trim(customer) = 'NewCustomer' then '9999999'
+      when substr(UPPER(trim(customer)), 1,3) = 'CG_' then substr(trim(customer),4)
+      when substr(UPPER(trim(customer)), 1,1) = 'C' then substr(trim(customer),2)
+      else trim(customer)
+end
+
+
+select * from dev_ods.oracle_financials.hyperion_financial_forecast where scenario = '6PLUS6' AND ACCOUNT = 'GrossUnits'
+   select  case
+                when account = 'GrossUnits'
+                 then '401000'
+                 end
+                 from dev_ods.oracle_financials.hyperion_financial_forecast 
+delete from dev_ods.oracle_financials.hyperion_financial_forecast
+select * from "DEV_EDW"."EDW_OMNI"."W_INT_ORG_D" where integration_id = '663~100'
+select INTEGRATION_ID,DBT_VALID_TO,DATASOURCE_NUM_ID from "DEV_EDW"."EDW_OMNI"."W_INVENTORY_PRODUCT_D" WHERE INTEGRATION_ID = '2205339~82~100'
+SELECT * FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE BUDGETED_AMOUNT IS NOT NULL 
+               SELECT * FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE  BUDGETED_UNITS is not null
+
+SELECT * FROM  "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" WHERE FORECAST_3PLUS9_AMOUNT IS NOT NULL
+
+               
+DROP TABLE "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F"
+select * from "DEV_EDW"."EDW_OMNI"."W_CUSTOMER_ACCOUNT_D" where CUSTOMER_ACCOUNT_NUMBER is null
+select * from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST"  C
+drop view "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_FINANCIAL_FORECAST"
+LEFT JOIN "DEV_EDW"."EDW_OMNI"."W_CUSTOMER_ACCOUNT_D" D WHERE C.CUSTOMER =  D.CUSTOMER_ACCOUNT_NUMBER AND D.CUSTOMER_ACCOUNT_NUMBER IS NULL
+select SKU_ORG_ID,GL_ACCOUNT_CODE,gl_department_code from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_LOAD" WHERE gl_department_code ='Department'
+SELECT SEGMENT_NAME,SEGMENT_VALUE_CODE FROM "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D"
+
+select GL_ACCOUNT_CODE from  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_LOAD" WHERE   GL_ACCOUNT_CODE= '761995'
+SELECT SEGMENT_VALUE_CODE,INTEGRATION_ID FROM  "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D"
+
+select period,sales FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_FILE_PERIOD_LOAD" where period is not null and sales is not  null
+ SELECT avg(sales) FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_FILE_PERIOD_LOAD"  where sales is not null and period in ('Mar-23') group by sales
+  SELECT bu_code,sum(sales) FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_FILE_PERIOD_LOAD"   group by sales,bu_code
+  select * from   "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_FILE_PERIOD_LOAD" 
+  select bu_code,sum(sales) from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_FILE_PERIOD_LOAD" group by bu_code
+ select bu_code,pivot(sum(sales))from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_FILE_PERIOD_LOAD" group by bu_code
+ select * from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_FILE_PERIOD_LOAD" pivot(sum(sales) for bu_code in 
+                    ( select distinct bu_code from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_FILE_PERIOD_LOAD")) group by bu_code
+ select apr,bu_code from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_LOAD" pivot(sum(apr) for bu_code in 
+                    ( select  bu_code from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_LOAD"))  pvt(apr,bu_code)
+ 
+select distinct apr,bu_code,sku from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_LOAD" where apr is not null group by bu_code,apr,sku
+select sum(jul),bu_code from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_LOAD" where  account = '519000' group by bu_code
+select sum(jul),bu_code from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_LOAD" where jul is not null  group by bu_code
+
+
+select *
+from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_LOAD"
+pivot(sum(jul) for bu_code in (' BU2070 ',' BU5100 '))
+where trim(sku) in ('S2190186','SKUadj','S2190228','S2184263')
+and account = '519000' 
+
+
+select * from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_LOAD" unpivot(jul) for bu_code in ('BU2070')
+   SELECT * FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_FILE_PERIOD_LOAD"  where 'BU2070' is not null and 'BU5100' is not null
+
+
+ SELECT * FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_LOAD" 
+  SELECT pivot(apr) FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_LOAD" 
+
+select * from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__HYPERION_BUDGET_LOAD"  
+UNPIVOT(sales for month in (jan,feb,mar,apr))
+order by bu_code
+
+
+drop table dev_ods.oracle_financials.hyperion_financial_forecast
+create or replace table dev_ods.oracle_financials.hyperion_financial_forecast
+(
+  FILE_NAME VARCHAR(250),
+  _BATCH_INSERT_DATE TIMESTAMP_NTZ(9),
+  _BATCH_UPDATE_DATE TIMESTAMP_NTZ(9),
+  _SOURCE_ID NUMBER(10,0),
+   DATA VARIANT
+)
+
+
+
+
+
+
+  
+PROD :
+    
+   SELECT SUM(a.FC3PLUS9_AMOUNT)
+ FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"  a WHERE ENT_PERIOD_WID BETWEEN '20230601' AND '20230630'
+ AND a.CUSTOMER_ACCOUNT_INTGID =  'SPAIN ALL OTHER' and a.gl_Account_num = '511000'
+ 
+   SELECT SUM(a.FC3PLUS9_AMOUNT)
+ FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"  a WHERE ENT_PERIOD_WID BETWEEN '20230601' AND '20230630'
+ AND a.CUSTOMER_ACCOUNT_INTGID =  'BENELUX ALL OTHER' and a.gl_Account_num = '407500'
+ 
+   
+               SELECT SUM(a.FC3PLUS9_UNITS)
+ FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"  a WHERE ENT_PERIOD_WID BETWEEN '20230601' AND '20230630'
+ AND a.CUSTOMER_ACCOUNT_INTGID =  'BENELUX ALL OTHER
+ 
+   SELECT SUM(a.FC3PLUS9_UNITS)
+ FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"  a WHERE ENT_PERIOD_WID BETWEEN '20230601' AND '20230630'
+ AND a.CUSTOMER_ACCOUNT_INTGID =  'SPAIN ALL OTHER'
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+

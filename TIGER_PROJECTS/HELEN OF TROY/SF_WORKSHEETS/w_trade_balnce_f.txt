@@ -1,0 +1,761 @@
+
+
+select table_schema, 
+       table_name, 
+       created as create_date,
+       last_altered as modify_date
+from information_schema.tables 
+where table_name in ('MSC_PLANS')
+order by table_schema,
+        table_name
+
+SELECT * FROM "DEV_DISCOVER"."MASTER_DATA"."STG_ORACLE__ITEM_UOM_CONVERSIONS"
+SELECT XACT_SOURCE_ID FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__SALES_INVOICE_LINES_ALL"
+DROP VIEW "DEV_DISCOVER"."MASTER_DATA"."STG_ORACLE__ITEM_UOM_CONV"
+DESC TABLE "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__W_SALES_INVOICE_LINE_FS"
+DROP VIEW "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__W_SALES_INVOICE_LINE_FS"
+SELECT INVENTORY_ITEM_ID FROM "DEV_ODS"."ORACLE_MASTER_DATA"."MTL_SYSTEM_ITEMS" WHERE INVENTORY_ITEM_ID = '1560505'
+SELECT COUNT(*) FROM "DEV_ODS"."ORACLE_MASTER_DATA"."MTL_PARAMETERS"
+select count(*) from  "DEV_ODS"."ORACLE_MASTER_DATA"."MTL_SYSTEM_ITEMS"
+select COUNT(*) from "DEV_ODS"."ORACLE_SCP"."MSC_SYSTEM_ITEMS" 
+
+
+select t.table_schema, 
+       t.table_name
+from information_schema.tables t
+inner join information_schema.columns c on 
+       c.table_schema = t.table_schema and c.table_name = t.table_name
+where t.table_type = 'BASE TABLE'
+       and column_name ='LOC_ID'
+order by t.table_schema, 
+       t.table_name;
+       DROP VIEW "DEV_DISCOVER"."MASTER_DATA"."STG_ORACLE__HOTIC_OM_MULTIPLE_REPS"
+
+select B.category,B.brand,B.ORG_ID from "DEV_DISCOVER"."MASTER_DATA"."STG_ORACLE__HOTIC_OM_MULTIPLE_REPS" B LEFT OUTER JOIN "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__SALES_INVOICE_LINES_ALL" A
+ON A.INVENTORY_ORG_ID = B.ORG_ID where  B.BRAND IS NULL LIMIT 10
+HOTIC_OM_MULTIPLE_REPS
+-- oracle_financials (all tables under ra)
+  SELECT status_trx FROM  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__RA_CUSTOMER_TRX_ALL" WHERE SET_OF_BOOKS_ID = 1
+    SELECT COUNT(*) FROM  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__RA_CUSTOMER_TRX_ALL" 
+        SELECT distinct(sold_to_site_use_id) FROM  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__RA_CUSTOMER_TRX_ALL" 
+                SELECT COUNT(*) FROM  "ORACLE_FINANCIALS"."RA_CUST_TRX_TYPES_ALL" 
+                                SELECT COUNT(*) FROM  "ORACLE_MASTER_DATA"."GL_LEDGERS" 
+
+ select distinct(sold_to_site_use_id)  from W_SALES_INVOICE_LINE_F
+  select A.terr_id,B.TERRITORY_ID as invoce_terr_id from  "DEV_EDW"."EDW_OMNI"."W_TERRITORY_D" A, "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F" B
+  where A.INTEGRATION_ID = B.TERRITORY_ID and B.TERRITORY_ID is not null
+  select * from  "DEV_EDW"."EDW_OMNI"."W_TERRITORY_D"
+  select * from "DEV_EDW"."EDW_OMNI"."W_SALES_FORECAST_F" limit 10
+ -- to check nul values in territory_id
+ select A.TERRITORY_ID
+,B.TERRITORY_ID,a.integration_id as invoce_terr_id from  "DEV_EDW"."EDW_OMNI"."W_TERRITORY_D" A left  join "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F" B
+ where A.INTEGRATION_ID = B.TERRITORY_ID and a.integration_id is  null
+ and b.created_on_date > current_date -30 
+
+select terr_id,integration_id from  "DEV_EDW"."EDW_OMNI"."W_TERRITORY_D" where terr_id is not null and terr_id = '010124'
+where integration_id = '~~100155096~100155096~100'
+select count(terr_id) from  "DEV_EDW"."EDW_OMNI"."W_TERRITORY_D" where terr_id is not null and terr_id = '010124'
+
+select A.terr_id,B.TERRITORY_ID as invoce_terr_id from  "DEV_EDW"."EDW_OMNI"."W_TERRITORY_D" A, "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F" B
+where A.INTEGRATION_ID(+) = B.TERRITORY_ID and B.TERRITORY_ID is null
+and b.creation_date > current_date -30
+
+limit 10
+
+SELECT count(territory_id) FROM  "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F"
+SELECT territory_id,xact_type_id,XACT_SOURCE_ID,INTEGRATION_ID,bill_to_site_use_id,ship_to_site_use_id,paying_site_use_id,sales_rep_id
+FROM  "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F" where territory_id = '090111~239100~100025088~100025088~100'   -- where sales_rep_id = '100070091~100' 
+SELECT territory_id,xact_type_id,XACT_SOURCE_ID,INTEGRATION_ID,bill_to_site_use_id,ship_to_site_use_id,paying_site_use_id,sales_rep_id
+FROM  "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F" LIMIT 100 where integration_id  = '100080092~100' LIMIT 100
+select* from "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F"
+-- RA_CUST_TRX_TYPES_ALL
+-- RA_SALESREPS_ALL
+-- RA_CUSTOMER_TRX_ALL
+-- RA_CUSTOMER_TRX_LINES_ALL
+-- GL_LEDGERS (ORACLE_MASTER_DATA)
+DESC TABLE"DEV_DISCOVER"."MASTER_DATA"."STG_ORACLE__GL_LEDGERS"
+SELECT * FROM "DEV_ODS"."ORACLE_SCP"."SALES_DATA" limit 10
+SELECT volume_base_future_value FROM "DEV_DISCOVER"."SUPPLY_CHAIN"."STG_ORACLE__SALES_DATA" LIMIT 100
+select customer_ship_to_loc_id from   "DEV_DISCOVER"."FINANCIALS"."STG__SALES_INVOICE_LINES" limit 10
+SELECT paying_site_use_id FROM  "DEV_ODS"."ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_ALL" where paying_site_use_id is not null
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_XACT_TYPE_D" WHERE W_XACT_CODE LIKE 'SALES_I%'
+SELECT territory_id,xact_type_id,XACT_SOURCE_ID,INTEGRATION_ID,bill_to_site_use_id,ship_to_site_use_id,paying_site_use_id
+FROM  "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F"  LIMIT 100
+select * from  "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F" where integration_id is null
+SELECT COUNT(*) FROM "DEV_DISCOVER"."FINANCIALS"."STG__SALES_INVOICE_LINES" 
+stg_oracle__item_category_inventory_attributes
+select COUNT(*) from "DEV_DISCOVER"."MASTER_DATA"."STG_ORACLE__ITEM_CATEGORY_INVENTORY_ATTRIBUTES" LIMIT 10
+drop table "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F"
+(SELECT count(*) FROM  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__RA_CUSTOMER_TRX_LINES_ALL")
+SELECT SET_OF_BOOKS_ID FROM  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__RA_CUSTOMER_TRX_LINES_ALL" L WHERE SET_OF_BOOKS_ID NOT IN
+
+
+SELECT territory_id FROM "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F" limit 100
+(SELECT  SET_OF_BOOKS_ID FROM  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__RA_CUSTOMER_TRX_LINES_ALL" L
+  WHERE S.LEDGER_ID = L.SET_OF_BOOKS_ID )
+  
+  SELECT DISTINCT(SET_OF_BOOKS_ID) FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__RA_CUSTOMER_TRX_LINES_ALL"
+  
+  -- CHECK WITH SOURCE TABLEAND TARGET TABLE FOR DIFFREENCE IM ONE RECORD
+  SELECT COUNT(*) FROM  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__RA_CUSTOMER_TRX_LINES_ALL" WHERE SET_OF_BOOKS_ID = 1
+    SELECT COUNT(*) FROM  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__RA_CUSTOMER_TRX_ALL" 
+        SELECT COUNT(*) FROM  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__RA_CUSTOMER_TRX_ALL" 
+
+
+  -- 96227286
+  
+  SELECT DISTINCT(LEDGER_ID) FROM "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F"
+   
+SELECT INTEGRATION_ID FROM "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F"  WHERE INTEGRATION_ID NOT IN 
+(select CUSTOMER_TRX_LINE_ID from  "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_LINES_ALL" )
+
+-- SAMPLE 10 ID'S TAKEN FROM TARGET
+SELECT INTEGRATION_ID FROM "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F" LIMIT 10
+-- CHECK ONE OF THE ID PRESENT IN SOURCE TABLE
+select * from  "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_LINES_ALL" WHERE  CUSTOMER_TRX_LINE_ID = 138967150
+-- CHECK THAT PARTICULAR ID PRESENT IN TRX_ALL
+select * from  "ORACLE_FINANCIALS"."SALES_INVOICE_TYPES" 
+WHERE CUSTOMER_TRX_LINE_ID IN (select CUSTOMER_TRX_ID from  "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_ALL"  WHERE CUSTOMER_TRX_ID = 9438433)
+
+
+-- NOT PRESENT
+
+-- CHECK ONE OF THE ID PRESENT IN SOURCE TABLE
+select * from  "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_LINES_ALL" WHERE  CUSTOMER_TRX_LINE_ID = 296055358
+-- CHECK THAT PARTICULAR ID PRESENT IN TRX_ALL
+select * from  "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_LINES_ALL" 
+WHERE CUSTOMER_TRX_LINE_ID IN (select CUSTOMER_TRX_ID from  "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_ALL"  WHERE CUSTOMER_TRX_ID = 22476757)
+
+select territory_id from  "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_ALL"  where territory_id is not  null
+(select * from  "ORACLE_FINANCIALS"."RA_CUST_TRX_TYPES_ALL"  WHERE CUST_TRX_TYPE_ID = 296055358)
+(select * from  "ORACLE_FINANCIALS"."RA_SALESREPS_ALL"  WHERE salesrep_id = 296055358)
+SELECT * FROM "ORACLE_MASTER_DATA"."GL_LEDGERS" WHERE ledger_id = 296055358
+
+
+(select * from  "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_LINES_ALL"  WHERE CUSTOMER_TRX_LINE_ID = 129250651)
+(select * from  "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_ALL"  WHERE CUSTOMER_TRX_ID = 129250651)
+(select * from  "ORACLE_FINANCIALS"."RA_CUST_TRX_TYPES_ALL"  WHERE CUST_TRX_TYPE_ID = 129250651)
+(select * from  "ORACLE_FINANCIALS"."RA_SALESREPS_ALL"  WHERE salesrep_id = 129250651)
+SELECT * FROM "ORACLE_MASTER_DATA"."GL_LEDGERS" WHERE ledger_id = 129250651
+
+
+SELECT CUSTOMER_TRX_LINE_ID FROM "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_LINES_ALL"  WHERE CUSTOMER_TRX_LINE_ID NOT IN 
+(select INTEGRATION_ID from  "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F" ) LIMIT 10
+
+SELECT territory_id,invoice_status,sales_order_line_id,sales_pick_line_id,net_amount,discount_amount,delete_flag  FROM "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F" limit 10
+SELECT customer_account_id,territory_id,ship_to_site_use_id  FROM "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F"   where ship_to_site_use_id = '1511635'
+
+SELECT DISTINCT(LEDGER_ID) FROM  "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F"
+select count(*) from "ORACLE_FINANCIALS"."RA_CUST_TRX_TYPES_ALL"
+where  cust_trx_type_id
+                                = 296055358
+
+ (SELECT COUNT(*) FROM "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_ALL"
+left outer join  "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_LINES_ALL"
+on "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_ALL".customer_trx_id
+                                = 296055358)
+                                
+                                
+  
+   (SELECT COUNT(*) FROM "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_ALL"
+left outer join  "ORACLE_FINANCIALS"."RA_CUST_TRX_TYPES_ALL"
+on "ORACLE_FINANCIALS"."RA_CUST_TRX_TYPES_ALL".cust_trx_type_id
+                                = 296055358)
+                                
+                                
+                                
+  
+   (SELECT COUNT(*) FROM "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_ALL"
+left outer join  "ORACLE_FINANCIALS"."RA_CUST_TRX_TYPES_ALL"
+on "ORACLE_FINANCIALS"."RA_CUST_TRX_TYPES_ALL".cust_trx_type_id
+                                = 296055358)                                
+
+ (SELECT COUNT(*) FROM "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_ALL"
+left outer join  "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_LINES_ALL"
+on "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_ALL".customer_trx_id
+                                = "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_ALL".customer_trx_id
+             
+left outer join "ORACLE_FINANCIALS"."RA_CUST_TRX_TYPES_ALL"
+on "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_ALL".org_id = "ORACLE_FINANCIALS"."RA_CUST_TRX_TYPES_ALL".org_id
+                            and "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_ALL".cust_trx_type_id
+                            = "ORACLE_FINANCIALS"."RA_CUST_TRX_TYPES_ALL".cust_trx_type_id
+                            
+left outer join  "ORACLE_FINANCIALS"."RA_SALESREPS_ALL"
+ on "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_ALL".primary_salesrep_id =  "ORACLE_FINANCIALS"."RA_SALESREPS_ALL".salesrep_id
+ and "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_ALL".org_id = "ORACLE_FINANCIALS"."RA_SALESREPS_ALL".org_id
+ 
+ left outer join "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_LINES_ALL" RA_CUSTOMER_TRX_LINES_ALL1
+                    on "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_LINES_ALL" .link_to_cust_trx_line_id
+                    = RA_CUSTOMER_TRX_LINES_ALL1 .customer_trx_line_id
+                    
+ inner join "ORACLE_MASTER_DATA"."GL_LEDGERS" on "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_LINES_ALL".set_of_books_id = "ORACLE_MASTER_DATA"."GL_LEDGERS".ledger_id
+
+where
+            (1 = 1)
+           
+            and (
+                (
+                    "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_LINES_ALL"._batch_update_date >=  current_timestamp()
+                    and "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_LINES_ALL"._batch_update_date <=  current_timestamp()
+                )
+                or (
+                    "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_ALL"._batch_update_date >= current_timestamp()
+                    and "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_ALL"._batch_update_date <=  current_timestamp()
+                )
+            )
+            
+            and ("ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_ALL".complete_flag = 'Y')
+            and (
+               "ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_LINES_ALL".interface_line_context
+                in ('ORDER ENTRY', 'INTERCOMPANY', 'CRS')
+                or RA_CUSTOMER_TRX_LINES_ALL1.interface_line_context
+                in ('ORDER ENTRY', 'INTERCOMPANY', 'CRS')
+            )
+    
+ FROM   "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__RA_CUSTOMER_TRX_LINES_ALL")
+
+
+
+
+select count(*) from "DEV_ODS"."ORACLE_FINANCIALS"."RA_CUSTOMER_TRX_LINES_ALL"
+select XACT_SOURCE_ID,XACT_TYPE_ID from  "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F" LIMIT 1000
+
+select count(*) from "DEV_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F"
+SELECT DESCRIPTION,TYPE FROM  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__SALES_INVOICE_TYPES" 
+
+SELECT S.TYPE ,
+case when S.TYPE  = 'CB'
+then   'Chargeback'
+when S.TYPE  = 'CM'
+then   'Credit Memo Type for New Store Allowance - Retail'
+when S.TYPE  = 'INV'
+then   'Projects Invoice'
+when S.TYPE  = 'DM'
+then   'Debit Memo Type Defective Allowance'
+when S.TYPE  = 'DB'
+then   'Debit Memo Type for New Store Allowance - Retail'
+end as TYPE
+  FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__SALES_INVOICE_TYPES" S
+
+select S.line_type,
+case 
+when S.line_type = 'CM'
+then  'Credit Memo'
+when S.line_type = 'CB'
+then  'ChargeBack'
+when S.line_type = 'DM'
+then   'Debit Memo'
+when S.line_type = 'INV'
+then   'Invoice'
+when S.line_type = 'DB'
+then  'Debit Memo'
+end as line_type
+FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__SALES_INVOICE_LINES" S WHERE S.LINE_TYPE = 'ChargeBack'
+select line_type from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__SALES_INVOICE_LINES" where line_type like 'C%'
+-- cancel query command        
+SELECT SYSTEM$CANCEL_QUERY('01ab2465-0504-6319-000b-ab870e44e0f6')
+
+*/
+      /*
+            (
+                case
+                    when ra_cust_trx_lines_all.line_type = 'DM'
+                    then null
+                    else
+                        (
+                            case
+                                when
+                                    (
+                                        case
+                                            when
+                                                ra_cust_trx_lines_all.line_type = 'LINE'
+                                            then
+                                                ra_cust_trx_lines_all.interface_line_context
+                                            else interface_line_context1
+
+                                        end
+                                    )
+                                    = 'ORDER ENTRY'
+                                then
+                                    (
+                                        case
+                                            when
+                                                ra_cust_trx_lines_all.line_type = 'LINE'
+                                            then
+                                                ra_cust_trx_lines_all.interface_line_attribute6
+                                            else
+                                                ra_cust_trx_lines_all.interface_line_attribute6
+                                        end
+                                    )
+                                else null
+
+                            end
+                        )
+
+                end
+            ) sales_ordln_id,
+            (
+                case
+                    when ra_cust_trx_lines_all.line_type = 'DM'
+                    then null
+                    else
+                        (
+                            case
+                                when
+                                    (
+                                        case
+                                            when
+                                                ra_cust_trx_lines_all.line_type = 'LINE'
+                                                or ra_cust_trx_lines_all.link_to_cust_trx_line_id
+                                                is null
+                                            then
+                                                ra_cust_trx_lines_all.interface_line_context
+                                            else
+                                                ra_cust_trx_lines_all.interface_line_context
+
+                                        end
+                                    )
+                                    = 'ORDER ENTRY'
+                                then
+                                    (
+                                        case
+                                            when
+                                                ra_cust_trx_lines_all.line_type = 'LINE'
+                                                or ra_cust_trx_lines_all.link_to_cust_trx_line_id
+                                                is null
+                                            then
+                                                ra_cust_trx_lines_all.interface_line_attribute7
+                                            else
+                                                ra_cust_trx_lines_all.interface_line_attribute7
+
+                                        end
+                                    )
+                                else null
+
+                            end
+                        )
+
+                end
+            ) c2_sales_pckln_id,
+            to_char(
+                (
+                    case
+                        when
+                            ra_cust_trx_lines_all.line_type = 'LINE'
+                            or ra_cust_trx_lines_all.link_to_cust_trx_line_id is null
+                        then ra_cust_trx_lines_all.warehouse_id
+                        else ra_cust_trx_lines_all.warehouse_id
+                    end
+                )
+            )
+            c3_inventory_org_id,
+            to_char(
+                (
+                    case
+                        when
+                            ra_cust_trx_lines_all.line_type = 'LINE'
+                            or ra_cust_trx_lines_all.link_to_cust_trx_line_id is null
+                        then ra_cust_trx_lines_all.inventory_item_id
+                        else ra_cust_trx_lines_all.inventory_item_id
+
+                    end
+                )
+            )
+            || '~'
+            || to_char(
+                (
+                    case
+                        when
+                            ra_cust_trx_lines_all.line_type = 'LINE'
+                            or ra_cust_trx_lines_all.link_to_cust_trx_line_id is null
+                        then ra_cust_trx_lines_all.warehouse_id
+                        else ra_cust_trx_lines_all.warehouse_id
+
+                    end
+                )
+            ) c4_inventory_product_id,
+            'SALES_ORDER_INVOICE_PROCESS'
+            || '~'
+            || ra_cust_trx.status_trx invoice_status_id,
+            to_char(ra_cust_trx_lines_all.org_id) operating_unit_org_id,
+            to_char(ra_cust_trx.term_id) payment_terms_id,
+            'PLANT'
+            || '~'
+            || to_char(
+                (
+                    case
+                        when
+                            ra_cust_trx_lines_all.line_type = 'LINE'
+                            or ra_cust_trx_lines_all.link_to_cust_trx_line_id is null
+                        then ra_cust_trx_lines_all.warehouse_id
+                        else ra_cust_trx_lines_all.warehouse_id
+
+                    end
+                )
+            )
+            plant_loc_id,
+            to_char(
+                (
+                    case
+                        when
+                            ra_cust_trx_lines_all.line_type = 'LINE'
+                            or ra_cust_trx_lines_all.link_to_cust_trx_line_id is null
+                        then ra_cust_trx_lines_all.inventory_item_id
+                        else ra_cust_trx_lines_all.inventory_item_id
+
+                    end
+                )
+            ) product_id,
+            to_char(ra_cust_trx_lines_all.org_id) sales_org_id,
+            to_char(
+                (
+                    case
+                        when
+                            ra_cust_trx_lines_all.line_type = 'LINE'
+                            or ra_cust_trx_lines_all.link_to_cust_trx_line_id is null
+                        then ra_cust_trx_lines_all.inventory_item_id
+                        else ra_cust_trx_lines_all.inventory_item_id
+
+                    end
+                )
+            )
+            || '~'
+            || to_char(
+                (
+                    case
+                        when
+                            ra_cust_trx_lines_all.line_type = 'LINE'
+                            or ra_cust_trx_lines_all.link_to_cust_trx_line_id is null
+                        then ra_cust_trx_lines_all.warehouse_id
+                        else ra_cust_trx_lines_all.warehouse_id
+
+                    end
+                )
+            ) sales_product_id,
+            to_char(ra_cust_trx.territory_id) terr_id,
+            'SALES_IVCLNS' || '~' || to_char(ra_trx_types.type) xact_type_id,
+            ra_cust_trx.exchange_date conversion_dt,
+            ra_cust_trx.trx_date invoiced_on_dt,
+            ra_cust_trx.term_due_date payment_terms_eff_dt,
+            (
+                case
+                    when
+                        (ra_cust_trx_lines_all.line_type = 'LINE')
+                        or (ra_cust_trx_lines_all.line_type = 'CB')
+                    then ra_cust_trx_lines_all.extended_amount
+                    else 0
+                end
+            ) net_amt,
+            (
+                case
+                    when
+                        (ra_cust_trx_lines_all.line_type = 'LINE')
+                        or (ra_cust_trx_lines_all.line_type = 'CB')
+                    then
+                        ra_cust_trx_lines_all.quantity_invoiced * (
+                            (
+                                case
+                                    when
+                                        ra_cust_trx_lines_all.unit_standard_price
+                                        is null
+                                    then 0
+                                    else
+                                        to_number(
+                                            ra_cust_trx_lines_all.unit_standard_price
+                                        )
+
+                                end
+                            )
+                        )
+                    else 0
+
+                end
+            ) list_amt,
+            (
+                case
+                    when ra_cust_trx_lines_all.line_type = 'TAX'
+                    then ra_cust_trx_lines_all.extended_amount
+                    else 0
+
+                end
+            ) tax_amt,
+            (
+                case
+                    when ra_cust_trx_lines_all.line_type = 'FREIGHT'
+                    then ra_cust_trx_lines_all.extended_amount
+                    else 0
+
+                end
+            ) freight_amt,
+            (
+                case
+                    when
+                        (
+                            ra_cust_trx_lines_all.line_type = 'LINE'
+                            or ra_cust_trx_lines_all.line_type = 'CB'
+                            or ra_cust_trx_lines_all.link_to_cust_trx_line_id is null
+                        )
+                        and ra_cust_trx_lines_all.quantity_invoiced > 0
+                        and ra_cust_trx_lines_all.extended_amount > 0
+                        and ra_trx_types.type <> 'CM'
+                    then
+                        (
+                            case
+                                when
+                                    (
+                                        case
+                                            when
+                                                (
+                                                    ra_cust_trx_lines_all.line_type
+                                                    = 'LINE'
+                                                )
+                                                or (
+                                                    ra_cust_trx_lines_all.line_type
+                                                    = 'CB'
+                                                )
+                                            then
+                                                ra_cust_trx_lines_all.quantity_invoiced
+                                                * (
+                                                    (
+                                                        case
+                                                            when
+                                                                ra_cust_trx_lines_all.unit_standard_price
+                                                                is null
+                                                            then 0
+                                                            else
+                                                                to_number(
+                                                                    ra_cust_trx_lines_all.unit_standard_price
+                                                                )
+
+                                                        end
+                                                    )
+                                                )
+                                            else 0
+
+                                        end
+                                    ) > (
+                                        case
+                                            when
+                                                (
+                                                    ra_cust_trx_lines_all.line_type
+                                                    = 'LINE'
+                                                )
+                                                or (
+                                                    ra_cust_trx_lines_all.line_type
+                                                    = 'CB'
+                                                )
+                                            then ra_cust_trx_lines_all.extended_amount
+                                            else 0
+                                        end
+                                    )
+                                then
+                                    (
+                                        case
+                                            when
+                                                (
+                                                    ra_cust_trx_lines_all.line_type
+                                                    = 'LINE'
+                                                )
+                                                or (
+                                                    ra_cust_trx_lines_all.line_type
+                                                    = 'CB'
+                                                )
+                                            then
+                                                ra_cust_trx_lines_all.quantity_invoiced
+                                                * (
+                                                    (
+                                                        case
+                                                            when
+                                                                ra_cust_trx_lines_all.unit_standard_price
+                                                                is null
+                                                            then 0
+                                                            else
+                                                                to_number(
+                                                                    ra_cust_trx_lines_all.unit_standard_price
+                                                                )
+
+                                                        end
+                                                    )
+                                                )
+                                            else 0
+
+                                        end
+                                    ) - (
+                                        case
+                                            when
+                                                (
+                                                    ra_cust_trx_lines_all.line_type
+                                                    = 'LINE'
+                                                )
+                                                or (
+                                                    ra_cust_trx_lines_all.line_type
+                                                    = 'CB'
+                                                )
+                                            then ra_cust_trx_lines_all.extended_amount
+                                            else 0
+                                        end
+                                    )
+                                else 0
+
+                            end
+                        )
+                    else 0
+
+                end
+            ) discount_amt,
+            ra_cust_trx_lines_all.quantity_invoiced invoiced_qty,
+            ra_cust_trx.trx_number invoice_num,
+            to_char(ra_cust_trx_lines_all.line_number) invoice_item,
+            (
+                case
+                    when
+                        (
+                            case
+                                when
+                                    ra_cust_trx_lines_all.line_type = 'LINE'
+                                    or ra_cust_trx_lines_all.link_to_cust_trx_line_id
+                                    is null
+                                then ra_cust_trx_lines_all.interface_line_context
+                                else interface_line_context1
+
+                            end
+                        )
+                        = 'ORDER ENTRY'
+                    then
+                        (
+                            case
+                                when ra_cust_trx_lines_all.line_type = 'LINE'
+                                then ra_cust_trx_lines_all.sales_order
+                                else sales_order1
+
+                            end
+                        )
+                    else null
+
+                end
+            ) sales_order_num,
+            (
+                case
+                    when
+                        (
+                            case
+                                when
+                                    ra_cust_trx_lines_all.line_type = 'LINE'
+                                    or ra_cust_trx_lines_all.link_to_cust_trx_line_id
+                                    is null
+                                then ra_cust_trx_lines_all.interface_line_context
+                                else interface_line_context1
+
+                            end
+                        )
+                        = 'ORDER ENTRY'
+                    then
+                        (
+                            case
+                                when ra_cust_trx_lines_all.line_type = 'LINE'
+                                then ra_cust_trx_lines_all.sales_order_line
+                                else sales_order_line1
+
+                            end
+                        )
+                    else null
+
+                end
+            )
+            sales_order_item,
+            (
+                case
+                    when
+                        (
+                            case
+                                when
+                                    ra_cust_trx_lines_all.line_type = 'LINE'
+                                    or ra_cust_trx_lines_all.link_to_cust_trx_line_id
+                                    is null
+                                then ra_cust_trx_lines_all.interface_line_context
+                                else interface_line_context1
+
+                            end
+                        )
+                        = 'ORDER ENTRY'
+                    then
+                        (
+                            case
+                                when
+                                    ra_cust_trx_lines_all.interface_line_attribute13
+                                    is null
+                                then
+                                    trim(
+                                        to_char(
+                                            ra_cust_trx_lines_all.interface_line_attribute12
+                                        )
+                                    )
+                                else
+                                    trim(
+                                        to_char(
+                                            ra_cust_trx_lines_all.interface_line_attribute12
+                                        )
+                                    )
+                                    || '.'
+                                    || trim(
+                                        to_char(
+                                            ra_cust_trx_lines_all.interface_line_attribute13
+                                        )
+                                    )
+
+                            end
+                        )
+                    else null
+                end
+            )
+            sales_order_item_detail_nu,
+            ra_cust_trx.purchase_order purch_order_num,
+            'N' delete_flg,
+            ra_cust_trx.exchange_rate_type loc_exch_rate_type,
+            ra_cust_trx.exchange_rate loc_exchange_rate,
+            (
+                case
+                    when ra_cust_trx.exchange_date is null
+                    then ra_cust_trx.trx_date
+                    else ra_cust_trx.exchange_date
+
+                end
+            )
+            exchange_dt,
+            to_char(ra_cust_trx_lines_all.created_by_id) created_by_id,
+            to_char(ra_cust_trx_lines_all.last_updated_by_id) changed_by_id,
+            ra_cust_trx_lines_all.created_on_date created_on_dt,
+            ra_cust_trx_lines_all.changed_on_date changed_on_dt,
+            ra_cust_trx.last_update_date aux1_changed_on_dt,
+            ra_trx_types.last_update_date aux2_changed_on_dt,
+            to_char(ra_cust_trx_lines_all.customer_trx_line_id) integration_id,
+            to_char(ra_cust_trx_lines_all.set_of_books_id) ledger_id,
+            to_char(ra_cust_trx.bill_to_customer_id) customer_account_id,
+            'SALES_IVCLNS~' || (
+                case
+                    when to_char(ra_cust_trx_lines_all.interface_line_context) is null
+                    then to_char(interface_line_context1)
+                    else to_char(ra_cust_trx_lines_all.interface_line_context)
+
+                end
+            )
+            xact_source_id,
+            ra_cust_trx_lines_all.interface_line_attribute6 fulfill_line_id,
+            ra_cust_trx.customer_trx_id invoice_header_id,
+            ra_cust_trx.legal_entity_id legal_entity_id,
+            ra_salesreps.salesrep_id salesrep_id,
+            ra_cust_trx_lines_all.uom_code uom_code,
+            ra_cust_trx.invoice_currency_code invoice_currency_code,
+            gl_ledge.ledger_currency loc_curr_code,
+            ra_cust_trx_lines_all.interface_line_attribute11 interface_line_attribute11,
+            ra_trx_types.type type,
+            ra_cust_trx.sold_to_site_use_id sold_to_site_use_id,
+            ra_cust_trx.paying_site_use_id paying_site_use_id,
+            ra_cust_trx.bill_to_site_use_id bill_to_site_use_id,
+            ra_cust_trx.ship_to_site_use_id ship_to_site_use_id,
+            ra_cust_trx_lines_all._source_id as datasource_num_id,
+           -- $batch_start_time  w_insert_dt,
+           -- $batch_start_time  w_update_dt,
+            9999 etl_proc_id */
+
+     

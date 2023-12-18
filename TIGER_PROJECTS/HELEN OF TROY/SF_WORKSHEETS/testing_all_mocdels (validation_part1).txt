@@ -1,0 +1,626 @@
+
+
+select replace(INTEGRATION_ID,'~`100'),        LEDGER_NAME,    LEDGER_SHORT_NAME    ,LEDGER_DESC,    CHART_OF_ACCOUNTS    ,CURRENCY_CODE,    CALENDER_NAME,    SLA_ACCOUNTING_METHOD_CODE,    PERIOD_TYPE,
+
+LEDGER_CATEGORY_CODE    , CREATED_BY_WID    ,CHANGED_BY_WID    ,CREATED_ON_DT    ,CHANGED_ON_DT,    DELETE_FLG
+
+DATASOURCE_NUM_ID    ,replace(INTEGRATION_ID,'~`100'),    TENANT_ID from "TEST_EDW"."BI11G_DW"."W_LEDGER_D"  where replace(INTEGRATION_ID,'~100')<>0
+
+-- where CREATED_ON_DT between '2021-11-01' and '2021-11-30'
+
+minus
+
+select replace(d.INTEGRATION_ID,'~100'),        d.LEDGER_NAME,    d.LEDGER_SHORT_NAME    ,d.LEDGER_DESC,    d.CHART_OF_ACCOUNTS    ,d.CURRENCY_CODE,    d.CALENDER_NAME,    d.SLA_ACCOUNTING_METHOD_CODE,    d.PERIOD_TYPE,
+
+d.LEDGER_CATEGORY_CODE    ,u.row_wid CREATED_BY_WID    , u1.row_wid CHANGED_BY_WID    ,d.CREATED_ON_DT    ,d.CHANGED_ON_DT,    d.DELETE_FLG    
+
+DATASOURCE_NUM_ID    ,replace(d.INTEGRATION_ID,'~100'),    d.TENANT_ID
+
+  from "TEST_EDW"."BIAPPS"."W_LEDGER_D" d 
+
+  left join "TEST_EDW"."BI11G_DW"."W_USER_D" u
+
+  on d.CREATED_BY_WID=u.integration_id
+
+  left join "TEST_EDW"."BI11G_DW"."W_USER_D" u1
+
+  on d.CHANGED_BY_WID=u1.integration_id where replace(d.INTEGRATION_ID,'~100')<>0
+  
+  DESC TABLE "TEST_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" 
+   --where replace(INTEGRATION_ID,'~100')<>0
+ 
+ SELECT ROW_WID FROM "TEST_EDW"."BI11G_DW"."W_BUSN_LOCATION_D"
+ SELECT INTEGRATION_ID FROM "TEST_EDW"."BI11G_DW"."W_BUSN_LOCATION_D"
+ 
+  select a.integration_id,u.integration_id from "TEST_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" u left join  "TEST_EDW"."EDW_OMNI"."W_INVENTORY_LOCATION_D" a
+  on a.integration_id = u.integration_id||'~'||100  WHERE a.integration_id is NOT null
+ SELECT ROW_WID FROM  "TEST_EDW"."BIAPPS"."W_LEDGER_D"
+
+-- where CREATED_ON_DT between '2021-11-01' and '2021-11-30'
+  
+  -- invntory_location_d
+  -- remove st_address3 from biapps
+  
+
+
+
+
+
+select
+
+	a.GEO_WID,
+	a.ADDRESS_TYPE_CODE,
+	a.BUSN_LOC_NUM,
+	a.W_BUSN_LOC_TYPE_CODE,
+	a.CONTACT_NAME,
+	a.CONTACT_NUM,
+	a.PARENT_LOC_NUM,
+	a.ST_ADDRESS1,
+	a.ST_ADDRESS2,
+	a.CITY_CODE,
+	a.POSTAL_CODE,
+	a.COUNTY_CODE,
+	a.STATE_PROV_CODE,
+	a.COUNTRY_REGION_CODE,
+	a.W_COUNTRY_CODE,
+	a.REGION_CODE,
+	a.C_REGION_CODE,
+	a.C_COUNTRY_REGION_CODE,
+	a.C_COUNTY_CODE,
+	a.C_STATE_PROV_CODE,
+	a.C_CITY_CODE,
+	a.PHONE_NUM,
+	a.FAX_NUM,
+	a.EMAIL_ADDRESS,
+	a.WEB_ADDRESS,
+	a.ORGANIZATION_ID,
+	a.ORGANIZATION_CODE,
+	a.ORG_LVL_INT_ID,
+	a.SUBINVENTORY_TYPE_CODE,
+	a.SUBINV_LVL_INT_ID,
+	a.LOCATOR_ID,
+	a.LOCATOR_TYPE_CODE,
+	a.LOCATOR_LVL_INT_ID,
+	a.ACTIVE_FLG,
+	a.CREATED_BY_WID,
+	a.CHANGED_BY_WID,
+	a.CREATED_ON_DT,
+	a.CHANGED_ON_DT,
+	a.AUX1_CHANGED_ON_DT,
+	a.AUX2_CHANGED_ON_DT,
+	a.AUX3_CHANGED_ON_DT,
+	a.AUX4_CHANGED_ON_DT,
+	a.SRC_EFF_FROM_DT,
+	a.SRC_EFF_TO_DT,
+	a.EFFECTIVE_FROM_DT,
+	a.EFFECTIVE_TO_DT,
+	a.DELETE_FLG,
+	a.CURRENT_FLG,
+	a.W_INSERT_DT,
+	a.W_UPDATE_DT,
+	a.DATASOURCE_NUM_ID,
+	a.ETL_PROC_WID,
+	a.INTEGRATION_ID,
+	a.CITY_INTEGRATION_ID,
+	a.CITY_DATASOURCE_NUM_ID,
+	a.STATE_PROV_INTEGRATION_ID,
+	a.STATE_DATASOURCE_NUM_ID,
+	a.SET_ID,
+	a.TENANT_ID,
+	a.X_CUSTOM,
+	a.GEO_COUNTRY_WID,
+	a.LOC_ATTR_CHAR_001,
+	a.LOC_ATTR_CHAR_002,
+	a.LOC_ATTR_CHAR_003,
+	a.LOC_ATTR_CHAR_004,
+    a.LOC_ATTR_CHAR_005,
+	a.LOC_ATTR_CHAR_006,
+	a.LOC_ATTR_CHAR_007,
+	a.LOC_ATTR_CHAR_008,
+	a.LOC_ATTR_CHAR_009,
+	a.LOC_ATTR_CHAR_010,
+	a.LOC_ATTR_CHAR_011,
+	a.LOC_ATTR_CHAR_012,
+	a.LOC_ATTR_CHAR_013,
+	a.LOC_ATTR_CHAR_014,
+	a.LOC_ATTR_CHAR_015,
+	a.LOC_ATTR_CHAR_016,
+	a.LOC_ATTR_CHAR_017,
+	a.LOC_ATTR_CHAR_018,
+	a.LOC_ATTR_CHAR_019,
+	a.LOC_ATTR_CHAR_020,
+	a.LOC_ATTR_CHAR_021,
+	a.LOC_ATTR_CHAR_022,
+	a.LOC_ATTR_CHAR_023,
+	a.LOC_ATTR_CHAR_024,
+	a.LOC_ATTR_CHAR_025,
+	a.LOC_ATTR_CHAR_026,
+	a.LOC_ATTR_CHAR_027,
+	a.LOC_ATTR_CHAR_028,
+	a.LOC_ATTR_CHAR_029,
+	a.LOC_ATTR_CHAR_030,
+	a.LOC_ATTR_NUM_001,
+	a.LOC_ATTR_NUM_002,
+	a.LOC_ATTR_NUM_003,
+	a.LOC_ATTR_NUM_004,
+	a.LOC_ATTR_NUM_005,
+	a.LOC_ATTR_NUM_006,
+	a.LOC_ATTR_NUM_007,
+	a.LOC_ATTR_NUM_008,
+	a.LOC_ATTR_NUM_009,
+	a.LOC_ATTR_NUM_010,
+	a.LOC_ATTR_NUM_011,
+	a.LOC_ATTR_NUM_012,
+	a.LOC_ATTR_NUM_013,
+	a.LOC_ATTR_NUM_014,
+	a.LOC_ATTR_NUM_015,
+	a.LOC_ATTR_NUM_016,
+	a.LOC_ATTR_NUM_017,
+	a.LOC_ATTR_NUM_018,
+	a.LOC_ATTR_NUM_019,
+	a.LOC_ATTR_NUM_020,
+	a.LOC_ATTR_DATE_001,
+	a.LOC_ATTR_DATE_002,
+	a.LOC_ATTR_DATE_003,
+	a.LOC_ATTR_DATE_004,
+	a.LOC_ATTR_DATE_005,
+	a.LOC_ATTR_DATE_006,
+	a.LOC_ATTR_DATE_007,
+	a.LOC_ATTR_DATE_008,
+	a.LOC_ATTR_DATE_009,
+	a.LOC_ATTR_DATE_010,
+	a.LOC_ATTR_DATE_011,
+	a.LOC_ATTR_DATE_012,
+	a.LOC_ATTR_DATE_013,
+	a.LOC_ATTR_DATE_014,
+	a.LOC_ATTR_DATE_015,
+	a.X_AVAILABILITY_TYPE,
+	a.X_BUILDING
+	
+ FROM TEST_EDW.BIAPPS.W_BUSN_LOCATION_D a
+  minus 
+   select 
+  --replace(INTEGRATION_ID,'~`100'),
+u.GEO_WID,
+u.ADDRESS_TYPE_CODE,
+u.BUSN_LOC_NUM,
+u.W_BUSN_LOC_TYPE_CODE,
+u.CONTACT_NAME,
+u.CONTACT_NUM,
+u.PARENT_LOC_NUM,
+u.ST_ADDRESS1,
+u.ST_ADDRESS2,
+u.CITY_CODE,
+u.POSTAL_CODE,
+u.COUNTY_CODE,
+u.STATE_PROV_CODE,
+u.COUNTRY_REGION_CODE,
+u.W_COUNTRY_CODE,
+u.REGION_CODE,
+u.C_REGION_CODE,
+u.C_COUNTRY_REGION_CODE,
+u.C_COUNTY_CODE,
+u.C_STATE_PROV_CODE,
+u.C_CITY_CODE,
+u.PHONE_NUM,
+u.FAX_NUM,
+u.EMAIL_ADDRESS,
+u.WEB_ADDRESS,
+u.ORGANIZATION_ID,
+u.ORGANIZATION_CODE,
+u.ORG_LVL_INT_ID,
+u.SUBINVENTORY_TYPE_CODE,
+u.SUBINV_LVL_INT_ID,
+u.LOCATOR_ID,
+u.LOCATOR_TYPE_CODE,
+u.LOCATOR_LVL_INT_ID,
+u.ACTIVE_FLG,
+u.CREATED_BY_WID,
+u.CHANGED_BY_WID,
+u.CREATED_ON_DT,
+u.CHANGED_ON_DT,
+u.AUX1_CHANGED_ON_DT,
+u.AUX2_CHANGED_ON_DT,
+u.AUX3_CHANGED_ON_DT,
+u.AUX4_CHANGED_ON_DT,
+u.SRC_EFF_FROM_DT,
+u.SRC_EFF_TO_DT,
+u.EFFECTIVE_FROM_DT,
+u.EFFECTIVE_TO_DT,
+u.DELETE_FLG,
+u.CURRENT_FLG,
+u.W_INSERT_DT,
+u.W_UPDATE_DT,
+u.DATASOURCE_NUM_ID,
+u.ETL_PROC_WID,
+u.INTEGRATION_ID,
+u.CITY_INTEGRATION_ID,
+u.CITY_DATASOURCE_NUM_ID,
+u.STATE_PROV_INTEGRATION_ID,
+u.STATE_DATASOURCE_NUM_ID,
+u.SET_ID,
+u.TENANT_ID,
+u.X_CUSTOM,
+u.GEO_COUNTRY_WID,
+u.LOC_ATTR_CHAR_001,
+u.LOC_ATTR_CHAR_002,
+u.LOC_ATTR_CHAR_003,
+u.LOC_ATTR_CHAR_004,
+u.LOC_ATTR_CHAR_005,
+u.LOC_ATTR_CHAR_006,
+u.LOC_ATTR_CHAR_007,
+u.LOC_ATTR_CHAR_008,
+u.LOC_ATTR_CHAR_009,
+u.LOC_ATTR_CHAR_010,
+u.LOC_ATTR_CHAR_011,
+u.LOC_ATTR_CHAR_012,
+u.LOC_ATTR_CHAR_013,
+u.LOC_ATTR_CHAR_014,
+u.LOC_ATTR_CHAR_015,
+u.LOC_ATTR_CHAR_016,
+u.LOC_ATTR_CHAR_017,
+u.LOC_ATTR_CHAR_018,
+u.LOC_ATTR_CHAR_019,
+u.LOC_ATTR_CHAR_020,
+u.LOC_ATTR_CHAR_021,
+u.LOC_ATTR_CHAR_022,
+u.LOC_ATTR_CHAR_023,
+u.LOC_ATTR_CHAR_024,
+u.LOC_ATTR_CHAR_025,
+u.LOC_ATTR_CHAR_026,
+u.LOC_ATTR_CHAR_027,
+u.LOC_ATTR_CHAR_028,
+u.LOC_ATTR_CHAR_029,
+u.LOC_ATTR_CHAR_030,
+u.LOC_ATTR_NUM_001,
+u.LOC_ATTR_NUM_002,
+u.LOC_ATTR_NUM_003,
+u.LOC_ATTR_NUM_004,
+u.LOC_ATTR_NUM_005,
+u.LOC_ATTR_NUM_006,
+u.LOC_ATTR_NUM_007,
+u.LOC_ATTR_NUM_008,
+u.LOC_ATTR_NUM_009,
+u.LOC_ATTR_NUM_010,
+u.LOC_ATTR_NUM_011,
+u.LOC_ATTR_NUM_012,
+u.LOC_ATTR_NUM_013,
+u.LOC_ATTR_NUM_014,
+u.LOC_ATTR_NUM_015,
+u.LOC_ATTR_NUM_016,
+u.LOC_ATTR_NUM_017,
+u.LOC_ATTR_NUM_018,
+u.LOC_ATTR_NUM_019,
+u.LOC_ATTR_NUM_020,
+u.LOC_ATTR_DATE_001,
+u.LOC_ATTR_DATE_002,
+u.LOC_ATTR_DATE_003,
+u.LOC_ATTR_DATE_004,
+u.LOC_ATTR_DATE_005,
+u.LOC_ATTR_DATE_006,
+u.LOC_ATTR_DATE_007,
+u.LOC_ATTR_DATE_008,
+u.LOC_ATTR_DATE_009,
+u.LOC_ATTR_DATE_010,
+u.LOC_ATTR_DATE_011,
+u.LOC_ATTR_DATE_012,
+u.LOC_ATTR_DATE_013,
+u.LOC_ATTR_DATE_014,
+u.LOC_ATTR_DATE_015,
+u.X_AVAILABILITY_TYPE,
+u.X_BUILDING
+ 
+
+ "TEST_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" u
+ 
+ 
+
+
+
+
+"TEST_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" u
+  on a.integration_id = u.integration_id
+ 
+-- business location d 
+
+select * from TEST_EDW.BIAPPS.W_BUSN_LOCATION_D a left join "TEST_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" u
+  on a.integration_id = u.integration_id and a.ADDRESS_TYPE_CODE = 'Unspecified'
+  
+  select u.INTEGRATION_ID,a.integration_id from TEST_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D a left join "PROD_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" u
+  on replace(a.integration_id,'~100','') =  CONCAT(SPLIT_PART(u.INTEGRATION_ID,'~',2),'~',SPLIT_PART(u.INTEGRATION_ID,'~',3),'~',SPLIT_PART(u.INTEGRATION_ID,'~',4)) AND u.integration_id is not null;
+  
+   select u.INTEGRATION_ID,a.integration_id from "PROD_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" a left join  TEST_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D u
+  on replace(a.integration_id,'~100','') =  CONCAT(SPLIT_PART(u.INTEGRATION_ID,'~',2),'~',SPLIT_PART(u.INTEGRATION_ID,'~',3),'~',SPLIT_PART(u.INTEGRATION_ID,'~',4));
+  
+  
+  
+
+  select * from "PROD_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" u inner join TEST_EDW.BIAPPS.W_BUSN_LOCATION_D a
+  on a.integration_id = u.integration_id and a.ADDRESS_TYPE_CODE <> 'Unspecified'
+  
+  select ADDRESS_TYPE_CODE from "TEST_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" where ADDRESS_TYPE_CODE = 'Unspecified'
+    select ADDRESS_TYPE_CODE from TEST_EDW.BIAPPS.W_BUSN_LOCATION_D where ADDRESS_TYPE_CODE = 'Unspecified'
+
+-- inventory_location_d
+  select a.integration_id,u.integration_id from "TEST_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" u left join TEST_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D a
+  on replace(a.integration_id,'~100') = u.integration_id  WHERE A.INTEGRATION_ID IS NOT  NULL 
+  
+  select a.integration_id,u.integration_id from "TEST_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" u left join DEV_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D a
+  on replace(a.integration_id,'~100') = u.integration_id  WHERE A.INTEGRATION_ID IS NOT NULL AND a.INTEGRATION_ID  = 'STORAGE_LOC~90~TGCZ~0~100'
+  
+  select integration_id from  DEV_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D where integration_id = 'STORAGE_LOC~90~TGCZ~0~100'
+  
+      SELECT INTEGRATION_ID FROM "TEST_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" WHERE INTEGRATION_ID LIKE 'STORAGE%'
+            SELECT INTEGRATION_ID FROM TEST_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D WHERE INTEGRATION_ID LIKE 'STORAGE%'
+
+            SELECT INTEGRATION_ID FROM "TEST_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" WHERE INTEGRATION_ID LIKE 'REC%'
+                        SELECT INTEGRATION_ID FROM TEST_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D  WHERE INTEGRATION_ID LIKE 'REC%'
+
+
+
+  
+      select * from dev_edw.edw_omni.w_inventory_location_d
+select integration_id from "TEST_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" where integration_id not in (select integration_id from  TEST_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D )
+select integration_id from TEST_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D  where integration_id not in (select integration_id from "TEST_EDW"."BI11G_DW"."W_BUSN_LOCATION_D")
+-- 367874
+-- 367669
+--387668
+-- 367875
+  
+select integration_id from  TEST_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D where integration_id  ='STORAGE_LOC~666~DHKM~454865'
+select integration_id from  "TEST_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" where integration_id  ='STORAGE_LOC~666~DHKM~454865'
+select integration_id from  "DEV_EDW"."EDW_OMNI"."W_BUSN_LOCATION_D" where integration_id  ='STORAGE_LOC~666~DHKM~454865'
+select integration_id from  "DEV_EDW"."EDW_OMNI"."W_INVENTORY_LOCATION_D" where integration_id  LIKE '%REC'
+
+-- WITH PROD
+
+ select a.integration_id,u.integration_id from "PROD_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" u left join  TEST_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D a
+  on a.integration_id = u.integration_id||'~'||100  WHERE a.integration_id is not  null  -- 2423
+  
+     select a.integration_id,u.integration_id from "PROD_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" u left join  TEST_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D a
+  on a.integration_id = u.integration_id||'~'||100 --- 388820
+  
+   select a.integration_id,u.integration_id from "PROD_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" u left join  TEST_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D a
+  on a.integration_id = u.integration_id||'~'||100  WHERE a.integration_id is  null -- 386,397 
+  
+
+
+select integration_id  from  "PROD_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" --98631423
+minus
+select replace(integration_id,'~100') from  TEST_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D
+
+select integration_id from  TEST_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D  where integration_id like '%REC'
+
+
+select integration_id from "PROD_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" where integration_id  is NOT null -- 388820
+select integration_id from "TEST_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" where integration_id is not null -- 388820
+select integration_id from "DEV_EDW"."EDW_OMNI"."W_INVENTORY_LOCATION_D" where integration_id is NOT null-- 367,867 
+select integration_id from  TEST_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D where integration_id  is not null -- 386,546 
+
+select integration_id from  TEST_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D  where integration_id like '%REC%'
+select integration_id from  DEV_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D  where integration_id like '%REC%'
+
+
+select integration_id from "PROD_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" where integration_id  is null -- 
+select integration_id from "TEST_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" where integration_id is  null 
+select integration_id from "DEV_EDW"."EDW_OMNI"."W_INVENTORY_LOCATION_D" where integration_id is null
+select integration_id from  TEST_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D where integration_id  is  null 
+
+  -- BI11G SHOULD COME IN OMNI (SAME SHOULD BE THERE)
+
+-- payment method d
+
+
+ select u.INTEGRATION_ID,a.integration_id from TEST_EDW.EDW_OMNI.W_PAYMENT_METHOD_D a left join "PROD_EDW"."BI11G_DW"."W_PAYMENT_METHOD_D" u
+--ON a.integration_id = u.integration_id and u.integration_id is not null
+  on replace(a.integration_id,'~100','') =  CONCAT(SPLIT_PART(u.INTEGRATION_ID,'~',1),'~',SPLIT_PART(u.INTEGRATION_ID,'~',2)) 
+  
+   SELECT replace(a.integration_id,'~100','') FROM TEST_EDW.EDW_OMNI.W_PAYMENT_METHOD_D a
+ minus
+  SELECT   CONCAT(SPLIT_PART(u.INTEGRATION_ID,'~',1),'~',SPLIT_PART(u.INTEGRATION_ID,'~',2)) 
+   FROM   "PROD_EDW"."BI11G_DW"."W_PAYMENT_METHOD_D" u
+   
+      SELECT  CONCAT(SPLIT_PART(u.INTEGRATION_ID,'~',1),'~',SPLIT_PART(u.INTEGRATION_ID,'~',2)) 
+   FROM   "PROD_EDW"."BI11G_DW"."W_PAYMENT_METHOD_D" u
+ minus
+  SELECT  replace(a.integration_id,'~100','') FROM TEST_EDW.EDW_OMNI.W_PAYMENT_METHOD_D a
+ 
+   select INTEGRATION_ID,CONCAT(SPLIT_PART(INTEGRATION_ID,'~',1),'~',SPLIT_PART(INTEGRATION_ID,'~',2)) from "PROD_EDW"."BI11G_DW"."W_PAYMENT_METHOD_D"
+  WHERE CONCAT(SPLIT_PART(INTEGRATION_ID,'~',1),'~',SPLIT_PART(INTEGRATION_ID,'~',2)) = 'AR~39793'
+  
+ select integration_id from "PROD_EDW"."BI11G_DW"."W_PAYMENT_METHOD_D"
+  select integration_id from TEST_EDW.EDW_OMNI.W_PAYMENT_METHOD_D 
+ 
+ select a.integration_id,u.integration_id from "TEST_EDW"."BI11G_DW"."W_PAYMENT_METHOD_D" u left join TEST_EDW.EDW_OMNI.W_PAYMENT_METHOD_D a
+  on a.integration_id = u.integration_id||'~'||100  WHERE A.INTEGRATION_ID IS NULL 
+  
+     select a.integration_id,u.integration_id from "TEST_EDW"."BI11G_DW"."W_PAYMENT_METHOD_D" u left join DEV_EDW.EDW_OMNI.W_PAYMENT_METHOD_D a
+  on a.integration_id = u.integration_id||'~'||100  WHERE a.INTEGRATION_ID  is NOT   null   and a.integration_id like 'AR%'
+  
+   select a.integration_id,u.integration_id from "TEST_EDW"."BI11G_DW"."W_PAYMENT_METHOD_D" u left join TEST_EDW.EDW_OMNI.W_PAYMENT_METHOD_D a
+  on a.integration_id = u.integration_id||'~'||100  WHERE a.integration_id is not  null
+  select integration_id from TEST_EDW.EDW_OMNI.W_PAYMENT_METHOD_D where integration_id is not null and integration_id like 'OM%'
+    select integration_id from TEST_EDW.EDW_OMNI.W_PAYMENT_METHOD_D where integration_id is not null and integration_id like 'AP%'
+        select integration_id from TEST_EDW.EDW_OMNI.W_PAYMENT_METHOD_D where integration_id is not null and integration_id like 'AR%'
+
+
+ select integration_id  from  "PROD_EDW"."BI11G_DW"."W_PAYMENT_METHOD_D"--98631423
+minus
+select replace(integration_id,'~100') from  TEST_EDW.EDW_OMNI.W_PAYMENT_METHOD_D  
+  
+  
+  DESC TABLE  TEST_EDW.EDW_OMNI.W_PAYMENT_METHOD_D
+  
+  SELECT * FROM DEV_EDW.EDW_OMNI.W_PAYMENT_METHOD_D  A WHERE A.INTEGRATION_ID = 'AR~1004~100'
+    SELECT * FROM DEV_EDW.EDW_OMNI.W_PAYMENT_METHOD_D  A WHERE A.INTEGRATION_ID = 'AP~BOP~100'
+    SELECT * FROM PROD_EDW."BI11G_DW".W_PAYMENT_METHOD_D  A WHERE A.INTEGRATION_ID = 'AR~1004'
+    SELECT * FROM DEV_EDW.EDW_OMNI.W_PAYMENT_METHOD_D  A WHERE A.INTEGRATION_ID = 'AR~1004~100'
+    SELECT * FROM TEST_EDW.EDW_OMNI.W_PAYMENT_METHOD_D A WHERE  A.INTEGRATION_ID = 'AR~1007~100'
+    
+
+  -- 198
+  -- 233
+  
+ -- CUSTOMER_LOC_D
+
+  
+ select u.INTEGRATION_ID,a.integration_id from TEST_EDW.EDW_OMNI.W_CUSTOMER_LOCATION_USE_D a LEFT join  "PROD_EDW"."BI11G_DW".W_CUST_LOC_USE_PS   u
+--ON a.integration_id = u.integration_id and u.integration_id is not null
+  on replace(a.integration_id,'~100','') = CONCAT(SPLIT_PART(u.INTEGRATION_ID,'~',1))
+ 
+ SELECT replace(u.integration_id,'~100','') FROM TEST_EDW.EDW_OMNI.W_CUSTOMER_LOCATION_USE_D u
+ minus
+  SELECT  CONCAT(SPLIT_PART(a.INTEGRATION_ID,'~',1)) FROM  "PROD_EDW"."BI11G_DW".W_CUST_LOC_USE_PS a
+
+  
+ SELECT   CONCAT(SPLIT_PART(a.INTEGRATION_ID,'~',1)) FROM  "PROD_EDW"."BI11G_DW".W_CUST_LOC_USE_PS a
+ minus
+  SELECT replace(u.integration_id,'~100','') FROM TEST_EDW.EDW_OMNI.W_CUSTOMER_LOCATION_USE_D u
+
+select integration_id from "PROD_EDW"."BI11G_DW".W_CUST_LOC_USE_PS where integration_id = 16066982
+select integration_id from "TEST_EDW"."BI11G_DW".W_CUST_LOC_USE_PS where integration_id =16066982
+select integration_id from TEST_EDW.EDW_OMNI.W_CUSTOMER_LOCATION_USE_D where integration_id = '16066982~100'
+select integration_id from DEV_EDW.EDW_OMNI.W_CUSTOMER_LOCATION_USE_D where integration_id = '16066982~100'
+
+
+-- 1527 ROWS DIFFERNCE IN TEST AND PROD
+-- CHECJED 3 RECORDS SO FAR (PRESENT IN PROD AND NOT IN TEST0)
+
+-- reason for difff
+
+
+--- W_CUSTOMER_LOCATION_D
+ select u.INTEGRATION_ID PROD_integration_id,a.integration_id OMNI_integration_id,u.COUNTY  PROD_COUNTY, a.COUNTY OMNI_COUNTY,
+ u.ST_ADDRESS1  PROD_ADDRESS1,a.ST_ADDRESS1 OMNI_ST_aDDRESS1,u.ST_ADDRESS2  PROD_ADDRESS2, a.ST_ADDRESS2 OMNI_ST_aDDRESS2
+  from TEST_EDW.EDW_OMNI.W_CUSTOMER_LOCATION_D a right join  "PROD_EDW"."BI11G_DW"."W_CUSTOMER_LOC_D"  u
+--ON a.integration_id = u.integration_id and u.integration_id is not null
+  on replace(a.integration_id,'~100','') = CONCAT(SPLIT_PART(u.INTEGRATION_ID,'~',1)) WHERE OMNI_COUNTY IS NULL AND OMNI_ST_ADDRESS1
+IS  NULL AND OMNI_ST_ADDRESS2 IS NULL -- 10326788, diff 4822
+
+
+select u.INTEGRATION_ID PROD_integration_id,a.integration_id OMNI_integration_id,u.COUNTY  PROD_COUNTY, a.COUNTY OMNI_COUNTY,
+ u.ST_ADDRESS1  PROD_ADDRESS1,a.ST_ADDRESS1 OMNI_ST_aDDRESS1,u.ST_ADDRESS2  PROD_ADDRESS2, a.ST_ADDRESS2 OMNI_ST_aDDRESS2
+  from TEST_EDW.EDW_OMNI.W_CUSTOMER_LOCATION_D a LEFT  join  "PROD_EDW"."BI11G_DW"."W_CUSTOMER_LOC_D"  u
+--ON a.integration_id = u.integration_id and u.integration_id is not null
+  on replace(a.integration_id,'~100','') = CONCAT(SPLIT_PART(u.INTEGRATION_ID,'~',1)) WHERE PROD_COUNTY IS NULL AND PROD_ADDRESS1
+IS  NULL AND PROD_ADDRESS2 IS NULL
+
+
+--- w_inventory_location_d
+
+ select u.INTEGRATION_ID PROD_integration_id,
+ a.integration_id OMNI_integration_id,
+ u.W_BUSN_LOC_TYPE_CODE  PROD_W_BUSN_LOC_TYPE_CODE, 
+ a.SUBINVENTORY_CODE OMNI_SUBINVENTORY_CODE
+  from TEST_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D a 
+ left join  "PROD_EDW"."BI11G_DW"."W_BUSN_LOCATION_D"  u
+  on replace(a.integration_id,'~100','') = CONCAT(SPLIT_PART(u.INTEGRATION_ID,'~',2),'~',SPLIT_PART(u.INTEGRATION_ID,'~',3),'~',SPLIT_PART(u.INTEGRATION_ID,'~',4)) 
+  WHERE   OMNI_SUBINVENTORY_CODE IS NULL and OMNI_integration_id is null
+ -- 10326788, diff 4822
+
+select replace(o.integration_id,'~100') omni_integration_id,  c.integration_id integration_id,o.CLAIM_NUMBER omni_CLAIM_NUMBER, c.CLAIM_NUMBER, o.CLAIM_DATE omni_CLAIM_DATE, c.CLAIM_DATE
+from
+"TEST_EDW"."EDW_OMNI"."W_CLAIMS_F" o
+left join "TEST_EDW"."BI11G_DW"."WC_CLAIMS_F" c
+on replace(o.integration_id,'~100')=c.integration_id
+where to_Date(o.claim_date)>='2023-07-01';
+
+ select INTEGRATION_ID from TEST_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D WHERE INTEGRATION_ID = '178~IAXO~482262~100';
+  select INTEGRATION_ID,CONCAT(SPLIT_PART(INTEGRATION_ID,'~',2),'~',SPLIT_PART(INTEGRATION_ID,'~',3),'~',SPLIT_PART(INTEGRATION_ID,'~',4)) from "PROD_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" 
+  WHERE CONCAT(SPLIT_PART(INTEGRATION_ID,'~',2),'~',SPLIT_PART(INTEGRATION_ID,'~',3),'~',SPLIT_PART(INTEGRATION_ID,'~',4)) = '178~IAXO~482262'
+  
+   select INTEGRATION_ID,CONCAT(SPLIT_PART(INTEGRATION_ID,'~',2),'~',SPLIT_PART(INTEGRATION_ID,'~',3),'~',SPLIT_PART(INTEGRATION_ID,'~',4)) from "PROD_EDW"."BI11G_DW"."W_BUSN_LOCATION_D" 
+  WHERE CONCAT(SPLIT_PART(INTEGRATION_ID,'~',2),'~',SPLIT_PART(INTEGRATION_ID,'~',3),'~',SPLIT_PART(INTEGRATION_ID,'~',4)) = '178~IAXO~482262'
+
+
+  
+
+select integration_id from TEST_EDW.EDW_OMNI.W_INVENTORY_LOCATION_D   -- 10298002
+select integration_id from "PROD_EDW"."BI11G_DW"."W_BUSN_LOCATION_D"   -- 10323250 , 10326788
+
+ 
+ select integration_id  from  "PROD_EDW"."BI11G_DW"."W_CUSTOMER_LOC_D" --98631423
+select INTEGRATION_ID from  TEST_EDW.EDW_OMNI."W_CUSTOMER_LOCATION_D"
+  -- sales_invoice_line_f
+  -- PROD with TEST_EDW
+SELECT  replace(a.integration_id,'~100','') FROM TEST_EDW.EDW_OMNI."W_CUSTOMER_LOCATION_D" a
+MINUS
+select CONCAT(SPLIT_PART(u.INTEGRATION_ID,'~',1)) from  "PROD_EDW"."BI11G_DW"."W_CUSTOMER_LOC_D" u
+
+SELECT  CONCAT(SPLIT_PART(u.INTEGRATION_ID,'~',1)) from  "PROD_EDW"."BI11G_DW"."W_CUSTOMER_LOC_D" u
+MINUS
+select replace(a.integration_id,'~100','') FROM TEST_EDW.EDW_OMNI."W_CUSTOMER_LOCATION_D" a
+-- 1262 rows
+
+  
+    
+     select u.INTEGRATION_ID,a.integration_id from "TEST_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F" a INNER join  "PROD_EDW"."BI11G_DW"."W_SALES_INVOICE_LINE_F"  u
+--ON a.integration_id = u.integration_id and u.integration_id is not null
+  on replace(a.integration_id,'~100','') = CONCAT(SPLIT_PART(u.INTEGRATION_ID,'~',1))  -- RUNNING 180,406,858 (matching)
+  
+  SELECT INTEGRATION_ID FROM  "PROD_EDW"."BI11G_DW"."W_SALES_INVOICE_LINE_F"
+    SELECT INTEGRATION_ID FROM  "TEST_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F"   -- 289,146,147 
+
+SELECT  CONCAT(SPLIT_PART(u.INTEGRATION_ID,'~',1)) from  "PROD_EDW"."BI11G_DW"."W_SALES_INVOICE_LINE_F" u
+MINUS
+select replace(a.integration_id,'~100','') FROM  "TEST_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F" a
+
+SELECT  replace(a.integration_id,'~100','') FROM  "TEST_EDW"."EDW_OMNI"."W_SALES_INVOICE_LINE_F"a
+MINUS
+select CONCAT(SPLIT_PART(u.INTEGRATION_ID,'~',1)) from  "PROD_EDW"."BI11G_DW"."W_SALES_INVOICE_LINE_F" u  -- 108,739,289 (not matching)
+  
+  -- wc_claims  --- ETL PROC ID ERROR
+    SELECT count(*) FROM "TEST_EDW"."BIAPPS"."WC_DM_FORECAST_F" a inner join "TEST_EDW"."BI11G_DW"."WC_DM_FORECAST_F" u
+  ON a.integration_id = u.integration_id
+  
+ 
+  
+  
+  -- WC_CLAIMS_F ( NO VIE FOR ) SAME FOR TRADE FUNDS AND TRADE BALANCE
+  SELECT count(*) FROM "DEV_EDW"."EDW_OMNI"."W_CLAIMS_F" a inner join "TEST_EDW"."BI11G_DW"."WC_CLAIMS_F" u
+  ON a.integration_id = u.integration_id
+  
+    select a.integration_id,u.integration_id from  "TEST_EDW"."BI11G_DW"."WC_CLAIMS_F" u left join  "TEST_EDW"."EDW_OMNI"."W_CLAIMS_F" a
+  on a.integration_id = u.integration_id||'~'||100  WHERE a.integration_id is not null
+  
+   select a.integration_id,u.integration_id from  "TEST_EDW"."BI11G_DW"."WC_CLAIMS_F" u left join  "TEST_EDW"."EDW_OMNI"."W_CLAIMS_F" a
+  on a.integration_id = u.integration_id||'~'||100  WHere a. DUE_DATE::DATE BETWEEN '2023-04-01' AND '2023-04-30'
+  
+  
+   select integration_id from  "TEST_EDW"."BI11G_DW"."WC_CLAIMS_F" where DUE_DATE::DATE BETWEEN '2023-04-01' AND '2023-04-30'
+      select integration_id from  "TEST_EDW"."EDW_OMNI"."W_CLAIMS_F" WHERE  DUE_DATE::DATE BETWEEN '2023-04-01' AND '2023-04-30'
+      
+      select integration_id from "TEST_EDW"."EDW_OMNI"."W_CLAIMS_F" where integration_id not in (select integration_id from "TEST_EDW"."BI11G_DW"."WC_CLAIMS_F")
+      select integration_id from  "TEST_EDW"."BI11G_DW"."WC_CLAIMS_F" where integration_id not in (select integration_id from "TEST_EDW"."EDW_OMNI"."W_CLAIMS_F"
+                                                                                                   WHERE  DUE_DATE::DATE BETWEEN '2023-04-01' AND '2023-04-30')
+
+
+      
+  -- WC_SALES_DEMAND_f
+  SELECT count(*) FROM  "TEST_EDW"."BIAPPS"."WC_SALES_DEMAND_F" a inner join "TEST_EDW"."BI11G_DW"."WC_SALES_DEMAND_F" u
+  ON a.integration_id = u.integration_id
+  
+   select a.integration_id,u.integration_id from  "TEST_EDW"."BI11G_DW"."WC_SALES_DEMAND_F" u left join  "TEST_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" a
+  on a.integration_id = u.integration_id||'~'||100  WHERE a.SALES_DATE BETWEEN '2023-05-01' AND  '2023-05-31'
+  
+   select a.integration_id,u.integration_id,a.sales_date from  "TEST_EDW"."BI11G_DW"."WC_SALES_DEMAND_F" u left join  "TEST_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" a
+  on a.integration_id = u.integration_id||'~'||100  WHERE a.integration_id is null
+  
+
+   select integration_id from  "TEST_EDW"."BI11G_DW"."WC_SALES_DEMAND_F" WHERE INTEGRATION_ID ='~1159~2095325~Forecast~720240609000~GLOBAL'
+      select integration_id from  "TEST_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" WHERE INTEGRATION_ID IS NOT NULL AND INTEGRATION_ID ='~1159~2095325~Forecast~720240609000~GLOBAL'
+
+    select integration_id from "TEST_EDW"."BI11G_DW"."WC_SALES_DEMAND_F" where integration_id not in (select integration_id from "TEST_EDW"."EDW_OMNI"."W_SALES_DEMAND_F")
+      select integration_id from   "TEST_EDW"."BI11G_DW"."WC_SALES_DEMAND_F" where integration_id not in (select integration_id from  "TEST_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"
+                                                                                                   WHERE  SALES_DATE::DATE BETWEEN '2023-04-01' AND '2023-04-30')
+
+  
+ 
+-- DM_FORECAST_F
+    select a.integration_id,u.integration_id from  "TEST_EDW"."BI11G_DW"."WC_DM_FORECAST_F" u left join  "TEST_EDW"."EDW_OMNI"."W_SALES_FORECAST_F" a
+  on a.integration_id = u.integration_id||'~'||100  WHERE a.integration_id is  null
+  
+  
+ 
+
+

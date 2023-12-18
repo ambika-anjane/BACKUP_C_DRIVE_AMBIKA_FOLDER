@@ -1,0 +1,22 @@
+select a.T_EP_HOT_ABC_CLASS_EP_ID,b.t_ep_hot_abc_class_ep_id,b.hot_abc_flag  from dev_discover.SUPPLY_CHAIN.stg_oracle__abc_class a,"DEV_ODS"."ORACLE_SCP"."MDP_MATRIX"  b 
+where a.T_EP_HOT_ABC_CLASS_EP_ID = b.t_ep_hot_abc_class_ep_id AND b.t_ep_hot_abc_class_ep_id is not null and a.t_ep_hot_abc_class_ep_id is not null
+
+select a.item_id,b.item_id,b.hot_abc_flag from "ODS"."ORACLE_SCP"."SALES_DATA" a,"ODS"."ORACLE_SCP"."MDP_MATRIX"  b 
+where a.item_id = b.item_id and a.location_id = b.location_id  and b.hot_abc_flag is not null
+limit 10000
+
+select hot_abc_flag from "DEV_ODS"."ORACLE_SCP"."MDP_MATRIX"where hot_abc_flag is  null
+
+ select * from "DEV_ODS"."ORACLE_SCP"."SALES_DATA"   limit 2
+ select HOT_ABC_FLAG FROM dev_discover.SUPPLY_CHAIN.stg_oracle__forcasted_sales where hot_abc_flag is  null
+ desc table "DEV_ODS"."ORACLE_SCP"."SALES_DATA"  
+  desc table "DEV_ODS"."ORACLE_SCP"."MDP_MATRIX"  
+  SELECT T_EP_HOT_ABC_CLASS_EP_ID FROM "DEV_ODS"."ORACLE_SCP"."MDP_MATRIX"  
+  
+  select hot_abc_flag from "DEV_EDW"."EDW_OMNI"."W_SALES_FORECAST_F" WHERE HOT_ABC_FLAG IS NULL
+    select * from "DEV_EDW"."EDW_OMNI"."W_SALES_FORECAST_F" WHERE HOT_ABC_FLAG IS NULL
+
+
+
+ 
+select hot_abc_flag from "DEV_EDW"."BI11G_DW"."WC_DM_FORECAST_F" 

@@ -1,0 +1,747 @@
+SELECT COUNT(*) FROM dev_discover.SUPPLY_CHAIN.stg_oracle__msc_demands
+SELECT * FROM "DEV_ODS"."ORACLE_FINANCIALS"."OZF_CLAIMS_ALL"  
+DESC TABLE "DEV_ODS"."ORACLE_FINANCIALS"."OZF_CLAIMS_ALL" -- CLAIMS_F STAGE
+SELECT _BATCH_UPDATE_DATE,_SOURCE_ID FROM "DEV_ODS"."ORACLE_FINANCIALS"."OZF_FUNDS_ALL_B"
+drop table "DEV_EDW"."EDW_OMNI"."W_TRADE_BALANCES_F" 
+select* from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F" 
+select * from dev_edw.edw_omni.wc_fund_d limit 10
+select count(*) from "DEV_EDW"."EDW_OMNI"."W_CLAIMS_F"
+
+integration_id as unique_field,
+    count(*) as n_records
+from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"  
+group by integration_id
+having count(*) > 1
+--CLAIMS_LINES_ALL
+-- FUNDS_aLL_b
+-- FUNDS_UTILIZED_aLL_B
+-- INVOICES_ALL
+SELECT * FROM "DEV_ODS"."ORACLE_SCP"."INPUTS"
+select * from "DEV_ODS"."ORACLE_SCP"."SALES_DATA" limit 10
+
+SELECT COUNT(*)   FROM "DEV_ODS"."ORACLE_SCP"."SALES_DATA"
+SELECT FORE_0_CALC,UPLIFT_FUTURE FROM "DEV_DISCOVER"."SUPPLY_CHAIN"."STG_ORACLE__FORCASTED_SALES" LIMIT 100
+DROP VIEW "DEV_DISCOVER"."SUPPLY_CHAIN"."STG_ORACLE__FORCASTED_SALES"
+SELECT * FROM dev_edw.edw_omni.w_sales_forecast_f WHERE INTEGRATION_ID = '606796~388350~20250301~100'
+
+      select COUNT(*) from "DEV_ODS"."ORACLE_SCP"."SALES_DATA" s
+     
+            left outer join "DEV_ODS"."ORACLE_SCP"."MDP_MATRIX"mp on ((mp.item_id = s.item_id) and (mp.location_id = s.location_id))
+            inner join cal on cal.datet = s.sales_date
+inner join ac on ac.t_ep_hot_abc_class_ep_id = s.t_ep_hot_abc_class_ep_id
+left outer join
+    (
+        select
+            item_id lp1_item_id,
+            location_id lp1_location_id,
+            max(case when lp.cg_flag = 1 then currency_code end) group_currency,
+            max(case when lp.cg_flag = 0 then currency_code end) cust_currency
+        from lp
+        group by lp1_item_id, lp1_location_id
+    ) customer_group_currency
+
+    on s.item_id = lp1_item_id
+    and s.location_id = lp1_location_id
+inner join ti on s.t_ep_item_ep_id = ti.t_ep_item_ep_id
+left outer join msi on ti.item = msi.item_number and msi.organization_id = 82
+inner join teo on s.t_ep_organization_ep_id = teo.t_ep_organization_ep_id
+left outer join mop on nvl(teo.organization, 'NA') = mop.organization_code
+inner join td on s.t_ep_ebs_demand_class_ep_id = td.t_ep_ebs_demand_class_ep_id
+/*
+left outer join
+    (
+        select
+            location_id,
+            item_id,
+            sales_date,
+            sum(nvl(event_lift_override, e_p.v_uplift)) uplift_future
+        from prom, e_p
+        where sales_date >= trunc(current_date(), 'MM') and (event_lift_override > 0)
+        group by location_id, item_id, sales_date
+    ) prom1
+    on s.location_id = prom1.location_id
+    and s.item_id = prom1.item_id
+    and s.sales_date = prom1.sales_date */
+left outer join ord on mop.sr_tp_id = ord.organization_id
+left outer join sob on ord.set_of_books_id = sob.ledger_id
+inner join cc on s.t_ep_e1_cust_cat_2_ep_id = cc.t_ep_e1_cust_cat_2_ep_id
+inner join ea on s.t_ep_ebs_account_ep_id = ea.t_ep_ebs_account_ep_id
+left outer join hca on hca.customer_account_number = ea.ebs_account_number
+left outer join
+    fl
+    on fl.lookup_type = 'HOT_OVERRIDE_PRICE_TAG'
+    and ea.ebs_account_number = fl.customer_account_number
+
+
+ where
+            sales_date >= dateadd('year', -2, date_trunc('year', current_date()))
+
+            and (
+                hot_targ_fcst_6_lag > 0with
+    w_trade_funds_f as (select * from {{ ref("w_trade_funds_f") }}),
+    w_claims_f as (select * from {{ ref("w_claims_f") }}),
+    w_fund_d as (select * from {{ ref("w_fund_d") }}),
+    w_day_d as (select * from {{ ref("w_day_d") }}),
+
+    w_period_dayd as (select ent_period_start_date, ent_period_end_date from w_day_d),
+
+    tm as (
+
+        select
+            fun.fund_id fund_ids,
+            fun.cust_account_id cust_account_ids,
+            fun.org_id org_ids,
+            fun.ledger_id ledger_ids,
+            fun.terr_id territory_ids,
+            dayd.ent_period_start_date,
+            dayd.ent_period_end_date,
+
+            sum(
+                case
+                    when
+                        fun.utilization_type = 'ACCRUAL'
+                        and fun.gl_posted_flag = 'Y'
+                        and fun.gl_date is not null
+                    then accrual_loc_amt
+                end
+            )
+            accrual_amount,
+            sum(
+                case
+                    when
+                        fun.utilization_type = 'ADJUSTMENT'
+                        and fun.gl_posted_flag = 'Y'
+                        and fun.gl_date is not null
+                    then accrual_loc_amt
+                end
+            )
+            adjustment_amount,
+            sum(
+                case
+                    when fun.gl_posted_flag <> 'Y' and fun.gl_date is null
+                    then accrual_loc_amt
+                end
+            )
+            unposted_accruals,
+            0 paid_amount,
+            fun.datasource_num_id
+
+        from w_trade_funds_f fun
+        inner join
+            w_day_d dayd
+            on nvl(fun.gl_date, fun.adjusted_on_dt) = dayd.calendar_date
+            and (fun.utilization_type in ('ACCRUAL', 'ADJUSTMENT'))
+            and (fun.adjustment_type is not null)
+            and (dayd.calendar_date is not null)
+            and (dayd.ent_period_start_date is not null)
+            and (dayd.ent_period_end_date is not null)
+
+        group by
+
+            fund_ids,
+            cust_account_ids,
+            org_ids,
+            ledger_ids,
+            territory_ids,
+            dayd.ent_period_start_date,
+            dayd.ent_period_end_date,
+            fun.datasource_num_id
+
+        union all
+        select
+            cl.fund_id fund_id,
+            cl.cust_account_id cust_account_id,
+            cl.inventory_org_id org_id,
+            cl.ledger_id,
+            cl.territory_id territory_id,
+            dayd.ent_period_start_date,
+            dayd.ent_period_end_date,
+            0 accrual_amt,
+            0 adjust_amt,
+            0 unposted_amt,
+            sum(cl.settled_doc_amt) paid_amount,
+            cl._source_id datasource_num_id,
+            coalesce(to_char(fund_periods.cust_account_id), '')
+            || '~'
+            || coalesce(to_char(fund_periods.org_id), '')
+            || '~'
+            || coalesce(to_char(fund_periods.ledger_id), '')
+            || '~'
+            || coalesce(to_char(fund_periods.fund_id), '')
+            || '~'
+            || coalesce(to_char(fund_periods.territory_id), '')
+            || '~'
+            || coalesce(to_char(fund_periods.ent_period_start_date), '')
+            || '~'
+            || coalesce(to_char(fund_periods.ent_period_end_date), '')
+            || '~'
+            || to_char(datasource_num_id) integration_id,
+
+        from w_claims_f cl
+        inner join
+            w_day_d dayd
+            on cl.gl_date = dayd.calendar_date
+            and (dayd.calendar_date is not null)
+            and (fund_id is not null)
+            and (cl.payment_status = 'PAID')
+
+        group by
+            fund_id,
+            cust_account_id,
+            org_id,
+            ledger_id,
+            territory_id,
+            dayd.ent_period_start_date,
+            dayd.ent_period_end_date,
+            cl._source_id
+
+    )
+select * from tm
+                or hot_targ_fcst_7_lag > 0
+                or hot_targ_fcst_8_lag > 0
+                or hot_targ_fcst_9_lag > 0
+                or hot_targ_fcst_10_lag > 0
+                or hot_targ_fcst_11_lag > 0
+                or hot_targ_fcst_12_lag > 0
+                or bat_fcst_1_lag > 0
+                or bat_fcst_2_lag > 0
+                or bat_fcst_3_lag > 0
+                or bat_fcst_4_lag > 0
+                or week4_lag_fcst > 0
+                or week_8_lag_fcst > 0
+                or targ_fcst_3_lag > 0
+                or targ_fcst_4_lag > 0
+                or hot_future_orders > 0
+                or sales_override > 0
+                or hot_wtd_ship > 0
+                or fore_2 > 0
+                or enter_fore > 0
+                or hot_sales_base_over > 0
+                or manual_stat > 0
+                or actual_quantity > 0
+                or col_for_over > 0
+                or sim_val_1 > 0
+                or fixed_prom > 0
+                or rule_coll > 0
+                or int_cost > 0
+                or ff > 0
+            ) 
+
+        
+
+
+SELECT T-MONTH(TO_DATE(DATE_TRUNC('MONTH',DATET))) MM_RES FROM "DEV_ODS"."ORACLE_SCP"."INPUTS"
+ SELECT (T- to_number(MONTH(TO_DATE(DATE_TRUNC('MONTH',datet))))) as period_diff from "DEV_ODS"."ORACLE_SCP"."INPUTS"
+ 
+ 
+ select trunc(time_sig, 'mm')
+      
+        
+        
+        from "DEV_ODS"."ORACLE_SCP"."FORECAST_HISTORY"
+where
+            engine_profiles_id = 1
+            and time_sig
+            = (select max(time_sig) from "DEV_ODS"."ORACLE_SCP"."FORECAST_HISTORY" where engine_profiles_id = 1)
+
+SELECT count(*) FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__WC_TRADE_FUNDS" WHERE  GL_DATE >= dateadd('year', -1, date_trunc('year', current_date()))
+SELECT GL_DATE FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__WC_CLAIMS" 
+ WHERE  GL_DATE >= dateadd('year', -1, date_trunc('year', current_date()))
+
+SELECT COUNT(*) FROM "DEV_ODS"."ORACLE_FINANCIALS"."OZF_CLAIM_LINES_ALL"
+select * from dev_discover.FINANCIALS.stg_oracle__ra_salesreps_all  WHERE SALESREP_ID = 100155096
+-- 100153095
+selecT* from "DEV_EDW"."EDW_OMNI"."W_TERRITORY_D"
+SELECT  TERRITORY_ID FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__SALES_INVOICE_LINES_ALL" WHERE TERRITORY_ID IS NOT NULL
+SELECT * FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__WC_TRADE_BALANCE_F" LIMIT 10
+desc view "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__WC_TRADE_FUNDS"
+drop view "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__WC_TRADE_BALANCE_F"
+DESC TABLE "DEV_ODS"."ORACLE_FINANCIALS"."OZF_FUNDS_ALL_B"
+SELECT COUNT(*) FROM "DEV_EDW"."EDW_OMNI"."SALES_DEMAND_F_TEST"
+
+
+drop table "DEV_EDW"."EDW_OMNI"."W_SALES_FORECAST_F"
+
+SELECT _BATCH_UPDATE_DATE FROM "DEV_ODS"."ORACLE_FINANCIALS"."OZF_FUNDS_ALL_B" WHERE _BATCH_UPDATE_DATE = '2023-03-24 05:28:55.000'
+SELECT count(*) FROM "DEV_ODS"."ORACLE_FINANCIALS"."OZF_FUNDS_UTILIZED_ALL_B"
+DESC TABLE  "DEV_ODS"."ORACLE_FINANCIALS"."OZF_FUNDS_UTILIZED_ALL_B"
+SELECT count(*) FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__WC_CLAIMS" WHERE FUND_ID ='15586~100' AND CUST_ACCOUNT_ID = '4672~100'
+                                          select to_varchar(k.fund_id) fund_id2,
+                                          to_varchar (k.cust_account_id) cust_id2,
+                                          to_varchar( k.org_id) org_id2
+                                  from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__WC_CLAIMS" k
+                                        left outer join  dev_edw.edw_omni.wc_fund_d
+                                        on fund_id2 = wc_fund_d.integration_id and fund_id2 > '0'
+                                        where k.payment_status = 'PAID'  
+                                        group by fund_id2,cust_id2,org_id2 limit 10
+                                        
+                                        
+  --- testing                                      
+SELECT _BATCH_UPDATE_DATE FROM  "DEV_ODS"."ORACLE_FINANCIALS"."OZF_FUNDS_UTILIZED_ALL_B" WHERE _BATCH_UPDATE_DATE = '2023-03-24 05:28:55.000'
+ where fund_id  in (select fund_id from "DEV_EDW"."EDW_OMNI"."WC_TRADE_BALANCES_F" where fund_id  = '926399~100')
+ 
+ -- audit logs 
+select * from "DEV_EDW"."EDW_METADATA"."EL_AUDIT_BALANCE_LOG" where node_name = 'w_trade_balances_f'
+
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."WC_FUND_D" WHERE FUND_ID IS NOT  NULL
+-- TRACH BATCH
+SELECT * FROM "DEV_EDW"."EDW_METADATA"."EL_BATCH_REFRESH_TRACKER" WHERE TABLE_NAME = 'w_trade_balances_f'
+ 
+ select
+    integration_id as unique_field,
+    count(*) as n_records
+
+from dev_edw.edw_omni.w_sales_forecast_f
+where integration_id is not null
+group by integration_id
+having count(*) > 1
+
+ 
+ select count(*) from   dev_edw.edw_omni.w_sales_forecast_f                                
+desc table  "DEV_DISCOVER"."FINANCIALS"."count
+"
+DESC TABLE "DEV_ODS"."ORACLE_FINANCIALS"."OZF_FUNDS_UTILIZED_ALL_B" --TRADE_FUNDS_FS STAGE
+SELECT * FROM "DEV_ODS"."ORACLE_FINANCIALS"."OZF_FUNDS_ALL_B" -- TRADE_FUNBDS_FS_STAGE
+SELECT * FROM "DEV_ODS"."ORACLE_FINANCIALS"."OZF_CLAIM_TYPES_ALL_TL" 
+SELECT integration_id
+ FROM"DEV_EDW"."EDW_OMNI"."W_TRADE_BALANCES_F" WHERE INTEGRATION_ID IS not  NULL
+ SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_TRADE_BALANCES_F" WHERE INTEGRATION_ID IS null
+ 
+ select fund_id  from "DEV_EDW"."EDW_OMNI"."W_TRADE_FUNDS_F" WHERE FUND_ID IS NULL
+ AND  UTILIZATION_TYPE IN ('ACCRUAL', 'ADJUSTMENT') and fund_id = '12304~100' 
+ 
+ SELECT FUND_ID FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__CLAIMS" WHERE PAYMENT_STATUS = 'PAID' AND FUND_ID IS NULL
+
+ 
+ SELECT INTEGRATION_ID, BEGINNING_ACCRUAL
+ FROM"DEV_EDW"."EDW_OMNI"."W_TRADE_BALANCES_F"  WHERE INTEGRATION_ID = '926243~51401~599~200~0~0~100020088~100020088~100~100'
+
+select * FROM  "DEV_EDW"."EDW_OMNI"."TEST"
+SELECT ledger_id,integration_id FROM "DEV_EDW"."EDW_OMNI"."WC_FUND_D" where FUND_ID IS NULL
+DELETE FROM  "DEV_EDW"."EDW_OMNI"."WC_FUND_D" WHERE ACCRUAL_BASIS
+ = 'Unspecified'
+ 
+DESC TABLE "DEV_ODS"."ORACLE_FINANCIALS"."OZF_CLAIM_ALL"
+SELECT CLAIM_LINE_ID FROM "DEV_ODS"."ORACLE_FINANCIALS"."OZF_CLAIM_LINES_ALL"  LIMIT 10
+SELECT UTILIZATION_ID FROM "DEV_ODS"."ORACLE_FINANCIALS"."OZF_CLAIM_LINES_UTIL_ALL" LIMIT 10
+
+SELECT CLAIM_ID FROM "DEV_ODS"."ORACLE_FINANCIALS"."OZF_CLAIMS_ALL"  LIMIT 10
+
+DESC TABLE "DEV_ODS"."ORACLE_FINANCIALS"."JTF_RS_RESOURCE_EXTNS"
+select integration_id from  "DEV_EDW"."BI11G_DW"."WC_SALES_DEMAND_F"
+
+SELECT FUND_ID  FROM "DEV_EDW"."EDW_OMNI"."W_TRADE_FUNDS_F" WHERE FUND_ID IS NULL
+SELECT count(*) FROM "DEV_EDW"."EDW_OMNI"."WC_CLAIMS_F"
+
+DESC TABLE "DEV_EDW"."EDW_OMNI"."WC_FUND_D"
+-- TWO STAGE FILES ( ONE FOR CLAIMS_F) AND ONE MORE FOR (TRADE_FUNDS_FS) SATGE 
+-- LOAD COMES FROM THSES TWO STAGES
+SELECT claim_date FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__WC_CLAIMS" limit 10
+desc table  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__WC_CLAIMS"
+SELECT count(*) FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__WC_TRADE_FUNDS_F" 
+
+SELECT COUNT(*) FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__WC_CLAIMS"
+DESC VIEW  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__WC_CLAIMS"
+SELECT * FROM "DEV_DISCOVER"."SUPPLY_CHAIN"."TEST" LIMIT 10
+DROP VIEW "DEV_DISCOVER"."SUPPLY_CHAIN"."TEST"
+SELECT COUNT(*) FROM "DEV_DISCOVER"."SUPPLY_CHAIN"."STG_ORACLE__FORCASTED_SALES"
+SELECT INTEGRATION_ID FROM "DEV_DISCOVER"."SUPPLY_CHAIN"."STG__SALES_FORECAST" LIMIT 10
+
+
+SELECT VOLUME_BASE_FEATURE,FORE_0_CALC,MAX_DATE_DIFF,PERIOD_DIFF,MAX_SALES_DATE FROM "DEV_DISCOVER"."SUPPLY_CHAIN"."STG_ORACLE__SALES_DATA"
+DROP VIEW  "DEV_DISCOVER"."SUPPLY_CHAIN"."STG_ORACLE__HOT_PTP_SALES"  
+, "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__OZF_FUNDS_ALL_B" B 
+WHERE A.FUND_ID = B.FUND_ID and (nvl(A.AMOUNT, 0) <> 0)
+select
+    integration_id 
+
+from dev_edw.edw_omni.w_trade_balances_f
+where integration_id is not null
+group by integration_id
+having count(*) > 1
+SELECT LINE_TYPE  FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__SALES_INVOICE_LINES"
+call edw_metadata.u_get_null_columns_list('WC_TRADE_BALANCES_F','PROD_EDW','BI11G_DW','100');
+SELECT INTEGRATION_ID FROM "DEV_EDW"."EDW_OMNI"."W_TRADE_BALANCES_F"
+select count(*) from "DEV_EDW"."BI11G_DW"."WC_CLAIMS_F"
+
+SELECT COUNT(*) FROM "DEV_EDW"."EDW_OMNI"."W_CUSTOMER_ACCOUNT_D"
+
+-- null values check 
+DESC VIEW "DEV_DISCOVER"."FINANCIALS"."STG__TRADE_FUNDS_FS"
+select count(*) from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__WC_CLAIMS"
+select * from  "DEV_DISCOVER"."FINANCIALS"."STG"
+DESC VIEW "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__WC_CLAIMS"
+DROP VIEW "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__WC_CLAIMS"
+SELECT LEDGER_ID FROM "DEV_DISCOVER"."FINANCIALS"."STG__TRADE_FUNDS" WHERE UTILIZATION_TYPE IN ('ACCRUAL', 'ADJUSTMENT')
+SELECT fund_id FROM "DEV_DISCOVER"."FINANCIALS"."STG__TRADE_FUNDS" WHERE UTILIZATION_TYPE IN ('ACCRUAL', 'ADJUSTMENT')
+and fund_id is null 
+
+--- 
+select * from "DEV_EDW"."BI11G_DW"."WC_TRADE_BALANCES_F" where beginning_accrual > 0
+-- data validation in trade_balance
+-- step 1:
+-- take fund_id out of this 
+select fund_wid,period_wid from  "DEV_EDW"."BI11G_DW"."WC_TRADE_BALANCES_F" where period_wid between '120180228000'and '120200228000'
+and  beginning_accrual > 0 and ending_accrual >0  and fund_wid in (487966,490659,504418,498302,1230792)
+-- period_wid = 120190228000
+select * from DEV_EDW.EDW_OMNI.w_trade_balances_f where beginning_accrual > 0 and ending_accrual >0 
+and fund_id in ('53095~100','51968~100',',49063~100','48087~100','487966~100','490659~100''498302~100') and  ent_period_start_date in ('01-Feb-2019','01-Feb-2017','01-Mar-2020')
+
+select * from DEV_EDW.EDW_OMNI.w_trade_balances_f where beginning_accrual > 0 and ending_accrual >0 
+and fund_id in ('53095~100','51968~100',',49063~100','48087~100','487966~100','490659~100''498302~100') and  ent_period_start_date between  '01-Feb-2019' and '01-Mar-2020'
+-- and ent_period_start_date = '01-Feb-2019'
+
+--step 2:
+-- give it as input here to get row_id
+select FUND_ID,row_id from  "DEV_EDW"."BI11G_DW"."WC_FUND_D" where integration_id in ('53095','51968','48087','52725')
+select ROW_ID,INTEGRATION_ID,LEDGER_ID,FUND_ID from  "DEV_EDW"."BI11G_DW"."WC_FUND_D"  where integration_id in ('53095','51968','59107')
+select FUND_ID,row_id from  "DEV_EDW"."BI11G_DW"."WC_FUND_D" where integration_id in ('52797')
+
+
+-- step3:
+select fund_wid,period_wid,sum(beginning_accrual),sum(ending_accrual) from  "DEV_EDW"."BI11G_DW"."WC_TRADE_BALANCES_F" where fund_wid = '1230790'
+group by fund_wid,period_wid order by period_wid
+select fund_wid,period_wid,sum(beginning_accrual),sum(ending_accrual) from  "DEV_EDW"."BI11G_DW"."WC_TRADE_BALANCES_F" where fund_wid = '504316'
+ and period_wid = '120180228000' group by fund_wid,period_wid order by period_wid
+
+--step 4:
+--chk this with wc_cliams ad wc_trade_funds
+
+select * from  "DEV_EDW"."BI11G_DW"."WC_TRADE_BALANCES_F" where period_wid = '120180228000'and beginning_accrual > 0 and ending_accrual >0 
+
+
+-- chk for the dtae in wc_trade_funds_F
+
+Select 
+  SUM(T507647.PAID_AMOUNT),
+  SUM(T507647.ADJUSTMENT_AMOUNT),
+  SUM(T507647.ACCRUAL_AMOUNT),
+  SUM(T507647.ENDING_ACCRUAL),
+  SUM(T507647.BEGINNING_ACCRUAL) FROM  PROD_EDW.BI11G_DW.WC_TRADE_BALANCES_F T507647 Where PERIOD_WID = '120230531000' and FUND_WID = '1230790'
+  --'490979'
+  --'1230790'; 
+--
+selecT * from TEST_EDW.EDW_OMNI.w_trade_balances_f where  ent_period_start_date = '2023-05-01 00:00:00.000' AND FUND_ID = '59105~100'
+select fund_id,ent_period_start_date,sum(beginning_accrual),sum(ending_accrual),SUM(PAID_AMOUNT),
+  SUM(ADJUSTMENT_AMOUNT),
+  SUM(ACCRUAL_AMOUNT) from  TEST_EDW.EDW_OMNI.w_trade_balances_f  where FUND_ID = '59531~100' and ent_period_start_date = '2023-05-01'
+group by fund_id,ent_period_start_date order by ent_period_start_date
+select fund_wid,period_wid,sum(beginning_accrual),sum(ending_a
+                                                      
+                                                      select UNPOSTED_ACCRUALS,PERIOD_WID,
+sum(BEGINNING_ACCRUAL),sum(ENDING_ACCRUAL) from PROD_EDW.BI11G_DW.WC_TRADE_BALANCES_F where  FUND_WID =  '490979' group by UNPOSTED_ACCRUALS,PERIOD_WID
+ccrual),SUM(PAID_AMOUNT),
+  SUM(ADJUSTMENT_AMOUNT),
+  SUM(ACCRUAL_AMOUNT) from  "PROD_EDW"."BI11G_DW"."WC_TRADE_BALANCES_F" where fund_wid = '1230790'
+group by fund_wid,period_wid order by period_wid
+
+select * from  "PROD_EDW"."BI11G_DW"."WC_TRADE_BALANCES_F" limit 10
+
+
+select UNPOSTED_ACCRUALS,PERIOD_WID,
+sum(BEGINNING_ACCRUAL),sum(ENDING_ACCRUAL) from PROD_EDW.BI11G_DW.WC_TRADE_BALANCES_F where  FUND_WID =  '1230790' group by UNPOSTED_ACCRUALS,PERIOD_WID
+
+select fund_wid,period_wid,ACCRUAL_AMOUNT,UNPOSTED_ACCRUALS,ADJUSTMENT_AMOUNT,ACCRUAL_AMOUNT from  "PROD_EDW"."BI11G_DW"."WC_TRADE_BALANCES_F" where fund_wid = '1230790'
+group by fund_wid,period_wid,ACCRUAL_AMOUNT,UNPOSTED_ACCRUALS,ADJUSTMENT_AMOUNT order by period_wid
+
+select row_id from  "DEV_EDW"."BI11G_DW"."WC_FUND_D" where integration_id = '22833'
+
+SELECT * FROM DEV_EDW.EDW_OMNI.w_trade_balances_f WHERE INTEGRATION_ID IS   NULL
+select a.fund_id,b.ent_period_start_date from DEV_EDW.EDW_OMNI.w_trade_funds_f a,  DEV_EDW.EDW_OMNI.w_trade_balances_f b
+WHERE b.ent_period_start_date = '2019-02-01 00:00:00.000'
+
+SELECT integration_id FROM "DEV_EDW"."EDW_OMNI"."W_DAY_D" WHERE INTEGRATION_ID IS  NULL
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_TRADE_BALANCES_F"  where integration_id is   null
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_DAY_D" WHERE CALENDAR_DATE IS NULL
+SELECT ent_period_start_date,calendar_date FROM "DEV_EDW"."EDW_OMNI"."W_DAY_D"  where ent_period_start_date is not null and year(ent_period_start_date)  = '2023'
+
+
+
+
+
+
+
+-- test on stage_claims
+select * from  "DEV_DISCOVER"."FINANCIALS"."STG__CLAIMS"   where fund_id = '15617' 
+select * from  "DEV_DISCOVER"."FINANCIALS"."STG__CLAIMS" 
+select * from  "DEV_DISCOVER"."FINANCIALS"."STG__CLAIMS"   where _source_id is null
+
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_TRADE_FUNDS_F"   where fund_id = '62194~100' AND ADJUSTMENT_TYPE IS  NULL 
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."WC_CLAIMS_F"   where fund_id = '15617~100' 
+
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_TRADE_FUNDS_F"   where datasource_num_id is  null
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_TRADE_FUNDS_F"   where LEDGER_ID is  null
+
+
+SELECT fund_id  FROM  "DEV_ODS"."ORACLE_FINANCIALS"."OZF_FUNDS_UTILIZED_ALL_B" WHERE FUND_ID = '10309'
+SELECT fund_id  FROM  "DEV_ODS"."ORACLE_FINANCIALS"."OZF_FUNDS_UTILIZED_ALL_B" WHERE _source_id is null
+
+select fund_wid,period_wid,ACCRUAL_AMOUNT,UNPOSTED_ACCRUALS,ADJUSTMENT_AMOUNT,ACCRUAL_AMOUNT,BEGINNING_ACCRUAL from  "PROD_EDW"."BI11G_DW"."WC_TRADE_BALANCES_F" where fund_wid = '1230790'
+select fund_id,ACCRUAL_AMOUNT,UNPOSTED_ACCRUALS,ADJUSTMENT_AMOUNT, ent_period_start_date,BEGINNING_ACCRUAL,ENDING_ACCRUAL,SUM(PAID_AMOUNT)
+  from  TEST_EDW.EDW_OMNI.w_trade_balances_f  where FUND_ID = '59105~100'
+group by fund_id,ACCRUAL_AMOUNT,UNPOSTED_ACCRUALS,ADJUSTMENT_AMOUNT, ent_period_start_date,BEGINNING_ACCRUAL,ENDING_ACCRUAL,PAID_AMOUNT order by ent_period_start_date
+
+
+Select 
+  SUM(T507647.PAID_AMOUNT),
+  SUM(T507647.ADJUSTMENT_AMOUNT),
+  SUM(T507647.ACCRUAL_AMOUNT),
+  SUM(T507647.ENDING_ACCRUAL),
+  SUM(T507647.BEGINNING_ACCRUAL) FROM  PROD_EDW.BI11G_DW.WC_TRADE_BALANCES_F T507647 Where PERIOD_WID = '120230531000' and FUND_WID =  '1230790'; 
+
+select UNPOSTED_ACCRUALS,sum(BEGINNING_ACCRUAL),sum(ENDING_ACCRUAL) from DEV_EDW.EDW_OMNI.w_trade_balances_f where  FUND_ID =  '59105~100'  group by UNPOSTED_ACCRUALS
+select UNPOSTED_ACCRUALS,sum(BEGINNING_ACCRUAL),sum(ENDING_ACCRUAL) from PROD_EDW.BI11G_DW.WC_TRADE_BALANCES_F where  FUND_WID =  '1230790' group by UNPOSTED_ACCRUALS
+select settled_doc_amount,gl_date from DEV_EDW.EDW_OMNI.w_claims_f where FUND_ID =  '59105~100' and gl_date like '%2023-05-%'
+select settled_doc_amount,gl_date from DEV_EDW.EDW_OMNI.w_claims_f where FUND_ID =  '59105~100' and gl_date like '%2023-05-%'
+
+
+
+Select 
+  SUM(PAID_AMOUNT),
+  SUM(ADJUSTMENT_AMOUNT),
+  SUM(ACCRUAL_AMOUNT),
+  SUM(ENDING_ACCRUAL),
+  SUM(BEGINNING_ACCRUAL) FROM test_EDW.EDW_OMNI.w_trade_balances_f  Where ent_period_start_date like '%2023-05-%' and FUND_ID =  '59105~100';    
+
+
+select fund_id from DEV_EDW.EDW_OMNI.w_trade_balances_f  Where ent_period_start_date like '%2023-06-%'  loimti 
+
+ with
+    w_trade_funds_f as (select * from dev_edw.edw_omni.w_trade_funds_f),
+        w_day_d as (select * from dev_edw.edw_omni.w_day_d)
+
+
+ select fun.adjusted_on_date, fun.gl_posted_flag,fund_id,
+              sum(
+                case
+                    when
+                        fun.utilization_type = 'ACCRUAL'
+                        and fun.gl_posted_flag = 'Y'
+                        and fun.gl_date is not null
+                    then accrual_loc_amount
+                end
+            ) accrual_amount
+
+            from w_trade_funds_f fun  
+       inner join
+            w_day_d dayd
+            on nvl(fun.gl_date, fun.adjusted_on_date) = dayd.calendar_date
+            and (fun.utilization_type in ('ACCRUAL', 'ADJUSTMENT'))
+                        and (dayd.calendar_date is not null) 
+
+        
+           and FUND_ID = '59105~100'
+
+            group by fun.adjusted_on_date, fun.gl_posted_flag,fund_id,fun.utilization_type,fun.gl_date
+            select gl_date from dev_edw.edw_omni.w_trade_funds_f where gl_date is null
+
+select fund_id from  "DEV_DISCOVER"."FINANCIALS"."STG__CLAIMS" where fund_id  like '~100%'
+select fund_id from  DEV_EDW.EDW_OMNI.w_trade_funds_f
+
+  select fund_id,sum(beginning_accrual),sum(ending_accrual),ent_period_start_date
+  from DEV_EDW.EDW_OMNI.w_trade_balances_f where fund_id = '53119~100' group by fund_id, ent_period_start_date order by ent_period_start_date
+
+----------test query
+with query as (select (fnd.integration_id||'~100') as fund_id, dd.MCAL_period_start_dt as period_start_date, 
+sum(beginning_accrual) bi11g_start_accrual, 
+sum(ending_accrual) bi11g_end_accrual,
+count(*) as b11g_count, 
+sum(0) omni_start_accrual, 
+sum(0) omni_end_accrual, 0 as omni_count 
+from "DEV_EDW"."BI11G_DW"."WC_TRADE_BALANCES_F" fct, "DEV_EDW"."BI11G_DW"."WC_FUND_D" fnd, "DEV_EDW"."BI11G_DW"."W_MCAL_PERIOD_D" dd 
+ where fct.fund_wid = fnd.row_id and fct.period_wid = dd.row_wid 
+--and fnd.integration_id in ('42754')
+ AND DD.MCAL_period_start_dt between  '2020-05-01' and '2021-05-01' group by 1, 2
+union all
+select fund_id, ent_period_start_date, 0, 0, 0, 
+sum(beginning_accrual), 
+sum(ending_accrual), 
+count(*) cnt from DEV_EDW.EDW_OMNI.w_trade_balances_f where 1 = 1
+--and fund_id in ('42754~100
+ and ent_period_start_date between  '2020-05-01' and '2021-05-01' group by 1, 2)
+ select * from query
+
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_TRADE_BALANCES_F" where fund_id = ''
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_TRADE_BALANCES_F" WHERE fund_id ='48736~100' and  ent_period_start_date =  '2017-04-01'
+select * from dev_discover.FINANCIALS.stg_oracle__trade_funds_utilizations where fund_id = '51770'
+
+-- 51770
+-- 15626
+-- 48736 (7 dates)
+select * from "DEV_EDW"."BI11G_DW"."WC_TRADE_BALANCES_F" where fund_wid = '490494' order by period_wid
+
+select * from "DEV_EDW"."BI11G_DW"."WC_TRADE_FUNDS_F" where fund_wid = '490494' order by period_wid
+
+
+
+
+
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_TRADE_BALANCES_F" WHERE fund_id ='48736~100' and  ent_period_start_date =  '2017-04-01'
+SELECT A.FUND_ID  || '~'|| A._source_id as a_fund_id FROM  "DEV_DISCOVER"."FINANCIALS"."STG__TRADE_FUNDS" A,  "DEV_EDW"."EDW_OMNI"."WC_FUND_D" B
+WHERE a_fund_id = B.INTEGRATION_ID AND A.FUND_IS NULL LECT UTILIZATION_TYPE IN 
+
+SELECT *  FROM  "DEV_DISCOVER"."FINANCIALS"."STG__CLAIMS"  where cust_account_id is null
+DROP VIEW "DEV_DISCOVER"."FINANCIALS"."STG__CLAIMS" 
+SELECT FUND_ID FROM "DEV_EDW"."EDW_OMNI"."W_FUND_D"  WHERE FUND_ID IS NOT  NULL
+SELECT A.FUND_ID FROM  "DEV_DISCOVER"."FINANCIALS"."STG__CLAIMS"A where a.
+SELECT A.FUND_ID FROM  "DEV_DISCOVER"."FINANCIALS"."STG__CLAIMS"A , "DEV_EDW"."EDW_OMNI"."WC_FUND_D" B WHERE A.FUND_ID = B.INTEGRATION_ID LIMIT 10
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."WC_FUND_D" WHERE ORG_ID = '81'
+SELECT fund_id FROM "DEV_EDW"."EDW_OMNI"."W_TRADE_BALANCES_F"  where integration_id is not null
+
+SELECT COUNT(*) FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__TRADE_FUNDS_FS"
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."TRADE_BALANCES_F"
+
+SELECT _BATCH_UPDATE_DATE FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__FUNDS_UTILIZED_ALL_B" WHERE FUND_ID ='15586' AND CUST_ACCOUNT_ID = '4672'
+UPDATE "DEV_ODS"."ORACLE_FINANCIALS"."OZF_FUNDS_UTILIZED_ALL_B" SET _BATCH_UPDATE_DATE = '2022-01-01 00:00:00.000' WHERE  FUND_ID ='15586' AND CUST_ACCOUNT_ID = '4672'
+UPDATE "DEV_ODS"."ORACLE_FINANCIALS"."OZF_FUNDS_UTILIZED_ALL_B" SET _BATCH_UPDATE_DATE = CURRENT_TIMESTAMP() WHERE  FUND_ID ='15586' AND CUST_ACCOUNT_ID = '4672'
+
+SELECT * FROM "DEV_ODS"."ORACLE_FINANCIALS"."OZF_FUNDS_ALL_B" WHERE FUND_ID ='15586'
+SELECT * FROM "DEV_ODS"."ORACLE_FINANCIALS"."OZF_CLAIMS_ALL" WHERE CUST_ACCOUNT_ID
+IN (SELECT CUST_ACCOUNT_ID FROM  "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__WC_CLAIMS" WHERE CUST_ACCOUNT_ID  ='4672~100')
+
+
+select * from "DEV_ODS"."ORACLE_MASTER_DATA"."MTL_UOM_CONVERSIONS"
+
+
+DESC TABLE 
+
+SELECT DISTINCT(sr_organization_id)
+          FROM "DEV_ODS"."ORACLE_SCP"."MSD_DP_SCN_ENTRIES_DENORM"
+          WHERE start_time >=(CURRENT_DATE()-365)
+          AND BUCKET_TYPE   =2
+
+select
+    integration_id as unique_field,
+    count(*) as n_records
+
+from dev_edw.edw_omni.w_sales_forecast_f
+where integration_id is not null
+group by integration_id
+having count(*) > 1
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."TRADE_BALANCES_F" WHERE  INTEGRATION_ID = '3373~100~50713~100~81~100~1~100~100'
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."WC_TRADE_BALANCES_F" WHERE  INTEGRATION_ID = '4851~100~53298~100~81~100~1~100~100'
+SELECT * FROM "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__WC_CLAIMS"  where gl_date  >= dateadd('year', -3 , date_trunc('year', current_date()))
+desc view "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__WC_CLAIMS"
+select count(*) from  "DEV_EDW"."EDW_OMNI"."WC_CLAIMS_F"
+SELECT integration_id FROM "DEV_EDW"."BI11G_DW"."WC_SALES_DEMAND_F"  --~663~1560570~Forecast~720221117000~EMEA
+select integration_id from "DEV_EDW"."EDW_OMNI"."W_SALES_DEMAND_F"
+SELECT DEMAND_TYPE,INVENTORY_ITEM_ID,W_UPDATE_DT,DEMAND_QTY,DEMAND_CLASS FROM "DEV_DISCOVER"."SUPPLY_CHAIN"."STG_ORACLE__WC_SALES_DEMAND_F" 
+DESC VIEW "DEV_DISCOVER"."SUPPLY_CHAIN"."STG_ORACLE__WC_SALES_DEMAND_F" 
+
+SELECT SYSTEM$CANCEL_QUERY('01ae0381-0404-aebf-000b-ab871f294c56')
+
+select
+    integration_id as unique_field,
+    count(*) as n_records
+
+from dev_edw.edw_omni.w_trade_balances_f
+where integration_id is not null
+group by integration_id
+having count(*) > 1
+
+
+Select sum(ADJUSTMENT_AMOUNT),sum(PAID_AMOUNT),SUM(BEGINNING_ACCRUAL) from prod_edw.bi11g_dw.wc_trade_balances_f where FUND_WID='1290778' and PERIOD_WID='120230331000';
+SELECT  sum(ADJUSTMENT_AMOUNT),sum(PAID_AMOUNT),SUM(BEGINNING_ACCRUAL) from dev_EDW.EDW_OMNI.w_trade_balances_f WHERE  ENT_PERIOD_END_DATE='2023-03-31' and FUND_ID='61027~100';
+
+
+Select sum(ADJUSTMENT_AMOUNT),sum(PAID_AMOUNT),SUM(BEGINNING_ACCRUAL) from prod_edw.bi11g_dw.wc_trade_balances_f where FUND_WID='3410379' and PERIOD_WID='120230331000';
+SELECT  sum(ADJUSTMENT_AMOUNT),sum(PAID_AMOUNT),SUM(BEGINNING_ACCRUAL) from dev_EDW.EDW_OMNI.w_trade_balances_f WHERE  ENT_PERIOD_END_DATE='2023-03-31' and FUND_ID='45142~100'
+--'61027~100';
+select * from prod_edw.bi11g_dw.wc_trade_balances_f where FUND_WID='3410379'
+
+SELECT * FROM prod_edw.bi11g_dw.wc_trade_balances_f WHERE FUND_WID = '2999765'
+SELECT A.CUSTOMER_ACCT_WID,A.X_TERR_WID,SUM(A.BEGINNING_ACCRUAL),B.TERR_ID,B.INTEGRATION_ID FROM prod_edw.bi11g_dw.wc_trade_balances_f A left join  prod_edw.bi11g_dw.W_TERR_D B  
+WHERE  1=1
+AND A.FUND_WID=503140 
+AND A.PERIOD_WID=120230331000
+AND A.X_TERR_WID=B.ROW_WID
+GROUP BY A.CUSTOMER_ACCT_WID,A.X_TERR_WID,
+B.TERR_ID,B.INTEGRATION_ID;
+
+SELECT * FROM  "DEV_EDW"."EDW_OMNI"."W_TERRITORY_D"
+ SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_TRADE_BALANCES_F"
+ 
+select * from dev_edw.edw_omni.w_territory_id
+SELECT A.CUSTOMER_ACCOUNT_ID,B.TERRITORY_ID,SUM(A.BEGINNING_ACCRUAL),B.TERRITORY_ID,B.INTEGRATION_ID FROM  "DEV_EDW"."EDW_OMNI"."W_TRADE_BALANCES_F" A left join   "DEV_EDW"."EDW_OMNI"."W_TERRITORY_D" B  
+WHERE  1=1
+AND A.FUND_WID=503140 
+AND A.PERIOD_WID=120230331000
+AND A.X_TERR_WID=B.ROW_WID
+GROUP BY A.CUSTOMER_ACCT_WID,A.X_TERR_WID,
+B.TERR_ID,B.INTEGRATION_ID;
+
+
+  Select CUSTOMER_ACCOUNT_ID,SUM(BEGINNING_ACCRUAL) from EDW.EDW_OMNI.w_trade_balances_f 
+      where ENT_PERIOD_END_DATE='2023-03-31' and FUND_ID='45142~100'
+      group by CUSTOMER_ACCOUNT_ID ORDER BY CUSTOMER_ACCOUNT_ID
+      
+        Select CUSTOMER_ACCOUNT_ID,TERRITORY_ID,SUM(BEGINNING_ACCRUAL) from DEV_EDW.EDW_OMNI.w_trade_balances_f 
+      where ENT_PERIOD_END_DATE='2023-03-31' and FUND_ID='45142~100'
+      group by CUSTOMER_ACCOUNT_ID,TERRITORY_ID ORDER  BY CUSTOMER_ACCOUNT_ID,TERRITORY_ID
+
+Select * from dev_EDW.EDW_OMNI.w_trade_balances_f where ENT_PERIOD_END_DATE='2023-03-31' and FUND_ID='61027~100';
+Select * from dev_EDW.EDW_OMNI.w_trade_balances_f where ENT_PERIOD_END_DATE='2023-03-31' and FUND_ID='45142~100';
+
+
+SELECT A.CUSTOMER_ACCT_WID,SUM(A.BEGINNING_ACCRUAL) FROM PROD_EDW.BI11G_DW.WC_TRADE_BALANCES_F A  
+WHERE  1=1
+AND A.FUND_WID=503140 
+AND A.PERIOD_WID=120230331000
+--AND A.X_TERR_WID=B.ROW_WID
+GROUP BY A.CUSTOMER_ACCT_WID
+
+Select distinct territory_id from dev_EDW.EDW_OMNI.w_trade_balances_f 
+
+Select plan_id,fund_id from EDW.EDW_OMNI.W_FUND_D where PLAN_ID='2999765~100';
+Select plan_id,fund_id from dev_EDW.EDW_OMNI.W_FUND_D where fund_ID='45142~100';
+Select *from prod_edw.bi11g_dw.wc_fund_d where row_id ='503140';
+45142
+
+Select *from dev_EDW.EDW_OMNI.W_FUND_D where PLAN_ID='4681478~100';
+
+desc table dev_EDW.EDW_OMNI.W_FUND_D\
+
+SELECT A.CUSTOMER_ACCT_WID,SUM(A.BEGINNING_ACCRUAL) FROM EDW.EDW_OMNI.WC_TRADE_BALANCES_F A  
+WHERE  1=1
+AND A.FUND_WID=503140 
+AND A.PERIOD_WID=120230331000
+--AND A.X_TERR_WID=B.ROW_WID
+GROUP BY A.CUSTOMER_ACCT_WID
+
+  Select CUSTOMER_ACCOUNT_ID,SUM(BEGINNING_ACCRUAL) from EDW.EDW_OMNI.w_trade_balances_f 
+      where ENT_PERIOD_END_DATE='2023-03-31' and FUND_ID='45142~100'
+      group by CUSTOMER_ACCOUNT_ID
+
+Select 
+  SUM(T507647.PAID_AMOUNT),
+  SUM(T507647.ADJUSTMENT_AMOUNT),
+  SUM(T507647.ACCRUAL_AMOUNT),
+  SUM(T507647.ENDING_ACCRUAL),
+  SUM(T507647.BEGINNING_ACCRUAL) FROM  PROD_EDW.BI11G_DW.WC_TRADE_BALANCES_F T507647 Where PERIOD_WID = '120230331000' and FUND_WID =  '1290778'; 
+  
+  select * from PROD_EDW.BI11G_DW.WC_TRADE_BALANCES_F where  FUND_WID =  '1290778' and PERIOD_WID = '120230331000'
+
+select UNPOSTED_ACCRUALS,sum(BEGINNING_ACCRUAL),sum(ENDING_ACCRUAL) from DEV_EDW.EDW_OMNI.w_trade_balances_f where  FUND_ID =  '59105~100'  group by UNPOSTED_ACCRUALS
+select UNPOSTED_ACCRUALS,sum(BEGINNING_ACCRUAL),sum(ENDING_ACCRUAL) from PROD_EDW.BI11G_DW.WC_TRADE_BALANCES_F where  FUND_WID =  '1230790' group by UNPOSTED_ACCRUALS
+select settled_doc_amount,gl_date from DEV_EDW.EDW_OMNI.w_claims_f where FUND_ID =  '59105~100' and gl_date like '%2023-05-%'
+select settled_doc_amount,gl_date from DEV_EDW.EDW_OMNI.w_claims_f where FUND_ID =  '59105~100' and gl_date like '%2023-05-%'
+
+desc table DEV_EDW.EDW_OMNI.w_claims_f
+
+Select 
+  SUM(PAID_AMOUNT),
+  SUM(ADJUSTMENT_AMOUNT),
+  SUM(ACCRUAL_AMOUNT),
+  SUM(ENDING_ACCRUAL),
+  SUM(BEGINNING_ACCRUAL) FROM DEV_EDW.EDW_OMNI.w_trade_balances_f  Where ent_period_end_date like '%2023-03-31%' and FUND_ID =  '61027~100'
+  --'61027~100';    
+  
+  Select 
+  SUM(PAID_AMOUNT),
+  SUM(ADJUSTMENT_AMOUNT),
+  SUM(ACCRUAL_AMOUNT),
+  SUM(ENDING_ACCRUAL),
+  SUM(BEGINNING_ACCRUAL) FROM DEV_EDW.EDW_OMNI.w_trade_balances_f  Where ent_period_end_date like '%2023-03-31%' and FUND_ID =  '61027~100' group by ent_period_end_date
+
+
+select ROW_ID,INTEGRATION_ID,LEDGER_ID,FUND_ID from  "DEV_EDW"."BI11G_DW"."WC_FUND_D"  where integration_id = '61027'
