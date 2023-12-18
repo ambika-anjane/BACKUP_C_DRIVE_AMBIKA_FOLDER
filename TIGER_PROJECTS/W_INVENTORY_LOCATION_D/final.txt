@@ -1,0 +1,89 @@
+with
+    mtl_invent as (select * from {{ ref("stg_oracle__mtl_secondary_inventories") }}), 
+    hr_loc as (select * from {{ ref("stg_oracle__organization_locations") }}),
+    hr_org as (select * from {{ ref("stg_oracle__organization_units") }}),
+    mtl_param as (select * from {{ ref("stg_oracle__org_parameters") }}),
+    mtl_item_loc as (select * from {{ ref("stg_oracle__mtl_item_locations") }}),
+
+    
+
+final as(
+    select 
+        INVENTORY_LOC.style ADDRESS_TYPE_CODE,
+        concat(mtl_item_loc.segment1)
+        ||
+        (mtl_item_loc.segment2)
+        ||
+        (mtl_item_loc.segment3)
+        ||
+        (mtl_item_loc.segment4)
+        ||
+        (mtl_item_loc.segment5) BUSN_LOC_NUM,
+        mtl_item_loc.subinventory_code SUBINVENTORY_CODE,
+        concat(mtl_invent.organization_id)
+        ||
+        (mtl_item_loc._source_id)ORGANIZATION_ID,
+        mtl_param.ORGANIZATION_CODE ORGANIZATION_CODE,
+        mtl_invent.subinventory_type  SUBINVENTORY_TYPE_CODE,
+        mtl_item_loc.INVENTORY_LOCATION_ID LOCATOR_ID,
+        mtl_item_loc.INVENTORY_LOCATION_TYPE LOCATOR_TYPE_CODE,
+        CASE WHEN mtl_item_loc.DISABLE_DATE IS NULL THEN 'Y'
+        ELSE 'N'
+        END  ACTIVE_FLG,
+        mtl_item_loc.created_by_id CREATED_BY_ID,
+        CASE WHEN INVENTORY_LOC.LAST_UPDATE_DATE IS NULL OR mtl_item_loc.LAST_UPDATE_DATE > INVENTORY_LOC.LAST_UPDATE_DATE THEN TO_CHAR(mtl_item_loc.last_updated_by_id)
+        ELSE TO_CHAR(INVENTORY_LOC.last_updated_by_id)
+        END CHANGED_BY_ID,
+        mtl_invent.creation_date   CREATED_ON_DT,
+        CASE WHEN INVENTORY_LOC.LAST_UPDATE_DATE IS NULL OR mtl_item_loc.LAST_UPDATE_DATE > INVENTORY_LOC.LAST_UPDATE_DATE THEN mtl_item_loc.LAST_UPDATE_DATE
+        else INVENTORY_LOC.LAST_UPDATE_DATE
+        END CHANGED_ON_DT,
+        INVENTORY_LOC.LAST_UPDATE_DATE     AUX1_CHANGED_ON_DT,
+        mtl_invent.LAST_UPDATE_DATE     AUX2_CHANGED_ON_DT,
+       'N' DELETE_FLG,
+        concat((mtl_invent.ORGANIZATION_ID)
+        ||'~'||
+        (mtl_item_loc.subinventory_code)
+        ||'~'||
+        (mtl_item_loc.inventory_location_id)
+        ||(mtl_invent._source_id))INTEGRATION_ID,
+        INVENTORY_LOC.TELEPHONE_NUMBER_1    TELEPHONE_NUMBER_1,
+        INVENTORY_LOC.TELEPHONE_NUMBER_2    TELEPHONE_NUMBER_2,
+        INVENTORY_LOC.TELEPHONE_NUMBER_3    TELEPHONE_NUMBER_3,
+        INVENTORY_LOC.country_code      REGION_1,
+        INVENTORY_LOC.REGION_2      REGION_2,
+        INVENTORY_LOC.REGION_3      REGION_3,
+        INVENTORY_LOC.st_address1  ADDRESS_LINE_1,
+        INVENTORY_LOC.st_address2   ADDRESS_LINE_2,
+        INVENTORY_LOC.st_address3       ADDRESS_LINE_3,
+        INVENTORY_LOC.city_code     TOWN_OR_CITY,
+        INVENTORY_LOC.POSTAL_CODE POSTAL_CODE,
+        INVENTORY_LOC.COUNTRY_CODE      COUNTRY,
+        mtl_item_loc._source_id datasource_num_id,
+        $batch_start_time  w_insert_dt,
+        $batch_start_time  w_update_dt,
+        mtl_item_loc.inventory_location_id inventory_location_id,
+        {{env_var('DBT_ETL_PROC_ID')}} etl_proc_id
+  from mtl_item_loc 
+  LEFT OUTER JOIN mtl_invent ON mtl_item_loc.organization_id=mtl_invent.organization_id
+  AND mtl_item_loc.subinventory_code = mtl_invent.secondary_inventory_name
+  LEFT OUTER JOIN hr_org ON mtl_invent.organization_id=hr_org.organization_id
+  LEFT OUTER JOIN mtl_param ON hr_org.organization_id = mtl_param.organization_id
+  LEFT OUTER JOIN hr_loc INVENTORY_LOC ON mtl_invent.location_id= INVENTORY_LOC.location_id 
+  LEFT OUTER JOIN hr_loc PLANT_LOC ON hr_org.location_id= PLANT_LOC.location_id
+  where 
+    (1=1)
+    {% if is_incremental() %}
+    and
+    (
+      mtl_item_loc.last_update_date > $batch_start_time and mtl_item_loc.last_update_date < $batch_end_time
+      OR
+      mtl_invent.last_update_date >  $batch_start_time and mtl_invent.last_update_date < $batch_end_time
+      or
+      INVENTORY_LOC.LAST_UPDATE_DATE >  $batch_start_time and INVENTORY_LOC.LAST_UPDATE_DATE < $batch_end_time
+      OR
+      PLANT_LOC.LAST_UPDATE_DATE >  $batch_start_time and PLANT_LOC.LAST_UPDATE_DATE < $batch_end_time)
+    {% endif %}
+   )
+select * from final
+

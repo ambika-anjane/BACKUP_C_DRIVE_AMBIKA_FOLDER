@@ -1,0 +1,62 @@
+with source as (
+
+    select * from {{ source('oracle_master_data', 'mtl_parameters') }}
+
+),
+
+renamed as (
+
+    select
+        organization_id,
+        last_update_date,
+        last_updated_by,
+        creation_date,
+        created_by,
+        last_update_login,
+        organization_code,
+        master_organization_id,
+        primary_cost_method,
+        cost_organization_id,
+        default_material_cost_id,
+        calendar_exception_set_id,
+        calendar_code,
+        general_ledger_update_code,
+        default_atp_rule_id,
+        default_picking_rule_id,
+        default_locator_order_value,
+        default_subinv_order_value,
+        negative_inv_receipt_code,
+        stock_locator_control_code,
+        material_account,
+        material_overhead_account,
+        matl_ovhd_absorption_acct,
+        resource_account,
+        purchase_price_var_account,
+        ap_accrual_account,
+        overhead_account,
+        outside_processing_account,
+        cost_of_sales_account,
+        encumbrance_account,
+        source_organization_id,
+        source_subinventory,
+        source_type,
+        wms_enabled_flag,
+        timezone_id,
+        max_picks_batch,
+        crossdock_flag,
+        cartonization_flag,
+        cost_cutoff_date,
+        enable_costing_by_category,
+        cost_group_accounting,
+        opsm_enabled_flag,
+        _batch_run_id,
+        _batch_insert_date,
+        _batch_update_date,
+        _source_id
+
+    from source
+
+)
+
+select * from renamed
+

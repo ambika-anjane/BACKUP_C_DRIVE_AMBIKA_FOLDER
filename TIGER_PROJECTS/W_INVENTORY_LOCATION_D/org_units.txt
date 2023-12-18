@@ -1,0 +1,37 @@
+with source as (
+
+    select * from {{ source('oracle_master_data', 'hr_all_organization_units') }}
+
+),
+
+renamed as (
+
+    select
+        organization_id,
+        business_group_id,
+        cost_allocation_keyflex_id,
+        location_id,
+        soft_coding_keyflex_id,
+        date_from,
+        name organization_name,
+        comments,
+        date_to,
+        internal_external_flag,
+        internal_address_line,
+        type organization_type,
+        last_update_date,
+        last_updated_by changed_by_id,
+        last_update_login,
+        created_by created_by_id,
+        creation_date created_on_date,
+        _batch_run_id,
+        _batch_insert_date,
+        _batch_update_date,
+        _source_id
+
+    from source
+
+)
+
+select * from renamed
+

@@ -1,0 +1,111 @@
+
+
+
+with
+    mtl_invent as (select * from {{ ref("stg_oracle__mtl_secondary_inventories") }}), 
+    hr_loc as (select * from {{ ref("stg_oracle__organization_locations") }}),
+    hr_org as (select * from {{ ref("stg_oracle__organization_units") }}),
+    mtl_param as (select * from {{ ref("stg_oracle__org_parameters") }}
+),
+
+
+final as(
+    select 
+    INVENTORY_LOC.style ADDRESS_TYPE_CODE,
+    mtl_invent.SECONDARY_INVENTORY_NAME BUSN_LOC_NUM,
+    mtl_invent.SECONDARY_INVENTORY_NAME PARENT_LOC_NUM,
+    mtl_invent.ORGANIZATION_ID ORGANIZATION_ID, 
+    mtl_param.ORGANIZATION_CODE ORGANIZATION_CODE,
+    'STORAGE_LOC~'||TO_CHAR(mtl_invent.ORGANIZATION_ID)||'~~' ORG_LVL_INT_ID,
+    COALESCE(TO_CHAR(mtl_invent.subinventory_type),'__UNASSIGNED__')	   SUBINVENTORY_TYPE_CODE,
+    'STORAGE_LOC~'||TO_CHAR(mtl_invent.ORGANIZATION_ID)||'~'||mtl_invent.SECONDARY_INVENTORY_NAME||'~'	   SUBINV_LVL_INT_ID,
+     null	   C9_LOCATOR_ID,
+	 null	   C10_LOCATOR_TYPE_CODE,
+    CASE WHEN mtl_invent.DISABLE_DATE IS NULL THEN 'Y'
+    ELSE 'N'
+    END	   ACTIVE_FLG,
+    mtl_invent.CREATED_BY CREATED_BY_ID,
+    CASE WHEN INVENTORY_LOC.LAST_UPDATE_DATE IS NULL OR mtl_invent.last_update_date>INVENTORY_LOC.LAST_UPDATE_DATE THEN TO_CHAR(mtl_invent.LAST_UPDATED_BY)
+    ELSE TO_CHAR(INVENTORY_LOC.LAST_UPDATED_BY)
+   END CHANGED_BY_ID,
+   mtl_invent.CREATION_DATE	   CREATED_ON_DT,
+   CASE WHEN INVENTORY_LOC.LAST_UPDATE_DATE IS NULL OR mtl_invent.last_update_date>INVENTORY_LOC.LAST_UPDATE_DATE THEN mtl_invent.last_update_date
+   END	CHANGED_ON_DT,
+   INVENTORY_LOC.LAST_UPDATE_DATE	   AUX1_CHANGED_ON_DT,
+   'N' DELETE_FLG,
+   'STORAGE_LOC~'||TO_CHAR(mtl_invent.ORGANIZATION_ID)||'~'||mtl_invent.SECONDARY_INVENTORY_NAME||'~'	   C18_INTEGRATION_ID,
+   INVENTORY_LOC.TELEPHONE_NUMBER_1	   TELEPHONE_NUMBER_1,
+   INVENTORY_LOC.TELEPHONE_NUMBER_2	   TELEPHONE_NUMBER_2,
+   INVENTORY_LOC.TELEPHONE_NUMBER_3	   TELEPHONE_NUMBER_3,
+   INVENTORY_LOC.country_code	   REGION_1,
+   INVENTORY_LOC.REGION_2	   REGION_2,
+   INVENTORY_LOC.st_address1	   ADDRESS_LINE_1,
+   INVENTORY_LOC.st_address2   ADDRESS_LINE_2,
+   INVENTORY_LOC.st_address3	   ADDRESS_LINE_3,
+   INVENTORY_LOC.city_code	   TOWN_OR_CITY,
+   INVENTORY_LOC.POSTAL_CODE POSTAL_CODE,
+   INVENTORY_LOC.COUNTRY_CODE	   COUNTRY,
+   
+   CASE WHEN INVENTORY_LOC.LOCATION_ID IS NULL THEN ADDRESS_LINE_1
+   else ADDRESS_LINE_1 
+   END ADDRESS_LINE_1 ,
+    
+    CASE WHEN INVENTORY_LOC.LOCATION_ID IS NULL THEN address_line_2
+        else address_line_2
+        END address_line_2,
+    
+        CASE WHEN INVENTORY_LOC.LOCATION_ID IS NULL THEN address_line_3
+        else address_line_3
+        END address_line_3,
+
+       CASE WHEN INVENTORY_LOC.LOCATION_ID IS NULL THEN town_or_city
+       ELSE town_or_city
+       END town_or_city,
+
+       CASE WHEN INVENTORY_LOC.LOCATION_ID IS NULL THEN country
+       ELSE country
+       END country,
+
+          CASE WHEN INVENTORY_LOC.LOCATION_ID IS NULL THEN REGION_2
+       ELSE REGION_2
+       END REGION_2,
+
+
+      CASE WHEN INVENTORY_LOC.LOCATION_ID IS NULL THEN REGION_3
+       ELSE REGION_3
+       END REGION_3,
+
+       CASE WHEN INVENTORY_LOC.LOCATION_ID IS NULL THEN TELEPHONE_NUMBER_1
+       ELSE TELEPHONE_NUMBER_1
+       END TELEPHONE_NUMBER_1,
+        
+       CASE WHEN INVENTORY_LOC.LOCATION_ID IS NULL THEN TELEPHONE_NUMBER_2
+       ELSE TELEPHONE_NUMBER_2
+       END TELEPHONE_NUMBER_2,
+
+       CASE WHEN INVENTORY_LOC.LOCATION_ID IS NULL THEN TELEPHONE_NUMBER_3
+       ELSE TELEPHONE_NUMBER_3
+       END TELEPHONE_NUMBER_3
+    
+
+
+
+
+
+        
+from	mtl_invent     INNER JOIN hr_org     
+ON mtl_invent.ORGANIZATION_ID= hr_org.ORGANIZATION_ID
+LEFT OUTER JOIN hr_loc INVENTORY_LOC ON mtl_invent.LOCATION_ID = INVENTORY_LOC.LOCATION_ID 
+INNER JOIN mtl_param 
+ON hr_org.ORGANIZATION_ID = mtl_param.ORGANIZATION_ID 
+LEFT OUTER JOIN hr_loc    PLANT_LOC ON hr_org.LOCATION_ID=PLANT_LOC.LOCATION_ID
+where(1=1)
+{% if is_incremental() %}
+and 
+
+    mtl_invent.LAST_UPDATE_DATE>  $batch_start_time and location.last_update_date <= $batch_end_time
+)
+{% endif %}
+)
+select * from final
+

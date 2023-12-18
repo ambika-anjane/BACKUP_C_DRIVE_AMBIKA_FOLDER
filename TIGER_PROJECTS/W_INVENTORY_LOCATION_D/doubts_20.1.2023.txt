@@ -1,0 +1,11 @@
+ROAD BLOCKS:
+
+1. Have done few conditional checking in staging  and i am not able make changes in my staging table
+because of insufficient privileges
+
+2. Can i create my own staging model
+
+3. Need to rename few columns in this
+
+4. need some clarification on final incremental dates
+

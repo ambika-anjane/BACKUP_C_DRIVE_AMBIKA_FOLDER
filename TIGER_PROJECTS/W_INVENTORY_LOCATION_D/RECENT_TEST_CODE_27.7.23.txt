@@ -1,0 +1,99 @@
+with
+    secondary_inventory as (select * from dev_discover.MASTER_DATA.stg_oracle__secondary_inventories),
+    org_location as (select * from dev_discover.MASTER_DATA.stg_oracle__organization_locations),
+    org_definition as (select * from dev_discover.MASTER_DATA.stg_oracle__organization_definitions),
+    org_units as (select * from dev_discover.MASTER_DATA.stg_oracle__organization_units),
+    item_location as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__item_locations),
+    org_profile as (select * from dev_discover.MASTER_DATA.stg_oracle__organization_information where org_information_context = 'Accounting Information')
+select
+    nvl(item_location.item_location_number,secondary_inventory.secondary_inventory_name) item_location_number,
+    nvl(item_location.item_location_description,secondary_inventory.description) item_location_description,
+    secondary_inventory.secondary_inventory_name subinventory_code,
+    secondary_inventory.description subinventory_description,
+    org_definition.organization_code,
+    'STORAGE_LOC' physical_location_type,
+    NVL(secondary_inventory.organization_id||'~'||secondary_inventory._source_id,'0') organization_id,
+    case
+        when subinventory_code = 'EPWHS'
+        then 'El Paso'
+        when subinventory_code in ('RHXO', 'CHXO')
+        then 'HLDC'
+        when subinventory_code in ('IHXO', 'MPKM') and item_location_number like 'ML%'
+        then 'Medline'
+        when
+            subinventory_code in ('MPKM', 'MPOB', 'QCOB', 'QCKM')
+            and item_location_number like 'MP%'
+        then 'Market Place'
+        when
+            subinventory_code in ('MPKM', '5BKM', 'QCOB', 'RVOB')
+            and (item_location_number like 'KP%' or item_location_number like 'H%')
+        then 'Five Below'
+        when organization_code in ('KMS', 'HOB')
+        then 'OBDC'
+        when organization_code in ('HFS', 'OXO')
+        then 'MSDC'
+        else organization_code
+    end building,
+    secondary_inventory.subinventory_type subinventory_type_code,
+    NVL(item_location.inventory_location_id||'~'||item_location._source_id,'0') locator_id,
+    item_location.inventory_location_type locator_type_code,
+    secondary_inventory.Availability_type,
+    secondary_inventory.reservable_type,
+    item_location.active_flag,
+    NVL(item_location.created_by_id||'~'||item_location._source_id,'0') created_by_id,
+    nvl(case
+        when
+            org_location.last_update_date is null
+            or item_location.last_update_date > org_location.last_update_date
+        then to_char(item_location.last_updated_by_id)
+        else to_char(org_location.last_updated_by_id)
+    end ||'~'||secondary_inventory._source_id,'0')changed_by_id,
+    secondary_inventory.creation_date created_on_date,
+    case
+        when
+            org_location.last_update_date is null
+            or item_location.last_update_date > org_location.last_update_date
+        then item_location.last_update_date
+        else org_location.last_update_date
+    end changed_on_date,
+    org_location.last_update_date aux1_changed_on_date,
+    secondary_inventory.last_update_date aux2_changed_on_date,
+    org_location.telephone_number_1,
+    org_location.telephone_number_2,
+    org_location.telephone_number_3,
+    org_location.style address_type_code,
+    org_location.county_code,
+    org_location.state_province_code,
+    org_location.region_2,
+    org_location.region_3,
+    org_location.address_line_1,
+    org_location.address_line_2,
+    org_location.address_line_3,
+    org_location.city_code town_or_city,
+    org_location.postal_code postal_code,
+    org_location.country_code country,
+    'N' delete_flg,
+        'STORAGE_LOC'
+        ||'~'
+        ||coalesce(to_char(secondary_inventory.organization_id),'')
+        || '~'
+        ||coalesce(to_char(secondary_inventory.secondary_inventory_name),'')
+        || '~'
+        ||coalesce(to_char(item_location.inventory_location_id),'')
+        || '~'
+        ||coalesce(to_char(secondary_inventory._source_id),'') integration_id,
+    secondary_inventory._source_id datasource_num_id
+ 
+from item_location
+left join
+    secondary_inventory
+    on item_location.organization_id = secondary_inventory.organization_id
+    and item_location.subinventory_code = secondary_inventory.secondary_inventory_name
+    left  JOIN org_units     ON secondary_inventory.ORGANIZATION_ID=org_units.ORGANIZATION_ID 
+inner join org_definition on org_units.ORGANIZATION_ID = org_definition.organization_id
+left outer join
+    org_location org_location on secondary_inventory.location_id = org_location.location_id
+where
+   INTEGRATION_ID = 'STORAGE_LOC~238~INTO~0~100'
+    
+

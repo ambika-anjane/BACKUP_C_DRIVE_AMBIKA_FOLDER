@@ -1,0 +1,140 @@
+with source as (
+
+    select * from {{ source('oracle_master_data', 'hr_locations_all') }}
+
+),
+
+renamed as (
+
+    select
+        location_id,
+        location_code,
+        business_group_id,
+        description,
+        ship_to_location_id,
+        ship_to_site_flag,
+        receiving_site_flag,
+        bill_to_site_flag,
+        in_organization_flag,
+        office_site_flag,
+        designated_receiver_id,
+        inventory_organization_id,
+        tax_name,
+        inactive_date,
+        CASE WHEN location_id IS NULL THEN style
+        ELSE style
+        END style,
+      
+    
+        CASE WHEN location_id IS NULL THEN address_line_1
+        else address_line_1 
+        END address_line_1 ,
+        
+        CASE WHEN location_id IS NULL THEN address_line_2
+        else address_line_2
+        END address_line_2,
+    
+        CASE WHEN location_id IS NULL THEN address_line_3
+        else address_line_3
+        END address_line_3,
+
+       CASE WHEN location_id IS NULL THEN town_or_city
+       ELSE town_or_city
+       END town_or_city,
+
+       CASE WHEN location_id IS NULL THEN country
+       ELSE country
+       END country,
+
+       CASE WHEN location_id IS NULL THEN POSTAL_CODE
+       ELSE POSTAL_CODE
+       END POSTAL_CODE,
+
+       case when style = 'CA_GLB' then trim(REGION_1) else trim(REGION_2) end stat_prov_code,
+
+       CASE WHEN location_id IS NULL THEN REGION_1
+       ELSE REGION_1
+       END REGION_1,
+
+       CASE WHEN location_id IS NULL THEN REGION_2
+       ELSE REGION_2
+       END REGION_2,
+
+       CASE WHEN location_id IS NULL THEN REGION_3
+       ELSE REGION_3
+       END REGION_3,
+
+       CASE WHEN location_id IS NULL THEN TELEPHONE_NUMBER_1
+       ELSE TELEPHONE_NUMBER_1
+       END TELEPHONE_NUMBER_1,
+        
+       CASE WHEN location_id IS NULL THEN TELEPHONE_NUMBER_2
+       ELSE TELEPHONE_NUMBER_2
+       END TELEPHONE_NUMBER_2,
+
+       CASE WHEN location_id IS NULL THEN TELEPHONE_NUMBER_3
+       ELSE TELEPHONE_NUMBER_3
+       END TELEPHONE_NUMBER_3,
+     
+
+        loc_information13,
+        loc_information14,
+        loc_information15,
+        loc_information16,
+        loc_information17,
+        attribute_category,
+        attribute1,
+        attribute2,
+        attribute3,
+        attribute4,
+        attribute5,
+        attribute6,
+        attribute7,
+        attribute8,
+        attribute9,
+        attribute10,
+        attribute11,
+        attribute12,
+        attribute13,
+        attribute14,
+        attribute15,
+        attribute16,
+        attribute17,
+        attribute18,
+        attribute19,
+        attribute20,
+        CASE WHEN location_id IS NULL THEN last_update_date  
+        ELSE last_update_date 
+        END LOC_LAST_UPDATE_DATE,
+	    CASE WHEN location_id IS NULL THEN last_updated_by  
+        ELSE last_updated_by
+        END LOC_last_updated_by,
+       
+        
+        last_update_login,
+        created_by,
+        creation_date,
+        entered_by,
+        tp_header_id,
+        ece_tp_location_code,
+        object_version_number,
+        geometry,
+        loc_information18,
+        loc_information19,
+        loc_information20,
+        derived_locale,
+        legal_address_flag,
+        timezone_code,
+        _batch_run_id,
+        _batch_insert_date,
+        _batch_update_date,
+        _source_id
+        
+        
+
+    from source
+
+)
+
+select * from renamed
+
