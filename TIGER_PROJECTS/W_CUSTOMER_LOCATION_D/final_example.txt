@@ -1,0 +1,76 @@
+with
+    entity as (select * from {{ ref("stg_oracle__organization_units") }}), 
+    company as (select * from {{ ref("stg_oracle__gl_legal_entities") }}),
+    location as (select * from {{ ref("stg_oracle__organization_locations") }}),
+    ledger as (select * from {{ ref("stg_oracle__gl_ledgers") }}),
+    org_def as (select * from {{ ref("stg_oracle__organization_definitions") }}),
+    org_flag as (
+        select *
+        from
+            (
+                select organization_id, org_information1, org_information2
+                from {{ ref("stg_oracle__organization_information") }}
+                where
+                    org_information_context = 'CLASS'
+                    and org_information1 in ('INV', 'OPERATING_UNIT')
+                    and org_information2 = 'Y'
+            ) pivot (
+                max(org_information2) for org_information1 in ('INV', 'OPERATING_UNIT')
+            ) as p(organization_id, inv_org_flag, operating_unit_flag)
+    )
+
+
+select
+    entity.organization_id INTEGRATION_ID,
+    entity.organization_id ORGANIZATION_ID,
+    org_def.organization_code ORGANIZATION_CODE,
+    entity.organization_name ORGANIZATION_NAME,
+    entity.organization_type ORGANIZATION_TYPE,
+    org_def.operating_unit_id OPERATING_UNIT_ID,
+    operating_unit.organization_name OPERATING_UNIT_NAME,
+    org_def.legal_entity_id LEGAL_ENTITY_ID,
+    legal_entity.organization_name LEGAL_ENTITY_NAME,
+    org_def.set_of_books_id SET_OF_BOOKS_ID,
+    ledger.ledger_short_name LEDGER_NAME,
+    ledger.ledger_currency CURRENCY_CODE,
+    company.company_code COMPANY_CODE,
+    org_flag.inv_org_flag::varchar(1) INV_ORG_FLAG,
+    org_flag.operating_unit_flag::varchar(1) OPERATING_UNIT_FLAG,
+    entity.internal_external_flag INTERNAL_EXTERNAL_FLAG,
+    entity.last_update_date LAST_UPDATE_DATE,
+    entity.creation_date CREATION_DATE,
+    entity.created_by CREATED_BY_ID,
+    entity.last_updated_by CHANGED_BY_ID,
+    location.st_address1 ST_ADDRESS1,
+    location.city_code CITY_CODE,
+    location.st_address2 ST_ADDRESS2,
+    location.country_code COUNTRY_CODE,
+    location.stat_prov_code STATE_PROV_CODE,
+    location.county_code COUNTY_CODE,
+    location.postal_code POSTAL_CODE,
+	entity._source_id DATASOURCE_NUM_ID,
+    $batch_end_time W_INSERT_DT,
+    $batch_end_time W_UPDATE_DT,
+    'N' DELETE_FLG,
+    {{env_var('DBT_ETL_PROC_ID')}} ETL_PROC_ID
+from
+    org_def,
+    company,
+    entity,
+    entity legal_entity,
+	entity operating_unit,
+    ledger,
+    location, 
+    org_flag
+where
+    entity.location_id = location.location_id(+)
+    and org_def.legal_entity_id = company.legal_entity_id(+)
+    and org_def.organization_id(+) = entity.organization_id
+    and org_def.legal_entity_id = legal_entity.organization_id(+)
+    and org_def.operating_unit_id = operating_unit.organization_id(+)
+    and ledger.ledger_id(+) = org_def.set_of_books_id
+    and entity.organization_id = org_flag.organization_id(+)
+    {% if is_incremental() %}
+        and entity.LAST_UPDATE_DATE >= $batch_start_time AND  entity.LAST_UPDATE_DATE <= $batch_end_time
+    {% endif %}
+Footer

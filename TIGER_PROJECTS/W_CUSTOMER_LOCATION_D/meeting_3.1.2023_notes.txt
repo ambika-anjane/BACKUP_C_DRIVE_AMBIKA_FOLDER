@@ -1,0 +1,65 @@
+semantic layer (within reporting layer)
+multiple reporting layer 
+
+ite, cost, customer_group (maintaining scd's)
+
+surrogate keys
+
+snapshot
+
+not using sequence or generated keys (in dimensions)
+
+source system key ( will be using) source identifier has to be maintianed 
+source identifier (will be maintained in each of the table)
+
+
+example people having id : 101 
+surrogte key will change (if tomorrow one more person comes with 101) they will have diferenvt surrogare key
+
+
+dbt based jobs (rollback is tough) ..
+
+
+
+  select table_schema, 
+       table_name, 
+       created as create_date,
+       last_altered as modify_date
+from information_schema.tables 
+where table_type = 'BASE TABLE' and table_name in ('HZ_CUST_ACCOUNTS','T_EP_E1_CUST_CAT_2',' T_EP_LOB','T_EP_SITE')
+order by table_schema,
+        table_name
+
+
+SOURCE DEPENDENT EXTRACT (TARGET TABLE DEISGN IS SAME AS SOURCE)
+SOURCE TO STAGE (MERGE/SCD2/SNAPSHOT)
+THEN LOAD DATA INTO TARGET
+
+SDE WILL HAVE TRANFORMAION LOGIC
+
+INTEGRATION ID IS TH UNIQUE KEY
+
+FETCH LATEST PROFILE FOR CUSTOMER
+
+FTECH ACTIVE PROFILE FOR BUSINESS 
+
+THE ABOVE TWO COMES UNER INTERMDEIATE LOGIC
+
+WHERE when case statements that cant be used in load we can keep it in stage
+
+no need to test for al the cols in staging
+as well in dimensions
+
+fact tcblw columns can undergo test 
+
+explained about start time and end time of a model (macro)
+log getting created everytime the models are created 
+
+in the pull request job (what are th commands we need)
+job will be merging it (it is going to perform test what we need)
+
+LOGIC IS WITHIN SDE QUERY
+
+SIL QUERY
+
+
