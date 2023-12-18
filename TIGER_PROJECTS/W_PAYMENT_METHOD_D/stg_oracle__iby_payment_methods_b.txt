@@ -1,0 +1,61 @@
+with source as (
+select * from {{ source('oracle_financials','iby_payment_methods_b') }}
+),
+
+
+renamed as (
+
+    select
+    payment_method_code,
+    created_by,
+    creation_date,
+    last_updated_by,
+    last_update_date,
+    last_update_login,
+    object_version_number,
+    seeded_flag,
+    bank_charge_bearer_apl_flag,
+    payment_reason_apl_flag,
+    payment_reason_comnt_apl_flag,
+    remittance_message1_apl_flag,
+    remittance_message2_apl_flag,
+    remittance_message3_apl_flag,
+    unique_remittance_id_apl_flag,
+    uri_check_digit_apl_flag,
+    delivery_channel_apl_flag,
+    payment_format_apl_flag,
+    settlement_priority_apl_flag,
+    exclusive_pmt_apl_flag,
+    external_bank_acct_apl_flag,
+    support_bills_payable_flag,
+    document_category_code,
+    maturity_date_offset_days,
+    inactive_date,
+    anticipated_float,
+    attribute_category,
+    attribute1,
+    attribute2,
+    attribute3,
+    attribute4,
+    attribute5,
+    attribute6,
+    attribute7,
+    attribute8,
+    attribute9,
+    attribute10,
+    attribute11,
+    attribute12,
+    attribute13,
+    attribute14,
+    attribute15,
+    format_value,
+    _batch_run_id,
+    _batch_insert_date,
+    _batch_update_date,
+    _source_id
+
+  from source
+
+  )
+
+select * from renamed

@@ -1,0 +1,29 @@
+with source as (
+select * from {{ source('oracle_financials','iby_payment_methods_tl') }}
+),
+
+
+renamed as (
+
+    select
+    payment_method_code,
+    language,
+    source_lang,
+    payment_method_name,
+    created_by,
+    creation_date,
+    last_updated_by,
+    last_update_date,
+    last_update_login,
+    object_version_number,
+    description,
+    _batch_run_id,
+    _batch_insert_date,
+    _batch_update_date,
+    _source_id
+
+  from source
+
+  )
+
+select * from renamed

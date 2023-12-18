@@ -1,0 +1,142 @@
+with
+    claims_all_logic as (select * from {{ ref("stg_oracle__claims_all") }}),
+    ap_check as (select * from {{ ref("stg_oracle__ap_checks_all") }}),
+    ap_invoice as (select * from {{ ref("stg_oracle__ap_invoices_all") }}),
+    ap_invoice_payment as (
+        select * from {{ ref("stg_oracle__ap_invoice_payments_all") }}
+    ),
+    claim_line_util as (select * from {{ ref("stg_oracle__claim_line_util_all") }}),
+    claim_types_all as (select * from {{ ref("stg_oracle__claim_types_all_tl") }}),
+    reason_all_b as (select * from {{ ref("stg_oracle__reason_all_b") }}),
+    claim_line as (select * from {{ ref("stg_oracle__claims_line_all") }}),
+    funds_uti_all_b as (select * from {{ ref("stg_oracle__funds_utilized_all_b") }}),
+    funds_all_b as (select * from {{ ref("stg_oracle__funds_all_b") }}),
+    jtf_rs_resource_extns as (select * from {{ ref("stg_oracle__resource_extns") }})
+
+
+    
+select 
+    claims_all_logic.acctd_amount claim_loc_amt,
+    case
+        when claims_all_logic.acctd_amount_settled <> 0
+        then
+            coalesce(
+                claim_line_util .acctd_amount,
+                claim_line.acctd_amount,
+                claims_all_logic.acctd_amount_settled
+            )
+        else claims_all_logic.acctd_amount_settled
+    end settled_loc_amt,
+    nvl(claims_all_logic.claim_id
+    || '~'
+    || claim_line_util.utilization_id
+    || '~'
+    || claim_line.claim_line_id
+    || '~'
+    || claim_line_util.claim_line_util_id 
+    ||'~'
+    ||claims_all_logic.source_id,'0')
+    integration_id,
+    to_varchar(nvl(claims_all_logic.claim_id||'~'||claims_all_logic.source_id,'0'))claim_id,
+    claims_all_logic.claim_number claim_number,
+    claims_all_logic.claim_date claim_date,
+    claims_all_logic.due_date due_date,
+    claim_types_all.name claim_type,
+    to_varchar(nvl(claims_all_logic.cust_account_id||'~'||claims_all_logic.source_id,'0')) customer_account_id,
+    nvl(claims_all_logic.cust_billto_acct_site_id||'~'||claims_all_logic.source_id,'0') cust_billto_acct_site_id,
+    reason_all_b.reason_code reason_code,
+    claims_all_logic.customer_ref_number customer_ref_number,
+    claims_all_logic.receipt_number receipt_number,
+    claims_all_logic.payment_method payment_method,
+    claims_all_logic.payment_reference_number payment_reference_number,
+    claims_all_logic.payment_status payment_status,
+    claims_all_logic.approved_date approved_date,
+    claims_all_logic.approved_by approved_by,
+    claims_all_logic.settled_date settled_date,
+    claims_all_logic.settled_by settled_by,
+    claims_all_logic.amount claim_doc_amt,
+    claims_all_logic.currency_code doc_curr_code,
+    claims_all_logic.amount_adjusted amount_adjusted,
+    claims_all_logic.amount_remaining amount_remaining,
+    case
+        when claims_all_logic.amount_settled <> 0
+        then
+            coalesce(
+                claim_line_util.amount,
+                claim_line.amount,
+                claims_all_logic.amount_settled
+            )
+        else claims_all_logic.amount_settled
+    end settled_doc_amt,
+    claims_all_logic.tax_amount tax_doc_amt,
+    claims_all_logic.exchange_rate exchange_rate,
+    -- trunc removed
+    claims_all_logic.exchange_rate_date exchange_rate_date,
+    claims_all_logic.exchange_rate_type exchange_rate_type,
+    claims_all_logic.claim_class claim_class,
+    claims_all_logic.last_update_date last_update_date,
+    claims_all_logic.gl_date gl_date,
+    sq_check_number_list.check_number check_number,
+    funds_uti_all_b.fund
+    to_varchar(nvl(funds_uti_all_b.fund_id||'~'||funds_uti_all_b.source_id,'0'))fund_id,
+    to_varchar(nvl(claims_all_logic.org_id||'~'||claims_all_logic.source_id,'0')) org_id,
+    to_varchar(nvl(funds_all_b.ledger_id||'~'||funds_all_b._source_id,'0')) ledger_id,
+    to_varchar(nvl(claim_line.claim_line_id||'~'||claim_line._source_id,'0')) claim_line_id,
+    to_varchar(nvl(claim_line_util.utilization_id||'~'||claim_line_util._source_id,'0')) utilization_id,
+    claims_all_logic.status_code status_code,
+    to_varchar(nvl(claim_line_util.claim_line_util_id||'~'||claim_line_util._source_id,'0')) claim_line_util_id,
+      -- how to get this macro??
+    --EDW_OMNI.HOT_GET_REP_KEY(claims_all_logic.cust_shipto_acct_site_id,'ALL','ALL',replace(claims_all_logic.cust_account_id,concat('~', claims_all_logic._source_id),''),null) x_terr_id,
+    to_varchar(nvl(claims_all_logic.cust_shipto_acct_site_id
+    || '~'
+
+    || claims_all_logic.cust_account_id
+    || '~'
+    || claims_all_logic.source_id,'0')) x_terr_id,
+    nvl(jtf_rs_resource_extns.user_id||'~'||jtf_rs_resource_extns._source_id,'0') user_id
+    
+from claims_all_logic
+left outer join
+    (
+        select
+            claims_all_logic.claim_id,
+            listagg(ap_check.check_number, ',') within group (
+                order by claims_all_logic.claim_id desc
+            ) as check_number
+        from ap_check, ap_invoice, ap_invoice_payment, claims_all_logic
+        where
+            (ap_invoice.invoice_num = claims_all_logic.claim_number)
+            and (ap_invoice_payment.check_id = ap_check.check_id)
+            and (ap_invoice.invoice_id = ap_invoice_payment.invoice_id)
+            and (
+                ap_invoice.source = 'TRADE MANAGEMENT'
+                and ap_invoice.invoice_type_lookup_code = 'STANDARD'
+            )
+            and ap_invoice_payment.reversal_inv_pmt_id is null
+        group by (claims_all_logic.claim_id)
+
+    )
+
+    sq_check_number_list on (claims_all_logic.claim_id = sq_check_number_list.claim_id)
+left outer join
+    reason_all_b on (claims_all_logic.reason_code_id = reason_all_b.reason_code_id)
+left outer join claim_line on (claims_all_logic.claim_id = claim_line.claim_id)
+left outer join
+    claim_types_all on (claim_types_all.claim_type_id = claims_all_logic.claim_type_id)
+left outer join
+    claim_line_util on (claim_line.claim_line_id = claim_line_util.claim_line_id)
+left outer join
+    funds_uti_all_b on (claim_line_util.utilization_id = funds_uti_all_b.utilization_id)
+left outer join
+    funds_all_b on (fund_id = funds_all_b.funds_all_b_fund_id)
+left outer join
+    jtf_rs_resource_extns
+    on (claims_all_logic.owner_id = jtf_rs_resource_extns.resource_id)
+
+where
+    (1 = 1)
+
+
+
+
+   

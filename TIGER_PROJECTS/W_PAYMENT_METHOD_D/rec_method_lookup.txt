@@ -1,0 +1,29 @@
+    /*
+
+    lkp_rec_method as (
+        select
+            (case when rec_method.end_date is null then 'Y' else 'N' end) active_flg,
+            nvl(
+                rec_method.created_by_id || '~' ||rec_method._source_id, '0'
+            ) created_by_id,
+            nvl(
+                rec_method.last_updated_by_id || '~' || rec_method._source_id, '0'
+            ) changed_by_id,
+            rec_method.created_on_date created_on_date,
+            rec_method.last_update_date changed_on_date,
+            rec_method._source_id source_id,
+            'N' delete_flg,
+            'AR~' || nvl(
+                rec_method.receipt_method_id || '~' || source_id, '0'
+            ) integration_id,
+            nvl(
+                rec_method.receipt_method_id || '~' || source_id, '0'
+            ) receipt_method_id,
+            rec_method.name,
+            rec_method.printed_name,
+            rec_method._batch_update_date _batch_update_date
+        from rec_method
+        where (1 = 1)
+
+    ),
+   */
