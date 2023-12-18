@@ -1,0 +1,621 @@
+with
+    stage as (select * from {{ ref("stg_oracle__wc_sales_demand_f") }}),
+
+    msc_demand as (select * from {{ ref("stg_oracle__msc_demands") }}),
+    msc_plan as (select * from {{ ref("stg_oracle__msc_plans") }}),
+    mpo as (select * from {{ ref("stg_oracle__mpo") }}),
+    mfg_look as (select * from {{ ref("stg_oracle__mfg_lookups") }}),
+    msc_system as (select * from {{ ref("stg_oracle__msc_system_items") }}),
+    msc_designators as (select * from {{ ref("stg_oracle__msc_designators") }}),
+    msc_dp_scn as (select * from {{ ref("stg_oracle__msc_dp_scn") }}),
+    msc_fore_upd as (select * from {{ ref("stg_oracle__msc_forecast_updates") }}),
+    mtl_system as (select * from {{ ref("stg_oracle__mtl_system_items") }}),
+    oe_order_lines as (select * from {{ ref("stg_oracle__order_lines") }}),
+    oe_order_headers as (select * from {{ ref("stg_oracle__order_headers") }}),
+    mtl_uom_conv as (select * from {{ ref("stg_oracle__mtl_uom_conversions") }}),
+    mtl_param as (select * from {{ ref("stg_oracle__mtl_parameters") }}),
+    msc_sales_ord as (select * from {{ ref("stg_oracle__msc_sales_orders") }}),
+    msc_safety_stocks as (select * from {{ ref("stg_oracle__msc_safety_stocks") }}
+
+    where
+            (1 = 1)
+            {% if is_incremental() %}
+            and (
+                (
+                   msc_demand._batch_update_date >= $batch_start_time
+                    and msc_demand.batch_update_date <= $batch_end_time
+                )
+                or
+                 (
+                   msc_plan._batch_update_date >= $batch_start_time
+                    and msc_plan.batch_update_date <= $batch_end_time
+                )
+           or
+           (
+                   mpo._batch_update_date >= $batch_start_time
+                    and mpo.batch_update_date <= $batch_end_time
+                )
+             or
+           (
+                   mfg_look._batch_update_date >= $batch_start_time
+                    and mfg_look.batch_update_date <= $batch_end_time
+                )
+                or
+           (
+                   msc_system._batch_update_date >= $batch_start_time
+                    and msc_system.batch_update_date <= $batch_end_time
+                )
+             or
+           (
+                   msc_designators._batch_update_date >= $batch_start_time
+                    and msc_designators.batch_update_date <= $batch_end_time
+                )
+                 or
+           (
+                   msc_dp_scn._batch_update_date >= $batch_start_time
+                    and msc_dp_scn.batch_update_date <= $batch_end_time
+                )
+                 or
+           (
+                   msc_fore_upd._batch_update_date >= $batch_start_time
+                    and msc_fore_upd.batch_update_date <= $batch_end_time
+                )
+             or
+           (
+                   mtl_system._batch_update_date >= $batch_start_time
+                    and mtl_system.batch_update_date <= $batch_end_time
+                )
+            or
+             (
+                   oe_order_lines._batch_update_date >= $batch_start_time
+                    and oe_order_lines.batch_update_date <= $batch_end_time
+                )
+                 or
+             (
+                   oe_order_headers._batch_update_date >= $batch_start_time
+                    and oe_order_headers.batch_update_date <= $batch_end_time
+                )
+                or
+             (
+                   mtl_uom_conv._batch_update_date >= $batch_start_time
+                    and mtl_uom_conv.batch_update_date <= $batch_end_time
+                )
+                or
+             (
+                   mtl_param._batch_update_date >= $batch_start_time
+                    and mtl_param.batch_update_date <= $batch_end_time
+                ),
+                 or
+             (
+                   mtl_sales_ord._batch_update_date >= $batch_start_time
+                    and mtl_sales_ord.batch_update_date <= $batch_end_time
+                )
+                 or
+             (
+                   msc_safety_stocks._batch_update_date >= $batch_start_time
+                    and msc_safety_stocks.batch_update_date <= $batch_end_time
+                )
+                )
+
+            {% endif %}
+),
+    
+     
+     final as(
+    select	
+	
+	SQ_SALES_DEMAND_FS.ORDER_TYPE	   DEMAND_TYPE,
+	SQ_SALES_DEMAND_FS.DEMAND_CLASS	   DEMAND_CLASS,
+	SQ_SALES_DEMAND_FS.QUANTITY	   DEMAND_QTY,
+	SQ_SALES_DEMAND_FS.W_UPDATE_DT	   W_UPDATE_DT,
+	SQ_SALES_DEMAND_FS.DUE_DATE	   DUE_DATE,
+	SQ_SALES_DEMAND_FS.SALES_ORDER_NUMBER	   SALES_ORDER_NUMBER,
+	SQ_SALES_DEMAND_FS.COMPILE_DESIGNATOR	   PLAN_NAME,
+	SQ_SALES_DEMAND_FS.DEMAND_FLAG	   DEMAND_FLAG,
+	SQ_SALES_DEMAND_FS.WEEKLY_FLAG	   WEEKLY_FLAG,
+	SQ_SALES_DEMAND_FS.DAILY_CUTOFF_BUCKET	  DAILY_CUTOFF_BUCKET,
+	SQ_SALES_DEMAND_FS.CUSTOMER_ID	   CUSTOMER_ID,
+	SQ_SALES_DEMAND_FS.ORGANIZATION_ID	   ORGANIZATION_ID,
+	SQ_SALES_DEMAND_FS.INVENTORY_ITEM_ID	   INVENTORY_ITEM_ID,
+    SQ_SALES_DEMAND_FS.INTEGRATION_ID	   INTEGRATION_ID,
+    SQ_SALES_DEMAND_FS.Delete_Flag	  Delete_Flag,
+   SQ_SALES_DEMAND_FS.datasource_num_id	   datasource_num_id
+
+
+    from 
+
+   
+        
+            (select
+                msc_system.sr_inventory_item_id inventory_item_id,
+                msc_demand.customer_id customer_id,
+                TO_TIMESTAMP_NTZ(TO_VARCHAR(msc_demand.using_assembly_demand_date)) due_date,
+                nvl(msc_demand.demand_class, 'NA') demand_class,
+                sum(
+                    nvl(
+                        msc_demand.daily_demand_rate,
+                        msc_demand.using_requirement_quantity
+                    )
+                ) quantity,
+                TO_TIMESTAMP_NTZ(TO_VARCHAR(msc_demand.last_update_date)) w_update_dt,
+                msc_demand.organization_id organization_id,
+                mfg_look.meaning order_type,
+                to_char(
+                    substr(
+                        msc_demand.order_number,
+                        1,
+                        regexp_instr(msc_demand.order_number, '.', 1) - 1
+                    )
+                ) sales_order_number,
+                msc_plan.compile_designator compile_designator,
+                case
+                    when
+                        (
+                            (
+                                nvl(
+                                    case
+                                        when
+                                            msc_demand.organization_id = 1200
+                                            and msc_demand.source_organization_id = 1202
+                                        then null
+                                        else msc_demand.source_organization_id
+                                    end,
+                                    0
+                                )
+                                > 0
+                                and msc_demand.source_organization_id
+                                <> msc_demand.organization_id
+                            )
+                            or msc_demand.inventory_item_id
+                            <> msc_demand.using_assembly_item_id
+                        )
+                    then 'N'
+                    else 'Y'
+                end demand_flag,  -- added to exlcude component item demand used for make items, and do not apply org dependent logic for dop items in dtx
+                case
+                    when
+                        mfg_look.meaning = 'Forecast'
+                        and msc_demand.organization_id in (
+                            select sr_organization_id
+                            from msc_dp_scn
+                            where
+                                start_time >= (current_date() - 365) and bucket_type = 2
+                        )
+                    then 'Y'
+                    else 'N'
+                 end weekly_flag,
+                'N' Delete_Flag,
+                 msc_plan.daily_cutoff_bucket,
+                 coalesce(to_char(msc_system.sr_inventory_item_id), '')||'~'||to_char(msc_demand._source_id) integration_id,
+                 msc_demand._source_id datasource_num_id
+
+             
+            from msc_demand, msc_plan, msc_system, mfg_look, mpo
+
+            where
+                (1 = 1)
+                and mpo.plan_id = msc_demand.plan_id
+                and mpo.organization_id = msc_demand.organization_id
+                and mpo.sr_instance_id = msc_demand.sr_instance_id
+                and (mfg_look.lookup_type = 'MSC_DEMAND_ORIGINATION')
+                and (msc_demand.using_requirement_quantity > 0)
+                and (
+                    mfg_look.meaning in (
+                        'Forecast',
+                        'Payback Demand',
+                        'Planned order demand',
+                        'Interorganization Demand',
+                        'Sales Orders',
+                        'Work order demand',
+                        'Safety Stock Demand'
+                    )
+                )
+                and (msc_plan.plan_id = msc_demand.plan_id)
+                and (
+                    msc_plan.compile_designator in (
+                        select designator
+                        from msc_designators
+                        where disable_date is null
+                    )
+                )
+                and (msc_system.plan_id = msc_plan.plan_id)
+                and (
+                    msc_system.sr_instance_id = msc_demand.sr_instance_id
+                    and msc_demand.inventory_item_id = msc_system.inventory_item_id
+                    and msc_system.organization_id = msc_demand.organization_id
+                    and msc_system.plan_id = msc_demand.plan_id
+                )
+                and (msc_demand.origination_type = mfg_look.lookup_code)
+            group by
+                msc_system.sr_inventory_item_id,
+                msc_demand.customer_id,
+                TO_TIMESTAMP_NTZ(TO_VARCHAR(msc_demand.using_assembly_demand_date)),
+                nvl(msc_demand.demand_class, 'NA'),
+                TO_TIMESTAMP_NTZ(TO_VARCHAR(msc_demand.last_update_date)),
+                msc_demand.organization_id,
+                mfg_look.meaning,
+                substr(
+                    msc_demand.order_number,
+                    1,
+                    regexp_instr(msc_demand.order_number, '.', 1) - 1
+                ),
+                msc_plan.compile_designator,
+                case
+                    when
+                        (
+                            (
+                                nvl(
+                                    case
+                                        when
+                                            msc_demand.organization_id = 1200
+                                            and msc_demand.source_organization_id = 1202
+                                        then null
+                                        else msc_demand.source_organization_id
+                                    end,
+                                    0
+                                )
+                                > 0
+                                and msc_demand.source_organization_id
+                                <> msc_demand.organization_id
+                            )
+                            or msc_demand.inventory_item_id
+                            <> msc_demand.using_assembly_item_id
+                        )
+                    then 'N'
+                    else 'Y'
+                end,
+                Delete_Flag,
+                msc_plan.daily_cutoff_bucket,
+                msc_demand._source_id
+                       
+             union all
+      (
+            select
+                msc_system.sr_inventory_item_id inventory_item_id,
+                msc_fore_upd.customer_id customer_id,
+                TO_TIMESTAMP_NTZ(TO_VARCHAR(msc_fore_upd.consumption_date)) due_date,
+                nvl(msc_fore_upd.demand_class, 'NA') demand_class,
+                sum(msc_fore_upd.consumed_qty) quantity,
+                TO_TIMESTAMP_NTZ(TO_VARCHAR(msc_fore_upd.last_update_date)) w_update_dt,
+                msc_fore_upd.organization_id organization_id,
+        
+        'Consumption' order_type,
+        
+                to_char(
+                    substr(
+                        msc_fore_upd.sales_order_number,
+                        1,
+                        regexp_instr(msc_fore_upd.sales_order_number, '.', 1) - 1
+                    )
+                ) sales_order_number,
+        
+                msc_plan.compile_designator compile_designator,
+                'Y' as demand_flag,
+                'N' as weekly_flag,
+                'N' Delete_flag,
+                 msc_plan.daily_cutoff_bucket,
+                 coalesce(to_char(msc_system.sr_inventory_item_id), '')||'~'||to_char(msc_plan._source_id) integration_id,
+                 msc_plan._source_id datasource_num_id
+                
+                
+            from msc_plan, msc_system, msc_fore_upd, mpo
+            where
+                (1 = 1)
+                and mpo.plan_id = msc_fore_upd.plan_id
+                and mpo.organization_id = msc_fore_upd.organization_id
+                and mpo.sr_instance_id = msc_fore_upd.sr_instance_id
+                and (msc_fore_upd.consumed_qty > 0)
+                and (msc_plan.plan_id = msc_system.plan_id)
+                and (
+                    msc_plan.compile_designator in (
+                        select designator
+                        from msc_designators
+                        where disable_date is null
+                    )
+                )
+                and (
+                    msc_system.inventory_item_id = msc_fore_upd.inventory_item_id
+                    and msc_system.organization_id = msc_fore_upd.organization_id
+                )
+                and (msc_plan.plan_id = msc_fore_upd.plan_id)
+
+                
+            group by
+                msc_system.sr_inventory_item_id,
+                msc_fore_upd.customer_id,
+               TO_TIMESTAMP_NTZ(TO_VARCHAR(msc_fore_upd.consumption_date)),
+                nvl(msc_fore_upd.demand_class, 'NA'),
+                TO_TIMESTAMP_NTZ(TO_VARCHAR(msc_fore_upd.last_update_date)),
+                msc_fore_upd.organization_id,
+                 order_type,
+         substr(
+                    msc_fore_upd.sales_order_number,
+                    1,
+                    regexp_instr(msc_fore_upd.sales_order_number, '.', 1) - 1
+                ),
+                        msc_plan.compile_designator,
+        demand_flag,
+        weekly_flag,
+        Delete_Flag,
+        msc_plan.daily_cutoff_bucket,
+        msc_plan._source_id
+      )
+
+           
+      
+             union all
+      (
+            select
+                mtl_system.inventory_item_id inventory_item_id,
+                oe_order_lines.customer_account_id customer_id,
+                TO_TIMESTAMP_NTZ(TO_VARCHAR(oe_order_lines.request_date)) due_date,
+                nvl(oe_order_lines.demand_class_code, 'NA') demand_class,
+                sum(
+                    oe_order_lines.ordered_quantity
+                    * nvl(mtl_uom_conv.conversion_rate, 1)
+                ) quantity,
+                TO_TIMESTAMP_NTZ(TO_VARCHAR(oe_order_lines.last_update_date)) w_update_dt,
+                mtl_system.organization_id organization_id,
+                'Unschedule' order_type,
+                to_char(oe_order_headers.order_number) sales_order_number,
+                'NA' compile_designator,
+                'Y' as demand_flag,
+                'N' as weekly_flag,
+                'N' Delete_flag,
+                 coalesce(to_char(mtl_system.inventory_item_id), '')||'~'||to_char(oe_order_lines._source_id) integration_id,
+                 oe_order_lines._source_id datasource_num_id,
+               0
+            from mtl_uom_conv
+            right outer join
+                (
+                    (
+                        (
+                            oe_order_lines
+                            inner join
+                                mtl_system
+                                on oe_order_lines.inventory_item_id
+                                = mtl_system.inventory_item_id
+                                and oe_order_lines.ship_from_org_id
+                                = mtl_system.organization_id
+                        )
+                        inner join
+                            oe_order_headers
+                            on oe_order_lines.order_header_id
+                            = oe_order_headers.order_header_id
+                    )
+                    inner join
+                        mtl_param
+                        on oe_order_lines.ship_from_org_id = mtl_param.organization_id
+                )
+                on mtl_uom_conv.inventory_item_id = oe_order_lines.inventory_item_id
+                and mtl_uom_conv.uom_code = oe_order_lines.order_quantity_uom
+            where
+                (1 = 1)
+                and (
+                    oe_order_lines.flow_status_code in ('BOOKED', 'ENTERED')
+                    and oe_order_lines.open_flag = 'Y'
+                    and oe_order_lines.line_category_code = 'ORDER'
+                )
+                
+            group by
+                mtl_system.inventory_item_id,
+                oe_order_lines.customer_account_id,
+                TO_TIMESTAMP_NTZ(TO_VARCHAR(oe_order_lines.request_date)),
+                nvl(oe_order_lines.demand_class_code, 'NA'),
+                TO_TIMESTAMP_NTZ(TO_VARCHAR(oe_order_lines.last_update_date)),
+                mtl_system.organization_id,
+                 to_char(oe_order_headers.order_number),
+                oe_order_lines._source_id
+              
+          
+        )
+             
+         
+         
+             union all
+             
+             (
+            select
+                msc_system.sr_inventory_item_id inventory_item_id,
+                msc_sales_ord.customer_id customer_id,
+                TO_TIMESTAMP_NTZ(TO_VARCHAR(oe_order_lines.actual_shipment_date)) due_date,
+                nvl(msc_sales_ord.demand_class, 'NA') demand_class,
+                sum(msc_sales_ord.completed_quantity) quantity,
+                TO_TIMESTAMP_NTZ(TO_VARCHAR(msc_sales_ord.last_update_date)) w_update_dt,
+                msc_sales_ord.organization_id organization_id,
+                'Shipped' order_type,
+                to_char(
+                    substr(
+                        msc_sales_ord.sales_order_number,
+                        1,
+                        regexp_instr(msc_sales_ord.sales_order_number, '.', 1) - 1
+                    )
+                ) sales_order_number,
+                msc_plan.compile_designator compile_designator,
+                'Y' as demand_flag,
+                'N' as weekly_flag,
+                'N' AS Delete_flag,
+               coalesce(to_char(msc_system.inventory_item_id), '')||'~'||to_char(oe_order_lines._source_id) integration_id,
+                oe_order_lines._source_id datasource_num_id,
+
+                msc_plan.daily_cutoff_bucket
+
+                
+            from msc_system, msc_sales_ord, msc_plan, oe_order_lines
+            where
+                (1 = 1)
+                and (
+                    msc_sales_ord.demand_id in (
+                        select distinct sales_order_id
+                        from msc_fore_upd m, msc_system i
+                        where
+                            m.inventory_item_id = i.inventory_item_id
+                            and m.organization_id = i.organization_id
+                            and m.plan_id = i.plan_id
+                    )
+                )
+                and msc_sales_ord.demand_source_line = oe_order_lines.order_line_id
+                and (msc_sales_ord.completed_quantity > 0)
+                and (
+                    msc_system.inventory_item_id = msc_sales_ord.inventory_item_id
+                    and msc_system.organization_id = msc_sales_ord.organization_id
+                )
+                and (msc_plan.plan_id = msc_system.plan_id and msc_system.plan_id <> -1)
+                and (
+                    msc_plan.compile_designator in (
+                        select designator
+                        from msc_designators
+                        where disable_date is null
+                    )
+                )
+                     
+            group by
+                msc_system.sr_inventory_item_id,
+                msc_sales_ord.customer_id,
+                TO_TIMESTAMP_NTZ(TO_VARCHAR(oe_order_lines.actual_shipment_date)),
+           --     TO_TIMESTAMP_NTZ(TO_VARCHAR(msc_sales_ord.requirement_date)),
+                nvl(msc_sales_ord.demand_class, 'NA'),
+                TO_TIMESTAMP_NTZ(TO_VARCHAR(msc_sales_ord.last_update_date)),
+                msc_sales_ord.organization_id,
+                substr(
+                    msc_sales_ord.sales_order_number,
+                    1,
+                    regexp_instr(msc_sales_ord.sales_order_number, '.', 1) - 1
+                ),
+                msc_plan.compile_designator,
+                 msc_plan.daily_cutoff_bucket,
+                oe_order_lines._source_id
+
+                
+        )
+           
+             union all
+             
+             (
+            select
+                msi.sr_inventory_item_id inventory_item_id,
+                null customer_id,
+                TO_TIMESTAMP_NTZ(TO_VARCHAR(mss.period_start_date)) due_date,
+                'NA' demand_class,
+                mss.safety_stock_quantity quantity,
+                TO_TIMESTAMP_NTZ(TO_VARCHAR(mss.last_update_date)) w_update_dt,
+                mss.organization_id,
+                'Safety Stock' order_type,
+                null sales_order_number,
+                msc.compile_designator compile_designator,
+                'N' demand_flag,
+                'N' weekly_flag,
+                'N' AS Delete_flag,
+                msc.daily_cutoff_bucket,
+               coalesce(to_char(msi.sr_inventory_item_id), '')||'~'||to_char(mss._source_id) integration_id,
+               mss._source_id datasource_num_id
+
+            from msc_safety_stocks mss, msc_system msi, msc_plan msc
+            where
+                mss.sr_instance_id = msi.sr_instance_id
+                and mss.inventory_item_id = msi.inventory_item_id
+                and mss.organization_id = msi.organization_id
+                and mss.plan_id = msi.plan_id
+                and msi.plan_id = msc.plan_id
+                and (
+                    msc.compile_designator in (
+                        select designator
+                        from msc_designators
+                        where disable_date is null
+                    )
+                )
+                   
+        )
+             union all
+             (
+           
+            select
+                ola.inventory_item_id inventory_item_id,
+                ola.customer_account_id customer_id,
+                (
+                    coalesce(
+                        ola.latest_acceptable_date, ola.schedule_ship_date, '1900-01-01'
+                    )
+                ) due_date,
+                nvl(ola.demand_class_code, 'NA') demand_class,
+                sum(ola.ordered_quantity * nvl(muc.conversion_rate, 1)) quantity,  -- UOM Conversion required
+                TO_TIMESTAMP_NTZ(TO_VARCHAR(ola.last_update_date)) w_update_dt,
+                ola.ship_from_org_id organization_id,
+                'Sales Orders - LAD' c8_order_type,
+                to_char(oha.order_number) c35_sales_order_number,
+                'GLOBAL' c19_compile_designator,
+                'Y' as demand_flag,
+                'N' as weekly_flag,
+                 'N' Delete_flag,
+                  coalesce(to_char(ola.inventory_item_id), '')||'~'||TO_CHAR(ola._source_id) integration_id,
+                  ola._source_id datasource_num_id,
+                   0 daily_cutoff_bucket
+                 
+            from oe_order_lines ola, oe_order_headers oha, mtl_uom_conv muc
+            where
+                (1 = 1)
+                and ola.order_header_id = oha.order_header_id
+                and ola.open_flag = 'Y'
+                and oha.open_flag = 'Y'
+                and ola.order_source_id <> 10
+                and ola.line_category_code = 'ORDER'
+                and muc.inventory_item_id(+) = ola.inventory_item_id
+                and muc.uom_code(+) = ola.order_quantity_uom
+              
+            group by
+                ola.inventory_item_id,
+                ola.customer_account_id,
+                (
+                    coalesce(
+                        ola.latest_acceptable_date, ola.schedule_ship_date, '1900-01-01'
+                    )
+                ),
+                nvl(ola.demand_class_code, 'NA'),
+                TO_TIMESTAMP_NTZ(TO_VARCHAR(ola.last_update_date)),
+                ola.ship_from_org_id,
+                oha.order_number,
+                ola._source_id,
+                 daily_cutoff_bucket
+        )
+
+
+
+
+
+      
+        
+    ) SQ_SALES_DEMAND_FS 
+    where (1=1)
+
+),   
+
+sub_final as (
+        select
+            fs.demand_type,
+            fs.demand_class,
+            fs.demand_qty,
+            fs.w_update_dt, 
+            fs.due_date,
+            fs.sales_order_number,
+            fs.plan_name,
+            fs.demand_flag,
+            fs.weekly_flag,
+            fs.daily_cutoff_bucket,
+            nvl(fs.customer_id::varchar || '~'
+    ||fs.datasource_num_id::varchar,'0') customer_id,
+            nvl(fs.inventory_item_id::varchar || '~'
+    ||fs.datasource_num_id::varchar,'0') inventory_item_id,
+    nvl(fs.organization_id::varchar || '~'
+    ||fs.datasource_num_id::varchar,'0') organization_id,
+   
+            fs.Delete_Flag
+         -- fs.integration_id,
+         -- fs.datasource_num_id
+        from final fs
+    )
+select INVENTORY_ITEM_ID
+   
+ -- $batch_start_time w_insert_dt,
+ -- $batch_start_time w_update_dt,
+  --  {{ env_var("DBT_CLOUD_RUN_ID", 9999) }}::number(32) dbt_etl_proc_id
+from sub_final

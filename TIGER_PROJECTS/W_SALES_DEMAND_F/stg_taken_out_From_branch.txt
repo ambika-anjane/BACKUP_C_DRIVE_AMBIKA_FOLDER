@@ -1,0 +1,285 @@
+
+
+
+with
+
+    plan_demand as (select * from {{ ref("stg_oracle__planned_demand") }}),
+    supply_chain_plans  as (
+        select * from {{ ref("stg_oracle__supply_chain_plans") }}
+    ),
+    organization_plan as (select * from {{ ref("stg_oracle__organization_plans") }}),  
+    msc_system as (select * from {{ source("oracle_scp", "msc_system_items") }}),  
+    msd_dp_scn as (
+        select * from {{ source("oracle_scp", "msd_dp_scn_entries_denorm") }}
+    ),  
+    consumed_demand as (select * from {{ ref("stg_oracle__consumed_demand") }}), 
+    oe_order_lines as (select * from {{ ref("stg_oracle__order_lines") }}),
+    oe_order_headers as (select * from {{ ref("stg_oracle__order_headers") }}),
+    mtl_uom_conv as (select * from {{ ref("stg_oracle__item_uom_conversions") }}), 
+    shipped_demand as (select * from {{ ref("stg_oracle__shipped_demand") }}), 
+    item_safety_stocks as (
+        select * from {{ ref("stg_oracle__item_saftey_stocks") }}  
+    ),
+     w_gl_segment_d as (select * from {{ ref("w_gl_segment_d") }}),
+    w_int_org_d as (select * from {{ ref("w_int_org_d") }}),
+    itemcost as (select * from {{ ref("stg_oracle__item_costs") }}),
+    exchange_rate as (select * from {{ ref("stg_oracle__currency_exchange_rates") }}),
+    inventory_products as (select * from {{ ref("stg_oracle__inventory_products") }}),
+    gl_combinations as  (select * from {{ ref("stg_oracle__gl_account_combinations") }}),
+
+     weekly_forecasted_orgs as (
+     SELECT distinct sr_organization_id as sr_organization_id,'Y' AS weekly_flag
+          FROM msd_dp_scn
+          WHERE start_time >=(current_date()-365)
+          AND BUCKET_TYPE   =2
+          
+    ),
+
+    final as (
+        select
+
+            sq_sales_demand_fs.order_type demand_type,
+            sq_sales_demand_fs.demand_class demand_class,
+            sq_sales_demand_fs.quantity demand_qty,
+            sq_sales_demand_fs.sales_date::date sales_date,
+            sq_sales_demand_fs.w_update_date::date w_update_date,
+            sq_sales_demand_fs.sales_order_number sales_order_number,
+            sq_sales_demand_fs.compile_designator plan_name,  
+            sq_sales_demand_fs.demand_flag demand_flag,
+            sq_sales_demand_fs.weekly_flag weekly_flag,
+            sq_sales_demand_fs.daily_cutoff_bucket daily_cutoff_bucket,
+            sq_sales_demand_fs.customer_id customer_id,
+            sq_sales_demand_fs.organization_id organization_id,
+            sq_sales_demand_fs.inventory_item_id inventory_item_id,
+           sq_sales_demand_fs.integration_id integration_id,
+           sq_sales_demand_fs.item_avg_cost item_avg_cost,
+           sq_sales_demand_fs.gl_company_id gl_company_id,
+           sq_sales_demand_fs.gl_location_id gl_location_id,
+           sq_sales_demand_fs.gl_produt_line_id gl_product_line_id,
+           sq_sales_demand_fs.usd_conv_rate usd_conv_rate,
+           sq_sales_demand_fs.inv_org_curr_code inv_org_curr_code,
+          'N' Delete_flag,
+            sq_sales_demand_fs.datasource_num_id datasource_num_id
+
+        from
+            (
+       
+
+            (
+                    select
+                        msc_system.sr_inventory_item_id inventory_item_id,
+                        plan_demand.customer_id customer_id,
+                        nvl(plan_demand.demand_class, 'NA') demand_class,
+                         sum(
+                            nvl(
+                                plan_demand.daily_demand_rate,
+                                plan_demand.using_requirement_quantity
+                            )
+                        ) quantity,
+                       plan_demand.using_assembly_demand_date::date sales_date,
+                       plan_demand.last_update_date::date w_update_date,
+                        plan_demand.organization_id organization_id,
+                           plan_demand.demand_source order_type,
+                        to_char(
+                            substr(
+                                plan_demand.order_number,
+                                1,
+                                regexp_instr(plan_demand.order_number, '.', 1) - 1
+                            )
+                        ) sales_order_number,
+                        supply_chain_plans.plan_name compile_designator,
+                         case
+                            when
+                                (
+                                    (
+                                        nvl(
+                                            case
+                                                when
+                                                    plan_demand.organization_id = 1200
+                                                    and plan_demand.source_organization_id
+                                                    = 1202
+                                                then null
+                                                else plan_demand.source_organization_id
+                                            end,0) > 0
+                                        and plan_demand.source_organization_id
+                                        <> plan_demand.organization_id
+                                    )
+                                    or plan_demand.inventory_item_id
+                                    <> plan_demand.using_assembly_item_id
+                                )
+                            then 'N'
+                            else 'Y'
+                        end
+                        demand_flag,
+                         nvl(weekly_forecasted_orgs.weekly_flag,'N')as weekly_flag,
+                        supply_chain_plans.daily_cutoff_bucket,
+                         itemcost.item_cost item_avg_cost,
+            a.location_segment_key gl_location_id,
+            b.company_segment_key gl_company_id,
+            c.product_line_segment_key gl_product_line_id,
+
+            case
+                when w_int_org_d.currency_code = 'USD'
+                then 1
+                else exchange_rate.exchange_rate
+            end usd_conv_rate,
+            w_int_org_d.currency_code inv_org_curr_code,
+                         coalesce(to_char(plan_demand.organization_id), '')
+                        || '~'
+                        || coalesce(to_char(msc_system.sr_inventory_item_id), '')
+                        || '~'
+                        || coalesce(to_char(plan_demand.customer_id), '')
+                        || '~'
+                        || coalesce(to_char(plan_demand.using_assembly_demand_date::date), '')
+                        || '~'
+                        || coalesce(to_char(plan_demand.last_update_date::date), '')
+                        || '~'
+                        || coalesce(to_char(plan_demand.demand_source), '')
+                        || '~'
+                        || coalesce(to_char(plan_demand.demand_class), '')
+                        || '~'
+                        || coalesce(to_char(plan_demand.order_number), '')
+                        || '~'
+                        || coalesce(to_char(supply_chain_plans.plan_name), '')
+                        || to_char(plan_demand._source_id) integration_id,
+                        plan_demand._source_id datasource_num_id
+
+                    
+                    from plan_demand left outer join weekly_forecasted_orgs
+                    on plan_demand.organization_id = weekly_forecasted_orgs.sr_organization_id
+                    inner join msc_system
+                    on msc_system.sr_instance_id = plan_demand.sr_instance_id
+                    and msc_system.inventory_item_id = plan_demand.inventory_item_id
+                    and msc_system.organization_id = plan_demand.organization_id
+                    and msc_system.plan_id = plan_demand.plan_id
+                    inner join supply_chain_plans
+                    on supply_chain_plans.plan_id = plan_demand.plan_id
+                    inner join organization_plan
+                    on organization_plan.plan_id = plan_demand.plan_id
+                    and organization_plan.organization_id = plan_demand.organization_id
+                    and organization_plan.sr_instance_id = plan_demand.sr_instance_id
+                    inner join
+            itemcost
+            on itemcost.inventory_item_id = plan_demand.inventory_item_id
+            and  itemcost.organization_id = plan_demand.organization_id
+          
+        left join
+            w_int_org_d
+            on w_int_org_d.integration_id = plan_demand.organization_id
+            and (w_int_org_d.inv_org_flag = 'Y')
+        left join
+            exchange_rate
+            on exchange_rate.from_currency_code = w_int_org_d.currency_code
+            and exchange_rate.conversion_type = 'Corporate'
+            and exchange_rate.to_currency_code = 'USD'
+            and (
+                exchange_rate.conversion_date
+                >= dateadd('MONTH', -7, date_trunc('MONTH', current_date()))
+            )
+        inner join
+            inventory_products
+            on inventory_products.inventory_item_id = plan_demand.inventory_item_id
+            and inventory_products.organization_id = plan_demand.organization_id
+          
+        left join
+            gl_combinations a
+
+            on inventory_products.sales_account = a.code_combination_id
+        left join
+            gl_combinations b
+
+            on inventory_products.sales_account = b.code_combination_id
+        left join
+            gl_combinations c
+
+            on inventory_products.sales_account = c.code_combination_id
+
+
+                      group by
+                        msc_system.sr_inventory_item_id,
+                        plan_demand.customer_id,
+                        plan_demand.demand_class,
+                        plan_demand.using_assembly_demand_date::date,-- keep it with cast
+                        plan_demand.last_update_date::date,
+                        plan_demand.organization_id,
+                        plan_demand.demand_source,
+                        plan_demand.order_number,
+                        supply_chain_plans.plan_name,
+                         case
+                            when
+                                (
+                                    (
+                                        nvl(
+                                            case
+                                                when
+                                                    plan_demand.organization_id = 1200
+                                                    and plan_demand.source_organization_id
+                                                    = 1202
+                                                then null
+                                                else plan_demand.source_organization_id
+                                            end,0) > 0
+                                        and plan_demand.source_organization_id
+                                        <> plan_demand.organization_id
+                                    )
+                                    or plan_demand.inventory_item_id
+                                    <> plan_demand.using_assembly_item_id
+                                )
+                            then 'N'
+                            else 'Y'
+                        end,
+                         weekly_forecasted_orgs.weekly_flag,
+                        supply_chain_plans.daily_cutoff_bucket,
+                        itemcost.item_cost,
+                        a.location_segment_key,
+                       b.company_segment_key,
+                      c.product_line_segment_key gl_product_line_id,
+
+            case
+                when w_int_org_d.currency_code = 'USD'
+                then 1
+                else exchange_rate.exchange_rate
+            end usd_conv_rate,
+            w_int_org_d.currency_code inv_org_curr_code,
+
+                        plan_demand._source_id
+            )
+
+ 
+            ) sq_sales_demand_fs
+        where (1 = 1)
+
+    ),
+
+    sub_final as (
+        select
+            fs.demand_type,
+            fs.demand_class,
+            fs.demand_qty,
+            fs.sales_date::date sales_date,
+            fs.w_update_date::date w_update_date,
+            fs.sales_order_number,
+            fs.plan_name,
+            fs.demand_flag,
+            fs.weekly_flag,
+            fs.daily_cutoff_bucket,
+            nvl(
+                fs.customer_id::varchar || '~' || fs.datasource_num_id::varchar, '0'
+            ) customer_account_id,
+            nvl(
+                fs.inventory_item_id::varchar || '~' ||fs.organization_id || '~' || fs.datasource_num_id::varchar,
+                '0'
+            ) inventory_product_id, 
+           nvl(
+                fs.organization_id::varchar || '~' || fs.datasource_num_id::varchar, '0'
+            ) inventory_org_id, 
+            'N'Delete_flag,
+            fs.integration_id,
+            fs.datasource_num_id
+        from final fs
+    )
+select
+    *, 
+{{ env_var("DBT_CLOUD_RUN_ID", 9999) }}::number(32)  etl_proc_id
+    
+from
+    sub_final 

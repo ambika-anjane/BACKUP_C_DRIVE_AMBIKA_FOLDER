@@ -1,0 +1,139 @@
+--- first 
+ coalesce(to_char(plan_demand.organization_id), '')
+                        || '~'
+                        || coalesce(to_char(msc_system.sr_inventory_item_id), '')
+                        || '~'
+                        || coalesce(to_char(plan_demand.customer_id), '')
+                        || '~'
+                        || coalesce(to_char(plan_demand.using_assembly_demand_date::date), '')
+                        || '~'
+                        || coalesce(to_char(plan_demand.last_update_date::date), '')
+                        || '~'
+                        || coalesce(to_char(plan_demand.demand_source), '')
+                        || '~'
+                        || coalesce(to_char(plan_demand.demand_class), '')
+                        || '~'
+                        || coalesce(to_char(plan_demand.order_number), '')
+                        || '~'
+                        || coalesce(to_char(supply_chain_plans.plan_name), '')
+                        || to_char(plan_demand._source_id) integration_id,
+
+-- second
+coalesce(to_char(consumed_demand.organization_id), '')
+                        || '~'
+                        || coalesce(to_char(msc_system.sr_inventory_item_id), '')
+                        || '~'
+                        || coalesce(to_char(consumed_demand.customer_id), '')
+                        || '~'
+                        || coalesce(to_char(consumed_demand.consumption_date::date), '')
+                        || '~'
+                        || coalesce(to_char(consumed_demand.last_update_date::date), '')
+                        || '~'
+                        || coalesce(to_char(order_type), '')
+                        || '~'
+                        || coalesce(to_char(consumed_demand.demand_class), '')
+                        || '~'
+                        || coalesce(to_char(consumed_demand.sales_order_number), '')
+                        || '~'
+                        || coalesce(to_char(supply_chain_plans.plan_name), '')
+                        || '~'
+                        || to_char(supply_chain_plans._source_id) integration_id,
+
+-- third
+coalesce(to_char(oe_order_lines.ship_from_org_id), '')
+                        || '~'
+                        || coalesce(to_char(oe_order_lines.inventory_item_id), '')
+                        || '~'
+                        || coalesce(to_char(oe_order_lines.customer_account_id), '')
+                        || '~'
+                        || coalesce(to_char(oe_order_lines.request_date::date), '')
+                        || '~'
+                        || coalesce(to_char(oe_order_lines.last_update_date::date), '')
+                        || '~'
+                        || coalesce(to_char(order_type), '')
+                        || '~'
+                        || coalesce(to_char(oe_order_lines.demand_class_code), '')
+                        || '~'
+                        || coalesce(to_char(oe_order_headers.order_number), '')
+                        || '~'
+                        || coalesce(to_char(compile_designator), '')
+                        || '~'
+                        || to_char(oe_order_lines._source_id) integration_id,
+fifth
+coalesce(to_char(shipped_demand.organization_id), '')
+                        || '~'
+                        || coalesce(to_char(msc_system.sr_inventory_item_id), '')
+                        || '~'
+                        || coalesce(to_char(shipped_demand.customer_id), '')
+                        || '~'
+                        || coalesce(to_char(oe_order_lines.actual_shipment_date::date), '')
+                        || '~'
+                        || coalesce(to_char(shipped_demand.last_update_date::date), '')
+                        || '~'
+                        || coalesce(to_char(order_type), '')
+                        || '~'
+                        || coalesce(to_char(shipped_demand.demand_class), '')
+                        || '~'
+                        || coalesce(to_char(shipped_demand.sales_order_number), '')
+                        || '~'
+                        || coalesce(to_char(supply_chain_plans.plan_name), '')
+                        || '~'
+                        || to_char(oe_order_lines._source_id) integration_id,
+--sixth
+coalesce(to_char(mss.organization_id), '')
+                        || '~'
+                        || coalesce(to_char(msi.sr_inventory_item_id), '')
+                        || '~'
+                        || coalesce(to_char(customer_id), '')
+                        || '~'
+                        ||  coalesce(to_char(mss.period_start_date::date), '')
+                        || '~'
+                        ||  coalesce(to_char(current_date()::date), '')
+                        || '~'
+                        || coalesce(to_char(order_type), '')
+                        || '~'
+                        ||  coalesce(to_char(demand_class), '')
+                        || '~'
+                        || coalesce(to_char(sales_order_number), '')
+                        || '~'
+                        || coalesce(to_char(msc.plan_name), '')
+                        || '~'
+                        || to_char(msc._source_id) integration_id,
+
+
+
+
+
+                        
+    sub_final as (
+        select
+            fs.demand_type,
+            fs.demand_class,
+            fs.demand_qty,
+            fs.sales_date::date sales_date,
+            fs.w_update_date::date w_update_date,
+            fs.sales_order_number,
+            fs.plan_name,
+            fs.demand_flag,
+            fs.weekly_flag,
+            fs.daily_cutoff_bucket,
+            nvl(
+                fs.customer_id::varchar || '~' || fs.datasource_num_id::varchar, '0'
+            ) customer_account_id,
+            nvl(
+                fs.inventory_item_id::varchar || '~' ||fs.organization_id || '~' || fs.datasource_num_id::varchar,
+                '0'
+            ) inventory_product_id, 
+           nvl(
+                fs.organization_id::varchar || '~' || fs.datasource_num_id::varchar, '0'
+            ) inventory_org_id, 
+            'N'Delete_flag,
+            fs.integration_id,
+            fs.datasource_num_id
+        from final fs
+    )
+select
+    *,
+    
+from
+    sub_final 

@@ -1,0 +1,20 @@
+last doubts:
+1. can i remove 2 staging files (customer lob and promotion) from hot_ptp_Sales
+2. updates in sales_invoice_line_f
+3. updates in sales_demand_f (integration_id) how to take
+4. which table is the source table
+5. delete flag first union all not working
+6. COMPARE THIS ~398~1948141~Forecast~720221208000~EMEA (INTEGRATION_ID) FROM BIWG TO DERIVE INTEGRATION_ID
+7. DEMAND_CLASS 'NA' ALWAYS?
+
+select
+    integration_id as unique_field,
+    count(*) as n_records
+
+from dev_edw.edw_omni.w_sales_demand_f
+where integration_id is not null
+group by integration_id
+having count(*) > 1
+
+select count(*) from dev_edw.edw_omni.w_sales_demand_f
+select count(*) from   dev_discover.ORDER_MGMT.stg_oracle__order_headers

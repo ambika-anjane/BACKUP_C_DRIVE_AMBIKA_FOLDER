@@ -1,0 +1,31 @@
+-- cust_trx_type 
+
+case
+                when type = 'CB'
+                then 'Chargeback'
+                when type = 'CM'
+                then 'Credit Memo'
+                when type = 'INV'
+                then 'Invoice'
+                when type = 'DM'
+                then 'Debit Memo'
+                when type = 'DB'
+                then 'Debit Memo'
+            end as type,
+
+
+-- cust_trx_lines_all
+
+case
+                when line_type = 'CB'
+                then 'Chargeback'
+                when line_type = 'CM'
+                then 'Credit Memo'
+                when line_type = 'INV'
+                then 'Invoice'
+                when line_type = 'DM'
+                then 'Debit Memo'
+                when line_type = 'DB'
+                then 'Debit Memo'
+            end as
+

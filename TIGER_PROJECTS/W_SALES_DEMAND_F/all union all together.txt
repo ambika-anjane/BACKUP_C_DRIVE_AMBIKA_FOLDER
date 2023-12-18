@@ -1,0 +1,346 @@
+with
+    msc_demand as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__msc_demands),
+    msc_plan as(select * from dev_discover.SUPPLY_CHAIN.stg_oracle__msc_plans),
+    mpo as(select * from dev_discover.SUPPLY_CHAIN.stg_oracle__mpo),
+    mfg_look as (select * from dev_discover.FINANCIALS.stg_oracle__mfg_lookups),
+    msc_system as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__msc_system_items),
+    msc_designators as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__msc_designators),
+    msc_dp_scn as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__msc_dp_scn),
+    msc_fore_upd as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__msc_forecast_updates),
+    mtl_system as (select * from dev_discover.MASTER_DATA.stg_oracle__mtl_system_items),
+    oe_order_lines as (select * from dev_discover.ORDER_MGMT.stg_oracle__order_lines),
+    oe_order_headers as (select * from dev_discover.ORDER_MGMT.stg_oracle__order_headers),
+    mtl_uom_conv as (select * from dev_discover.MASTER_DATA.stg_oracle__mtl_uom_conversions),
+    mtl_param as (select * from dev_discover.MASTER_DATA.stg_oracle__mtl_parameters),
+    msc_sales_ord as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__msc_sales_orders),
+    msc_safety_stocks as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__msc_safety_stocks),
+
+
+
+
+/*
+select	
+	
+	SQ_SALES_DEMAND_FS.ORDER_TYPE	   C1_DEMAND_TYPE,
+	SQ_SALES_DEMAND_FS.DEMAND_CLASS	   C2_DEMAND_CLASS,
+	SQ_SALES_DEMAND_FS.QUANTITY	   C3_DEMAND_QTY,
+	SQ_SALES_DEMAND_FS.W_UPDATE_DT	   C4_W_UPDATE_DT,
+	SQ_SALES_DEMAND_FS.DUE_DATE	   C5_DUE_DATE,
+	SQ_SALES_DEMAND_FS.SALES_ORDER_NUMBER	   C6_SALES_ORDER_NUMBER,
+	SQ_SALES_DEMAND_FS.COMPILE_DESIGNATOR	   C7_PLAN_NAME,
+	SQ_SALES_DEMAND_FS.DEMAND_FLAG	   C8_DEMAND_FLAG,
+	SQ_SALES_DEMAND_FS.WEEKLY_FLAG	   C9_WEEKLY_FLAG,
+	SQ_SALES_DEMAND_FS.DAILY_CUTOFF_BUCKET	   C10_DAILY_CUTOFF_BUCKET,
+	SQ_SALES_DEMAND_FS.CUSTOMER_ID	   C11_CUSTOMER_ID,
+	SQ_SALES_DEMAND_FS.ORGANIZATION_ID	   C12_ORGANIZATION_ID,
+	SQ_SALES_DEMAND_FS.INVENTORY_ITEM_ID	   C13_INVENTORY_ITEM_ID
+from	
+
+ 
+ (
+      SELECT msc_system.SR_INVENTORY_ITEM_ID INVENTORY_ITEM_ID,
+      msc_demand.CUSTOMER_ID CUSTOMER_ID,
+    TRUNC(msc_demand.USING_ASSEMBLY_DEMAND_DATE,'MM') DUE_DATE,
+      NVL(msc_demand.DEMAND_CLASS,'NA') DEMAND_CLASS,
+      SUM(NVL(msc_demand.DAILY_DEMAND_RATE,msc_demand.USING_REQUIREMENT_QUANTITY)) QUANTITY,
+ TRUNC(msc_demand.LAST_UPDATE_DATE,'MM') W_UPDATE_DT,
+      msc_demand.ORGANIZATION_ID ORGANIZATION_ID,
+      mfg_look.MEANING ORDER_TYPE,
+      TO_CHAR(SUBSTR(msc_demand.ORDER_NUMBER,1,regexp_instr(msc_demand.ORDER_NUMBER,'.',1)-1)) SALES_ORDER_NUMBER,
+      msc_plan.COMPILE_DESIGNATOR COMPILE_DESIGNATOR,
+      CASE
+        WHEN ((NVL(case when msc_demand.organization_id = 1200 and msc_demand.source_organization_id = 1202 then null else msc_demand.source_organization_id end,0) > 0
+        AND msc_demand.source_organization_id           <> msc_demand.organization_id)
+        OR msc_demand.inventory_item_id                 <> msc_demand.using_assembly_item_id)
+        THEN 'N'
+        ELSE 'Y'
+      END demand_flag , -- added to exlcude component item demand used for make items, and do not apply org dependent logic for dop items in dtx
+      CASE
+        WHEN mfg_look.MEANING         ='Forecast'
+        AND msc_demand.ORGANIZATION_ID IN
+          (SELECT sr_organization_id
+          FROM msc_dp_scn
+          WHERE start_time >=(current_date()-365)
+          AND BUCKET_TYPE   =2
+          )
+        THEN 'Y'
+        ELSE 'N'
+      END WEEKLY_FLAG ,
+      msc_plan.DAILY_CUTOFF_BUCKET
+    FROM msc_demand,
+      msc_plan,
+      msc_system,
+      mfg_look,
+      mpo
+
+      
+    WHERE(1                                     =1)
+    AND mpo.plan_id                             = msc_demand.plan_id
+    AND mpo.organization_id                     = msc_demand.organization_id
+    AND mpo.sr_instance_id                      = msc_demand.sr_instance_id
+    AND (mfg_look.LOOKUP_TYPE                ='MSC_DEMAND_ORIGINATION')
+    AND (msc_demand.USING_REQUIREMENT_QUANTITY >0)
+    AND (mfg_look.MEANING                   IN('Forecast','Payback Demand','Planned order demand','Interorganization Demand','Sales Orders','Work order demand','Safety Stock Demand'))
+    AND (msc_plan.PLAN_ID                      =msc_demand.PLAN_ID)
+    AND (msc_plan.COMPILE_DESIGNATOR          IN
+      (SELECT DESIGNATOR FROM msc_designators WHERE DISABLE_DATE IS NULL
+      ))
+    AND (msc_system.PLAN_ID       =msc_plan.PLAN_ID)
+    AND (msc_system.SR_INSTANCE_ID=msc_demand.SR_INSTANCE_ID
+    AND msc_demand.INVENTORY_ITEM_ID   =msc_system.INVENTORY_ITEM_ID
+    AND msc_system.ORGANIZATION_ID=msc_demand.ORGANIZATION_ID
+    AND msc_system.PLAN_ID        =msc_demand.PLAN_ID)
+    AND (msc_demand.ORIGINATION_TYPE   =mfg_look.LOOKUP_CODE)
+    GROUP BY msc_system.SR_INVENTORY_ITEM_ID,
+      msc_demand.CUSTOMER_ID,
+     TRUNC(msc_demand.USING_ASSEMBLY_DEMAND_DATE,'MM'),
+      NVL(msc_demand.DEMAND_CLASS,'NA'),
+      TRUNC(msc_demand.LAST_UPDATE_DATE,'MM'),
+      msc_demand.ORGANIZATION_ID,
+      mfg_look.MEANING,
+      SUBSTR(msc_demand.ORDER_NUMBER,1,regexp_instr(msc_demand.ORDER_NUMBER,'.',1)-1),
+      msc_plan.COMPILE_DESIGNATOR,
+      CASE
+        WHEN ((NVL(case when msc_demand.organization_id = 1200 and msc_demand.source_organization_id = 1202 then null else msc_demand.source_organization_id end,0) > 0
+        AND msc_demand.source_organization_id           <> msc_demand.organization_id)
+        OR msc_demand.inventory_item_id                 <> msc_demand.using_assembly_item_id)
+        THEN 'N'
+        ELSE 'Y'
+      END,
+      msc_plan.DAILY_CUTOFF_BUCKET,
+     
+   */   
+  
+ -- first union all
+    
+ sub_1 as (
+    (SELECT msc_system.SR_INVENTORY_ITEM_ID C11_INVENTORY_ITEM_ID,
+      msc_fore_upd.CUSTOMER_ID C12_CUSTOMER_ID,
+     TRUNC(msc_fore_upd.CONSUMPTION_DATE,'MM') C13_DUE_DATE,
+      NVL(msc_fore_upd.DEMAND_CLASS,'NA') C14_DEMAND_CLASS,
+      SUM(msc_fore_upd.CONSUMED_QTY) C15_QUANTITY,
+      TRUNC(msc_fore_upd.LAST_UPDATE_DATE,'MM') C16_W_UPDATE_DT,
+      msc_fore_upd.ORGANIZATION_ID C17_ORGANIZATION_ID,
+      'Consumption' C8_ORDER_TYPE,
+      TO_CHAR(SUBSTR(msc_fore_upd.SALES_ORDER_NUMBER,1,regexp_instr(msc_fore_upd.SALES_ORDER_NUMBER,'.',1)-1)) C18_SALES_ORDER_NUMBER,
+      msc_plan.COMPILE_DESIGNATOR C19_COMPILE_DESIGNATOR,
+      'Y' AS demand_flag,
+      'N' AS weekly_flag,
+      msc_plan.DAILY_CUTOFF_BUCKET
+    FROM msc_plan,
+      msc_system,
+      msc_fore_upd,
+      mpo
+    WHERE(1                               =1)
+    AND mpo.plan_id                       = msc_fore_upd.plan_id
+    AND mpo.organization_id               = msc_fore_upd.organization_id
+    AND mpo.sr_instance_id                = msc_fore_upd.sr_instance_id
+    AND (msc_fore_upd.CONSUMED_QTY>0)
+    AND (msc_plan.PLAN_ID                =msc_system.PLAN_ID)
+    AND (msc_plan.COMPILE_DESIGNATOR    IN
+      (SELECT DESIGNATOR FROM msc_designators WHERE DISABLE_DATE IS NULL
+      ))
+    AND (msc_system.INVENTORY_ITEM_ID=msc_fore_upd.INVENTORY_ITEM_ID
+    AND msc_system.ORGANIZATION_ID   =msc_fore_upd.ORGANIZATION_ID)
+    AND (msc_plan.PLAN_ID                 =msc_fore_upd.PLAN_ID)
+    GROUP BY msc_system.SR_INVENTORY_ITEM_ID,
+      msc_fore_upd.CUSTOMER_ID,
+     TRUNC(msc_fore_upd.CONSUMPTION_DATE,'MM'),
+      NVL(msc_fore_upd.DEMAND_CLASS,'NA'),
+    TRUNC(msc_fore_upd.LAST_UPDATE_DATE,'MM'),
+      msc_fore_upd.ORGANIZATION_ID,
+      SUBSTR(msc_fore_upd.SALES_ORDER_NUMBER,1,regexp_instr(msc_fore_upd.SALES_ORDER_NUMBER,'.',1)-1),
+      msc_plan.COMPILE_DESIGNATOR,
+      msc_plan.DAILY_CUTOFF_BUCKET
+    )
+ ),
+ 
+ 
+
+ --second UNION ALL
+ sub_2 as(
+    (SELECT mtl_system.INVENTORY_ITEM_ID C20_INVENTORY_ITEM_ID,
+      oe_order_lines.customer_account_id C21_CUSTOMER_ID,
+      TRUNC(oe_order_lines.REQUEST_DATE,'MM') C22_DUE_DATE,
+      NVL(oe_order_lines.DEMAND_CLASS_CODE,'NA') C23_DEMAND_CLASS,
+      SUM(oe_order_lines.ORDERED_QUANTITY*NVL(mtl_uom_conv.CONVERSION_RATE,1)) C24_QUANTITY,
+     TRUNC(oe_order_lines.LAST_UPDATE_DATE,'MM') C25_W_UPDATE_DT,
+      mtl_system.ORGANIZATION_ID C26_ORGANIZATION_ID,
+      'Unschedule' C8_ORDER_TYPE,
+      TO_CHAR(oe_order_headers.ORDER_NUMBER) C27_SALES_ORDER_NUMBER,
+      'NA' C19_COMPILE_DESIGNATOR,
+      'Y'AS demand_flag,
+      'N'AS weekly_flag,
+      0
+    FROM mtl_uom_conv
+    RIGHT OUTER JOIN(((oe_order_lines
+    INNER  JOIN mtl_system
+    ON oe_order_lines.INVENTORY_ITEM_ID=mtl_system.INVENTORY_ITEM_ID
+    AND oe_order_lines.SHIP_FROM_ORG_ID=mtl_system.ORGANIZATION_ID)
+    INNER  JOIN oe_order_headers
+    ON oe_order_lines.order_header_id=oe_order_headers.order_header_id)
+    INNER JOIN mtl_param
+    ON oe_order_lines.SHIP_FROM_ORG_ID    =mtl_param.ORGANIZATION_ID)
+    ON mtl_uom_conv.INVENTORY_ITEM_ID  =oe_order_lines.INVENTORY_ITEM_ID
+    AND mtl_uom_conv.UOM_CODE          =oe_order_lines.ORDER_QUANTITY_UOM
+    WHERE(1                                   =1)
+    AND (oe_order_lines.FLOW_STATUS_CODE IN('BOOKED','ENTERED')
+    AND oe_order_lines.OPEN_FLAG          ='Y'
+    AND oe_order_lines.LINE_CATEGORY_CODE ='ORDER')
+    GROUP BY mtl_system.INVENTORY_ITEM_ID,
+      oe_order_lines.customer_account_id,
+     TRUNC(oe_order_lines.REQUEST_DATE,'MM'),
+      NVL(oe_order_lines.DEMAND_CLASS_CODE,'NA'),
+      TRUNC(oe_order_lines.LAST_UPDATE_DATE,'MM'),
+      mtl_system.ORGANIZATION_ID,
+      TO_CHAR(oe_order_headers.ORDER_NUMBER)
+    )
+ ),
+  
+  --third UNION ALL
+  sub_3 as (
+    (SELECT msc_system.SR_INVENTORY_ITEM_ID C28_INVENTORY_ITEM_ID,
+      msc_sales_ord.CUSTOMER_ID C29_CUSTOMER_ID,
+    --    TRUNC(msc_sales_ord.REQUIREMENT_DATE,'MM')         C30_DUE_DATE,
+     TRUNC(oe_order_lines.ACTUAL_SHIPMENT_DATE,'MM') C30_DUE_DATE,
+      NVL(msc_sales_ord.DEMAND_CLASS,'NA') C31_DEMAND_CLASS,
+      SUM(msc_sales_ord.COMPLETED_QUANTITY) C32_QUANTITY,
+      TRUNC(msc_sales_ord.LAST_UPDATE_DATE,'MM') C33_W_UPDATE_DT,
+      msc_sales_ord.ORGANIZATION_ID C34_ORGANIZATION_ID,
+      'Shipped' C8_ORDER_TYPE,
+      TO_CHAR(SUBSTR(msc_sales_ord.SALES_ORDER_NUMBER,1,regexp_instr(msc_sales_ord.SALES_ORDER_NUMBER,'.',1)-1)) C35_SALES_ORDER_NUMBER,
+      msc_plan.COMPILE_DESIGNATOR C19_COMPILE_DESIGNATOR,
+      'Y' AS demand_flag,
+      'N' AS weekly_flag,
+      msc_plan.DAILY_CUTOFF_BUCKET
+    FROM msc_system,
+      msc_sales_ord,
+      msc_plan,
+      oe_order_lines
+    WHERE(1=1)
+    AND (msc_sales_ord.DEMAND_ID IN
+      (SELECT DISTINCT SALES_ORDER_ID
+      FROM msc_fore_upd M,
+        msc_system I
+      WHERE M.INVENTORY_ITEM_ID=I.INVENTORY_ITEM_ID
+      AND M.ORGANIZATION_ID    = I.ORGANIZATION_ID
+      AND M.PLAN_ID            = I.PLAN_ID
+      ))
+    AND msc_sales_ord.DEMAND_SOURCE_LINE = oe_order_lines.order_line_id
+    AND (msc_sales_ord.COMPLETED_QUANTITY>0)
+    AND (msc_system.INVENTORY_ITEM_ID =msc_sales_ord.INVENTORY_ITEM_ID
+    AND msc_system.ORGANIZATION_ID    =msc_sales_ord.ORGANIZATION_ID)
+    AND (msc_plan.PLAN_ID                  =msc_system.PLAN_ID
+    AND msc_system.PLAN_ID           <>-1)
+    AND (msc_plan.COMPILE_DESIGNATOR       IN
+      (SELECT DESIGNATOR FROM msc_designators WHERE DISABLE_DATE IS NULL
+      ))
+    GROUP BY msc_system.SR_INVENTORY_ITEM_ID,
+      msc_sales_ord.CUSTOMER_ID,
+      TRUNC(oe_order_lines.ACTUAL_SHIPMENT_DATE,'MM'),
+     TRUNC(msc_sales_ord.REQUIREMENT_DATE,'MM'),
+      NVL(msc_sales_ord.DEMAND_CLASS,'NA'),
+     TRUNC(msc_sales_ord.LAST_UPDATE_DATE,'MM'),
+      msc_sales_ord.ORGANIZATION_ID,
+      SUBSTR(msc_sales_ord.SALES_ORDER_NUMBER,1,regexp_instr(msc_sales_ord.SALES_ORDER_NUMBER,'.',1)-1),
+      msc_plan.COMPILE_DESIGNATOR,
+      msc_plan.DAILY_CUTOFF_BUCKET
+     )
+  ),
+    
+  
+  
+    --4TH  UNION ALL
+    sub_4 AS (
+    (SELECT MSI.sr_INVENTORY_ITEM_ID INVENTORY_ITEM_ID,
+      NULL CUSTOMER_ID,
+      MSS.PERIOD_START_DATE DUE_DATE,
+      'NA' DEMAND_CLASS,
+      MSS.SAFETY_STOCK_QUANTITY QUANTITY,
+      current_timestamp() W_UPDATE_DT,
+      MSS.ORGANIZATION_ID,
+      'Safety Stock' ORDER_TYPE,
+      NULL SALES_ORDER_NUMBER,
+      MSC.COMPILE_DESIGNATOR COMPILE_DESIGNATOR,
+      'N' DEMAND_FLAG,
+      'N' WEEKLY_FLAG,
+      MSC.DAILY_CUTOFF_BUCKET
+    FROM msc_safety_stocks MSS,
+      msc_system MSI,
+      msc_plan MSC
+    WHERE MSS.SR_INSTANCE_ID    = MSI.SR_INSTANCE_ID
+    AND MSS.INVENTORY_ITEM_ID   = MSI.INVENTORY_ITEM_ID
+    AND MSS.ORGANIZATION_ID     = MSI.ORGANIZATION_ID
+    AND MSS.PLAN_ID             = MSI.PLAN_ID
+    AND MSI.PLAN_ID             =MSC.PLAN_ID
+    AND(MSC.COMPILE_DESIGNATOR IN
+      (SELECT DESIGNATOR FROM msc_designators WHERE DISABLE_DATE IS NULL
+      ))
+    )
+    ),
+  
+  
+  -- 5th UNION ALL
+  sub_5 as (
+    (SELECT OLA.INVENTORY_ITEM_ID C28_INVENTORY_ITEM_ID,
+      OLA.customer_account_id C29_CUSTOMER_ID,
+      (COALESCE(OLA.LATEST_ACCEPTABLE_DATE,OLA.SCHEDULE_SHIP_DATE,'1900-01-01')) C30_DUE_DATE,
+      NVL(OLA.DEMAND_CLASS_CODE,'NA') C31_DEMAND_CLASS,
+      SUM(OLA.ORDERED_QUANTITY*NVL(MUC.CONVERSION_RATE,1)) C32_QUANTITY, --UOM Conversion required
+      TRUNC(OLA.LAST_UPDATE_DATE,'MM') C33_W_UPDATE_DT,
+      OLA.SHIP_FROM_ORG_ID C34_ORGANIZATION_ID,
+      'Sales Orders - LAD' C8_ORDER_TYPE,
+      TO_CHAR(OHA.ORDER_NUMBER) C35_SALES_ORDER_NUMBER,
+      'GLOBAL' C19_COMPILE_DESIGNATOR,
+      'Y' AS demand_flag,
+      'N' AS weekly_flag,
+      0 DAILY_CUTOFF_BUCKET
+    FROM oe_order_lines OLA,
+      oe_order_headers OHA,
+      mtl_uom_conv MUC
+    WHERE(1                     =1)
+    AND OLA.order_header_id           = OHA.order_header_id
+    AND OLA.OPEN_FLAG           = 'Y'
+    AND OHA.OPEN_FLAG           = 'Y'
+    AND OLA.ORDER_SOURCE_ID    <>10
+    AND OLA.LINE_CATEGORY_CODE  ='ORDER'
+    AND MUC.INVENTORY_ITEM_ID(+)=OLA.INVENTORY_ITEM_ID
+    AND MUC.UOM_CODE(+)         =OLA.ORDER_QUANTITY_UOM
+    GROUP BY OLA.INVENTORY_ITEM_ID,
+      OLA.customer_account_id,
+      (COALESCE(OLA.LATEST_ACCEPTABLE_DATE,OLA.SCHEDULE_SHIP_DATE,'1900-01-01')),
+      NVL(OLA.DEMAND_CLASS_CODE,'NA'),
+      TRUNC(OLA.LAST_UPDATE_DATE,'MM'),
+      OLA.SHIP_FROM_ORG_ID,
+      OHA.ORDER_NUMBER
+    ) 
+  ),
+
+  
+ 
+
+ final as (
+        select *
+        from sub_1
+        union all
+        select *
+        from sub_2
+        union all
+        select *
+        from sub_3
+         union all
+        select *
+        from sub_4
+         union all
+        select *
+        from sub_5
+
+    )
+    select *
+from final
+
+
+ 
+
+
+ 

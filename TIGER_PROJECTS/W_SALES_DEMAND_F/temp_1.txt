@@ -1,0 +1,52 @@
+final as (
+        select
+
+            sales_demand.demand_type,
+            sales_demand.demand_class,
+            sales_demand.demand_qty,
+            sales_demand.sales_date::date,
+            sales_demand.w_update_date::date,
+            sales_demand.sales_order_number,
+            sales_demand.plan_name,  
+            sales_demand.demand_flag,
+            sales_demand.weekly_flag,
+            sales_demand.daily_cutoff_bucket,
+            sales_demand.customer_account_id,
+            sales_demand.inventory_org_id,
+            sales_demand.inventory_product_id,
+            sales_demand.integration_id,
+            'N' Delete_flag,
+            sales_demand.datasource_num_id,
+            itemcost.item_cost,
+            w_gl_segment_d.segment_id gl_company_id,
+            w_gl_segment_d.segment_id gl_location_id,
+            w_gl_segment_d.segment_id gl_product_line_id,
+            CASE WHEN w_int_org_d.currency_code='USD' THEN 1 ELSE exchange_rate.exchange_rate END USD_CONV_RATE,
+            w_int_org_d.currency_code
+
+from sales_demand inner join itemcost
+on itemcost.inventory_item_id||'~'||itemcost.organization_id||'~'||100 = sales_demand.inventory_product_id
+left join w_int_org_d
+on w_int_org_d.integration_id = sales_demand.inventory_org_id
+And (W_INT_ORG_D.inv_org_flag='Y')
+inner join exchange_rate
+on exchange_rate.from_currency_code = w_int_org_d.currency_code
+AND exchange_rate.conversion_date <= current_date()
+AND exchange_rate.conversion_tyoe ='Corporate' 
+AND exchange_rate.to_currency_code ='USD')
+--And (exchange_rate.conversion_date  > TRUNC(SYSDATE -7, 'MM')
+inner join system_items
+on system_items.inventory_item_id||'~'||system_items.organization_id||'~'||100 = sales_demand.inventory_product_id
+left join w_gl_segment_d
+on system_items.sales_account = w_gl_segment_d.segment_value_code
+and w_gl_segment_d.segment_name = 'Company'
+and w_gl_segment_d.segment_name = 'Location'
+and w_gl_segment_d.segment_name = 'Product Line'
+
+
+
+
+
+    )
+
+    select * from final

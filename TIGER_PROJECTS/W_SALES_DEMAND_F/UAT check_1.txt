@@ -1,0 +1,43 @@
+ with  plan_demand as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__planned_demand),
+            w_int_org_d as (select * from dev_edw.edw_omni.w_int_org_d),
+           exchange_rate as (select * from dev_discover.MASTER_DATA.stg_oracle__currency_exchange_rates),
+               msc_system as (select * from dev_ods.oracle_scp.msc_system_items),
+                   inventory_products as (select * from dev_discover.MASTER_DATA.stg_oracle__inventory_products)
+
+
+            select
+            plan_demand.organization_id,
+            inventory_products.inventory_item_id,
+             case
+                            when w_int_org_d.currency_code = 'USD'
+                            then 1
+                            else exchange_rate.exchange_rate
+                        end usd_conv_rate,
+             w_int_org_d.currency_code
+            from plan_demand
+            left join
+                        w_int_org_d
+                        on w_int_org_d.integration_id
+                        = plan_demand.organization_id || '~' || 100
+                        and (w_int_org_d.inv_org_flag = 'Y')
+                        left join
+                        exchange_rate
+                        on exchange_rate.from_currency_code = w_int_org_d.currency_code
+                        and exchange_rate.to_currency_code = 'USD'
+                        and (
+                            exchange_rate.conversion_date
+                            = current_date
+                        )
+                        inner join msc_system
+                            on msc_system.inventory_item_id = plan_demand.inventory_item_id
+                     left join
+                        inventory_products
+                        on inventory_products.inventory_item_id
+                        = msc_system.sr_inventory_item_id
+                        and inventory_products.organization_id
+                        = plan_demand.organization_id
+
+                        
+                   where   inventory_products.inventory_item_id = '2165197' and plan_demand.organization_id = '398' and plan_demand.using_assembly_demand_date between '2023-08-01' and '2023-08-31'
+                   and plan_demand.demand_source = 'Sales Orders';
+                   

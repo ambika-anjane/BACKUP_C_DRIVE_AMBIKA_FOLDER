@@ -1,0 +1,118 @@
+with
+    sales_demand as (select * from {{ ref("stg__sales_demand") }}),
+  
+    plan_demand as (select * from {{ ref("stg_oracle__planned_demand") }}),
+    w_gl_segment_d as (select * from {{ ref("w_gl_segment_d") }}),
+    w_int_org_d as (select * from {{ ref("w_int_org_d") }}),
+    itemcost as (select * from {{ ref("stg_oracle__item_costs") }}),
+    exchange_rate as (select * from {{ ref("stg_oracle__currency_exchange_rates") }}),
+      inventory_products as (select * from {{ ref("stg_oracle__inventory_products") }}),
+    gl_combinations as  (select * from {{ ref("stg_oracle__gl_account_combinations") }}),
+
+    final as (
+        select
+
+            sales_demand.demand_type,
+            sales_demand.demand_class,
+            sales_demand.demand_qty,
+            sales_demand.sales_date::date sales_date,
+            sales_demand.w_update_date::date w_update_date,
+            sales_demand.sales_order_number,
+            sales_demand.plan_name,
+            sales_demand.demand_flag,
+            sales_demand.weekly_flag,
+            sales_demand.daily_cutoff_bucket,
+            sales_demand.customer_account_id,
+            sales_demand.inventory_org_id,
+            sales_demand.inventory_product_id,
+            itemcost.item_cost item_avg_cost,
+            a.location_segment_key gl_location_id,
+            b.company_segment_key gl_company_id,
+            c.product_line_segment_key gl_product_line_id,
+
+            case
+                when w_int_org_d.currency_code = 'USD'
+                then 1
+                else exchange_rate.exchange_rate
+            end usd_conv_rate,
+            w_int_org_d.currency_code inv_org_curr_code,
+           coalesce(to_char(sales_demand.integration_id), '') integration_id, 
+            'N' delete_flag,
+            sales_demand.datasource_num_id,
+            $batch_start_time as w_insert_dt,
+            $batch_start_time as w_update_dt,
+            {{ env_var("DBT_CLOUD_RUN_ID", 9999) }}::number(20) etl_proc_id
+
+
+        from sales_demand
+        inner join
+            itemcost
+            on itemcost.inventory_item_id
+            || '~'
+            || itemcost.organization_id
+            || '~'
+            || 100
+            = sales_demand.inventory_product_id
+        left join
+            w_int_org_d
+            on w_int_org_d.integration_id = sales_demand.inventory_org_id
+            and (w_int_org_d.inv_org_flag = 'Y')
+        left join
+            exchange_rate
+            on exchange_rate.from_currency_code = w_int_org_d.currency_code
+            and exchange_rate.conversion_type = 'Corporate'
+            and exchange_rate.to_currency_code = 'USD'
+            and (
+                exchange_rate.conversion_date
+                >= dateadd('MONTH', -7, date_trunc('MONTH', current_date()))
+            )
+        inner join
+            inventory_products
+            on inventory_products.inventory_item_id
+            || '~'
+            || inventory_products.organization_id
+            || '~'
+            || 100
+            = sales_demand.inventory_product_id
+        left join
+            gl_combinations a
+
+            on inventory_products.sales_account = a.code_combination_id
+        left join
+            gl_combinations b
+
+            on inventory_products.sales_account = b.code_combination_id
+        left join
+            gl_combinations c
+
+            on inventory_products.sales_account = c.code_combination_id
+
+            group by
+            sales_demand.demand_type,
+            sales_demand.demand_class,
+            sales_demand.demand_qty,
+            sales_demand.sales_date::date,
+            sales_demand.w_update_date::date,
+            sales_demand.sales_order_number,
+            sales_demand.plan_name,
+            sales_demand.demand_flag,
+            sales_demand.weekly_flag,
+            sales_demand.daily_cutoff_bucket,
+            sales_demand.customer_account_id,
+            sales_demand.inventory_org_id,
+            sales_demand.inventory_product_id,
+            sales_demand.integration_id,
+            itemcost.item_cost,
+            a.location_segment_key,
+            b.company_segment_key,
+            c.product_line_segment_key,
+            exchange_rate.exchange_rate,
+            w_int_org_d.currency_code,
+            sales_demand.datasource_num_id
+
+    )
+
+select *
+from final
+
+ 

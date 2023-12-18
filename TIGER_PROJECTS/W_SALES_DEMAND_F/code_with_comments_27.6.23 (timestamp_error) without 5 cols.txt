@@ -1,0 +1,562 @@
+
+
+
+with
+
+    plan_demand as (select * from {{ ref("stg_oracle__planned_demand") }}),
+    supply_chain_plans  as (
+        select * from {{ ref("stg_oracle__supply_chain_plans") }}
+    ),
+    organization_plan as (select * from {{ ref("stg_oracle__organization_plans") }}),  
+    msc_system as (select * from {{ source("oracle_scp", "msc_system_items") }}),  
+    msd_dp_scn as (
+        select * from {{ source("oracle_scp", "msd_dp_scn_entries_denorm") }}
+    ),  
+    consumed_demand as (select * from {{ ref("stg_oracle__consumed_demand") }}), 
+    order_details as (select * from {{ ref("stg_oracle__order_details") }}),
+    mtl_uom_conv as (select * from {{ ref("stg_oracle__item_uom_conversions") }}), 
+    shipped_demand as (select * from {{ ref("stg_oracle__shipped_demand") }}), 
+    item_safety_stocks as (
+        select * from {{ ref("stg_oracle__item_saftey_stocks") }}  
+    ),
+
+     weekly_forecasted_orgs as (
+     SELECT distinct sr_organization_id as sr_organization_id,'Y' AS weekly_flag
+          FROM msd_dp_scn
+          WHERE start_time >=(current_date()-365)
+          AND BUCKET_TYPE   =2
+          
+    ),
+
+    final as (
+        select
+
+            sq_sales_demand_fs.order_type demand_type,
+            sq_sales_demand_fs.demand_class demand_class,
+            sq_sales_demand_fs.quantity demand_qty,
+            sq_sales_demand_fs.sales_date::date sales_date,
+            sq_sales_demand_fs.w_update_date::date w_update_date,
+            sq_sales_demand_fs.sales_order_number sales_order_number,
+            sq_sales_demand_fs.compile_designator plan_name,  
+            sq_sales_demand_fs.demand_flag demand_flag,
+            sq_sales_demand_fs.weekly_flag weekly_flag,
+            sq_sales_demand_fs.daily_cutoff_bucket daily_cutoff_bucket,
+            sq_sales_demand_fs.customer_id customer_id,
+            sq_sales_demand_fs.organization_id organization_id,
+            sq_sales_demand_fs.inventory_item_id inventory_item_id,
+            sq_sales_demand_fs.integration_id integration_id,
+            'N' Delete_flag,
+            sq_sales_demand_fs.datasource_num_id datasource_num_id
+
+        from
+            (
+       
+
+            (
+                    select
+                        msc_system.sr_inventory_item_id inventory_item_id,
+                        plan_demand.customer_id customer_id,
+                        nvl(plan_demand.demand_class, 'NA') demand_class,
+                         sum(
+                            nvl(
+                                plan_demand.daily_demand_rate,
+                                plan_demand.using_requirement_quantity
+                            )
+                        ) quantity,
+                       plan_demand.using_assembly_demand_date::date sales_date,
+                       plan_demand.last_update_date::date w_update_date,
+                        plan_demand.organization_id organization_id,
+                           plan_demand.demand_source order_type,
+                        to_char(
+                            substr(
+                                plan_demand.order_number,
+                                1,
+                                position('.' in order_number) - 1
+                            )
+                        )  sales_order_number,
+                        supply_chain_plans.plan_name compile_designator,
+                         case
+                            when
+                                (
+                                    (
+                                        nvl(
+                                            case
+                                                when
+                                                    plan_demand.organization_id = 1200
+                                                    and plan_demand.source_organization_id
+                                                    = 1202
+                                                then null
+                                                else plan_demand.source_organization_id
+                                            end,0) > 0
+                                        and plan_demand.source_organization_id
+                                        <> plan_demand.organization_id
+                                    )
+                                    or plan_demand.inventory_item_id
+                                    <> plan_demand.using_assembly_item_id
+                                )
+                            then 'N'
+                            else 'Y'
+                        end
+                        demand_flag,
+                         nvl(weekly_forecasted_orgs.weekly_flag,'N')as weekly_flag,
+                        supply_chain_plans.daily_cutoff_bucket,
+                         coalesce(to_char(plan_demand.organization_id), '')
+                        || '~'
+                        || coalesce(to_char(msc_system.sr_inventory_item_id), '')
+                        || '~'
+                        || coalesce(to_char(plan_demand.customer_id), '')
+                        || '~'
+                        || coalesce(to_char(plan_demand.using_assembly_demand_date::date), '')
+                        || '~'
+                        || coalesce(to_char(plan_demand.last_update_date::date), '')
+                        || '~'
+                        || coalesce(to_char(plan_demand.demand_source), '')
+                        || '~'
+                        || coalesce(to_char(plan_demand.demand_class), '')
+                        || '~'
+                        || coalesce(to_char(plan_demand.order_number), '')
+                        || '~'
+                        || coalesce(to_char(supply_chain_plans.plan_name), '')
+                        || to_char(plan_demand._source_id) integration_id,
+                        plan_demand._source_id datasource_num_id
+
+                    
+                    from plan_demand left outer join weekly_forecasted_orgs
+                    on plan_demand.organization_id = weekly_forecasted_orgs.sr_organization_id
+                    inner join msc_system
+                    on msc_system.sr_instance_id = plan_demand.sr_instance_id
+                    and msc_system.inventory_item_id = plan_demand.inventory_item_id
+                    and msc_system.organization_id = plan_demand.organization_id
+                    and msc_system.plan_id = plan_demand.plan_id
+                    and (plan_demand.using_requirement_quantity > 0)
+                    inner join supply_chain_plans
+                    on supply_chain_plans.plan_id = plan_demand.plan_id
+                    inner join organization_plan
+                    on organization_plan.plan_id = plan_demand.plan_id
+                    and organization_plan.organization_id = plan_demand.organization_id
+                    and organization_plan.sr_instance_id = plan_demand.sr_instance_id
+
+
+                      group by
+                        msc_system.sr_inventory_item_id,
+                        plan_demand.customer_id,
+                        plan_demand.demand_class,
+                        plan_demand.using_assembly_demand_date::date,-- keep it with cast
+                        plan_demand.last_update_date::date,
+                        plan_demand.organization_id,
+                        plan_demand.demand_source,
+                        plan_demand.order_number,
+                        supply_chain_plans.plan_name,
+                         case
+                            when
+                                (
+                                    (
+                                        nvl(
+                                            case
+                                                when
+                                                    plan_demand.organization_id = 1200
+                                                    and plan_demand.source_organization_id
+                                                    = 1202
+                                                then null
+                                                else plan_demand.source_organization_id
+                                            end,0) > 0
+                                        and plan_demand.source_organization_id
+                                        <> plan_demand.organization_id
+                                    )
+                                    or plan_demand.inventory_item_id
+                                    <> plan_demand.using_assembly_item_id
+                                )
+                            then 'N'
+                            else 'Y'
+                        end,
+                         weekly_forecasted_orgs.weekly_flag,
+                        supply_chain_plans.daily_cutoff_bucket,
+                        plan_demand._source_id
+            )
+
+ union all
+                (
+                    select
+                        msc_system.sr_inventory_item_id inventory_item_id,
+                        consumed_demand.customer_id customer_id,
+                        nvl(consumed_demand.demand_class, 'NA') demand_class,
+                        sum(consumed_demand.consumed_qty) quantity,
+                        consumed_demand.consumption_date::date sales_date,
+                        consumed_demand.last_update_date::date w_update_date,
+                        consumed_demand.organization_id organization_id,
+                        'Consumption' order_type,
+                        to_char(
+                            substr(
+                                consumed_demand.sales_order_number,
+                                1,
+                                position('.' in sales_order_number) - 1
+                            )
+                        ) sales_order_number,
+
+                        supply_chain_plans.plan_name compile_designator,
+                        'Y' as demand_flag,
+                         'N' as weekly_flag,
+                        supply_chain_plans.daily_cutoff_bucket,
+                        coalesce(to_char(consumed_demand.organization_id), '')
+                        || '~'
+                        || coalesce(to_char(msc_system.sr_inventory_item_id), '')
+                        || '~'
+                        || coalesce(to_char(consumed_demand.customer_id), '')
+                        || '~'
+                        || coalesce(to_char(consumed_demand.consumption_date::date), '')
+                        || '~'
+                        || coalesce(to_char(consumed_demand.last_update_date::date), '')
+                        || '~'
+                        || coalesce(to_char(order_type), '')
+                        || '~'
+                        || coalesce(to_char(consumed_demand.demand_class), '')
+                        || '~'
+                        || coalesce(to_char(consumed_demand.sales_order_number), '')
+                        || '~'
+                        || coalesce(to_char(supply_chain_plans.plan_name), '')
+                        || '~'
+                        || to_char(supply_chain_plans._source_id) integration_id,
+                        supply_chain_plans._source_id datasource_num_id
+
+                    from
+                        supply_chain_plans inner join msc_system
+                        on supply_chain_plans.plan_id = msc_system.plan_id
+                        inner join  consumed_demand
+                        on supply_chain_plans.plan_id = consumed_demand.plan_id
+                        and  msc_system.inventory_item_id = consumed_demand.inventory_item_id
+                        and msc_system.organization_id = consumed_demand.organization_id
+                        inner join  organization_plan
+                        on organization_plan.plan_id = consumed_demand.plan_id
+                        and organization_plan.organization_id = consumed_demand.organization_id
+                        and organization_plan.sr_instance_id = consumed_demand.sr_instance_id
+                        and (consumed_demand.consumed_qty > 0)
+   group by
+                        msc_system.sr_inventory_item_id,
+                        consumed_demand.customer_id,
+                        consumed_demand.demand_class,
+                        consumed_demand.consumption_date::date,
+                        consumed_demand.last_update_date::date,
+                        consumed_demand.organization_id,
+                        order_type,
+                        consumed_demand.sales_order_number,
+                        supply_chain_plans.plan_name,
+                        demand_flag,
+                        weekly_flag,
+                        supply_chain_plans.daily_cutoff_bucket,
+                        supply_chain_plans._source_id
+                )
+
+
+
+
+                union all
+                (
+                    select
+                        order_details.inventory_item_id inventory_item_id,
+                        order_details.customer_account_id customer_id,
+                        nvl(order_details.demand_class, 'NA') demand_class,
+                        sum(
+                            order_details.ordered_quantity
+                            * nvl(mtl_uom_conv.conversion_rate, 1)
+                        ) quantity,
+                        order_details.required_by_date::date sales_date,
+                        order_details.order_changed_on_date::date w_update_date,
+                        order_details.inventory_org_id organization_id,  
+                        'Unschedule' order_type,
+                        to_char(order_details.order_number) sales_order_number,
+                        'NA' compile_designator,
+                        'Y' as demand_flag,
+                        'N' as weekly_flag,
+                        0,
+                        coalesce(to_char(order_details.inventory_org_id), '')
+                        || '~'
+                        || coalesce(to_char(order_details.inventory_item_id), '')
+                        || '~'
+                        || coalesce(to_char(order_details.customer_account_id), '')
+                        || '~'
+                        || coalesce(to_char(order_details.required_by_date::date), '')
+                        || '~'
+                        || coalesce(to_char(order_details.order_changed_on_date::date), '')
+                        || '~'
+                        || coalesce(to_char(order_type), '')
+                        || '~'
+                        || coalesce(to_char(order_details.demand_class), '')
+                        || '~'
+                        || coalesce(to_char(order_details.order_number), '')
+                        || '~'
+                        || coalesce(to_char(compile_designator), '')
+                        || '~'
+                        || to_char(order_details._source_id) integration_id,
+                        order_details._source_id datasource_num_id
+
+                    from mtl_uom_conv
+                    
+                      
+                     right outer join order_details
+                        on mtl_uom_conv.inventory_item_id
+                        = order_details.inventory_item_id
+                        and mtl_uom_conv.uom_code = order_details.order_quantity_uom
+                    where
+                        (1 = 1)
+                        and (
+                            order_details.order_status_code in ('BOOKED', 'ENTERED')
+                            and order_details.order_line_open_flag = 'Y'
+                            and order_details.line_category_code = 'ORDER'
+                        )
+
+                    group by
+                        order_details.inventory_item_id,
+                        order_details.customer_account_id,
+                        order_details.demand_class,
+                        order_details.required_by_date::date,
+                        order_details.order_changed_on_date::date,
+                        order_details.inventory_org_id,
+                        order_details.order_number,
+                        compile_designator,
+                        order_details._source_id
+
+                )
+
+                union all
+
+                (
+                    select
+                        msc_system.sr_inventory_item_id inventory_item_id,
+                        shipped_demand.customer_id customer_id,
+                        nvl(shipped_demand.demand_class, 'NA') demand_class,
+                        sum(shipped_demand.completed_quantity) quantity,
+                        order_details.actual_shipment_date::date sales_date,
+                        shipped_demand.last_update_date::date w_update_date,
+                        shipped_demand.organization_id organization_id,
+                        'Shipped' order_type,
+                        to_char(
+                            substr(
+                                shipped_demand.sales_order_number,
+                                1,
+                                position('.' in sales_order_number) - 1
+                            )
+                        ) sales_order_number,
+                        supply_chain_plans.plan_name compile_designator,
+                        'Y' as demand_flag,
+                        'N' as weekly_flag,
+                        supply_chain_plans.daily_cutoff_bucket,
+                        coalesce(to_char(shipped_demand.organization_id), '')
+                        || '~'
+                        || coalesce(to_char(msc_system.sr_inventory_item_id), '')
+                        || '~'
+                        || coalesce(to_char(shipped_demand.customer_id), '')
+                        || '~'
+                        || coalesce(to_char(order_details.actual_shipment_date::date), '')
+                        || '~'
+                        || coalesce(to_char(shipped_demand.last_update_date::date), '')
+                        || '~'
+                        || coalesce(to_char(order_type), '')
+                        || '~'
+                        || coalesce(to_char(shipped_demand.demand_class), '')
+                        || '~'
+                        || coalesce(to_char(shipped_demand.sales_order_number), '')
+                        || '~'
+                        || coalesce(to_char(supply_chain_plans.plan_name), '')
+                        || '~'
+                        || to_char(shipped_demand._source_id) integration_id,
+                       shipped_demand._source_id datasource_num_id
+
+                    from msc_system inner join shipped_demand
+                    on  msc_system.inventory_item_id = shipped_demand.inventory_item_id
+                    and msc_system.organization_id = shipped_demand.organization_id
+                    inner join supply_chain_plans
+                    on  supply_chain_plans.plan_id = msc_system.plan_id
+                    AND (msc_system.plan_id  <>-1)
+                    inner join  order_details
+                    on shipped_demand.demand_source_line = order_details.order_line_id --(--line_id or order_line_id)??
+                   
+                        and (
+                            shipped_demand.demand_id in (
+                                select distinct sales_order_id
+                                from consumed_demand 
+                            )
+                        )
+                        and (shipped_demand.completed_quantity > 0)
+                        group by
+                        msc_system.sr_inventory_item_id,
+                        shipped_demand.customer_id,
+                        shipped_demand.demand_class,
+                        order_details.actual_shipment_date::date,
+                        shipped_demand.last_update_date::date,
+                        shipped_demand.organization_id,
+                        shipped_demand.sales_order_number,
+                        supply_chain_plans.plan_name,
+                        supply_chain_plans.daily_cutoff_bucket,
+                        order_details._source_id
+
+                )
+                union all
+
+                (
+                    select
+                        msi.sr_inventory_item_id inventory_item_id,
+                        null customer_id,
+                        'NA' demand_class,
+                        mss.safety_stock_quantity quantity,
+                        mss.period_start_date::date sales_date,
+                        current_date()::date w_update_date,
+                        mss.organization_id,
+                        'Safety Stock' order_type,
+                        null sales_order_number,
+                        msc.plan_name compile_designator,
+                        'N' demand_flag,
+                        'N' weekly_flag,
+                        msc.daily_cutoff_bucket,
+                        coalesce(to_char(mss.organization_id), '')
+                        || '~'
+                        || coalesce(to_char(msi.sr_inventory_item_id), '')
+                        || '~'
+                        || coalesce(to_char(customer_id), '')
+                        || '~'
+                        ||  coalesce(to_char(mss.period_start_date::date), '')
+                        || '~'
+                        ||  coalesce(to_char(current_date()::date), '')
+                        || '~'
+                        || coalesce(to_char(order_type), '')
+                        || '~'
+                        ||  coalesce(to_char(demand_class), '')
+                        || '~'
+                        || coalesce(to_char(sales_order_number), '')
+                        || '~'
+                        || coalesce(to_char(msc.plan_name), '')
+                        || '~'
+                        || to_char(mss._source_id) integration_id,
+                       mss._source_id datasource_num_id
+
+                  
+                    from item_safety_stocks mss inner join msc_system msi
+                    on mss.sr_instance_id = msi.sr_instance_id
+                    and mss.inventory_item_id = msi.inventory_item_id
+                    and mss.organization_id = msi.organization_id
+                    and mss.plan_id = msi.plan_id
+                    inner join  supply_chain_plans msc
+                    on  msi.plan_id = msc.plan_id
+                   )
+
+                union all
+                (
+
+                    select
+                        ola.inventory_item_id inventory_item_id,
+                        ola.customer_account_id customer_id,
+                       nvl(ola.demand_class, 'NA') demand_class,
+                        sum(
+                            ola.ordered_quantity * nvl(muc.conversion_rate, 1)
+                        ) quantity,  -- UOM Conversion required
+                        
+                            coalesce(
+                                ola.latest_acceptable_date::date,
+                                ola.schedule_ship_date::date,
+                                '1900-01-01'
+                            )
+                         sales_date,
+                      ola.order_changed_on_date::date w_update_date,
+                        ola.inventory_org_id organization_id,
+                        'Sales Orders - LAD' order_type,
+                        to_char(ola.order_number) sales_order_number,
+                        'GLOBAL' compile_designator,
+                        'Y' as demand_flag,
+                        'N' as weekly_flag,
+                        0 daily_cutoff_bucket,
+                        coalesce(to_char(ola.inventory_org_id), '')
+                        || '~'
+                        || coalesce(to_char(ola.inventory_item_id), '')
+                        || '~'
+                        || coalesce(to_char(ola.customer_account_id), '')
+                        || '~'
+                        || (
+                            coalesce(
+                                ola.latest_acceptable_date::date,
+                                ola.schedule_ship_date::date,
+                                '1900-01-01'
+                            )
+                        )
+                        || '~'
+                        || coalesce(to_char(ola.order_changed_on_date::date), '')
+                        || '~'
+                        || coalesce(to_char(order_type), '')
+                        || '~'
+                        || coalesce(to_char(ola.demand_class), '')
+                        || '~'
+                        || coalesce(to_char(ola.order_number), '')
+                        || '~'
+                        || coalesce(to_char(compile_designator), '')
+                        || '~'
+                        || to_char(ola._source_id) integration_id,
+                        ola._source_id datasource_num_id
+
+                    from order_details ola
+                    right outer join  mtl_uom_conv muc
+                    on muc.inventory_item_id = ola.inventory_item_id 
+                    and muc.uom_code = ola.order_quantity_uom  
+                    where
+                        (1 = 1)
+                        and ola.order_open_flag = 'Y'
+                        and ola.order_line_open_flag = 'Y'
+                        and ola.order_source_id <> 10
+                        and ola.line_category_code = 'ORDER'
+                 
+
+                    group by
+                        ola.inventory_item_id,
+                        ola.customer_account_id,
+                        ola.demand_class,
+                        (
+                            coalesce(
+                                ola.latest_acceptable_date::date,
+                                ola.schedule_ship_date::date,
+                                '1900-01-01'
+                            )
+                        ),
+                        ola.order_changed_on_date::date,
+                        ola.inventory_org_id,
+                        order_type,
+                        ola.order_number,
+                        compile_designator,
+                        daily_cutoff_bucket,
+                        ola._source_id
+                )
+
+            ) sq_sales_demand_fs
+        where (1 = 1)
+
+    ),
+
+    sub_final as (
+        select
+            fs.demand_type,
+            fs.demand_class,
+            fs.demand_qty,
+            fs.sales_date::date sales_date,
+            fs.w_update_date::date w_update_date,
+            fs.sales_order_number,
+            fs.plan_name,
+            fs.demand_flag,
+            fs.weekly_flag,
+            fs.daily_cutoff_bucket,
+            nvl(
+                fs.customer_id::varchar || '~' || fs.datasource_num_id::varchar, '0'
+            ) customer_account_id,
+            nvl(
+                fs.inventory_item_id::varchar || '~' ||fs.organization_id || '~' || fs.datasource_num_id::varchar,
+                '0'
+            ) inventory_product_id, 
+           nvl(
+                fs.organization_id::varchar || '~' || fs.datasource_num_id::varchar, '0'
+            ) inventory_org_id, 
+            'N'Delete_flag,
+            fs.integration_id,
+            fs.datasource_num_id
+        from final fs
+    )
+select
+    *, 
+{{ env_var("DBT_CLOUD_RUN_ID", 9999) }}::number(32)  etl_proc_id
+    
+from
+    sub_final 
