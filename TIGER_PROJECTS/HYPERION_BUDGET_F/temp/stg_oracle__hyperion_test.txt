@@ -1,0 +1,29 @@
+
+
+
+
+{% set sql_statement %}
+    select distinct scenario from {{ ref('stg_oracle__test') }}
+{% endset %}
+
+{%- set scen = dbt_utils.get_query_results_as_dict(sql_statement) -%}
+ {{log("*** This is scenario =  "~scen, info=True)}}
+ /* {% for s in scen.items() %}
+ {{ s }}
+ {% endfor %} */
+
+select
+
+    {% for bud in scen['BUDGETED'] | unique -%}
+      sum(case when bud = '{{ bud }}' then 1 else 0 end) as scenerios_in_{{ dbt_utils.slugify(bud) }},
+    {% endfor %}
+
+
+
+    
+    
+    scenario,count(*) as total_total
+
+    
+
+from {{ ref('stg_oracle__test') }} group by scenario

@@ -1,0 +1,51 @@
+-- checking customer and make it as flag col
+-- stg_oracle__financial_forecast (rename)
+-- second stage as intermediate (int__get_forecast) --remove
+-- bring germany...some case when from text file to staging
+-- remove single line columns from staging
+-- bring customer_grp ...cg_countto load
+-- updte all the changes in the stage and load...and check customer_level
+-- bring w_day_d inthe load itself and conditions derived so far good 
+-- now to proceed with customer_lvel
+-- in the load model using jinja (according to filename siwtch over to
+-- budget,forecaat,3+6+9)
+-- in the source table we have to bring column which decides the file type
+-- (budget/forecast/3+6+9)
+-- step 6,7,8,9 will do in macro (in pre_hook)
+-- ask derek to give file for customer and check for the customer_level
+-- then final
+
+-- 6.6.23 (TODAYS COMMENTS)
+-- check for the sales value matches with the source table (sales amount value -- add and validate)
+-- custome_account_d added as ref (done)
+--  keep the for loop as it is
+-- check the join which is taki gn long time
+-- incremental part to discuss with venkat as well macro
+-- to check the financial year wfrom derek file 2023 and check with gurpreet for azure blob
+--  make the column BUDGET AS BUDGETED
+-- we will collect list of item numbers, customer numbers and customer groups not available and send an email with the list
+-- or exception logic, we will check item number, customer number, customer group against the corresponding dimensions
+-- we should not load the data until the list becomes zero
+
+
+-- in source table go for batch_updater_date (done)
+-- in load we should find out the new file with batch_update_date 
+-- keep the file in azure and copy command
+-- ods table name : 1.sql (with pre_hook)
+-- alter table batch_update_date in source table (done)
+-- ading thenscenerio column in ods and checking that column name before for loop (done)
+-- full refresh -- pull al the scenerio names (to check)
+-- in incremental -- pull only selected scenerios (to check)
+-- we have the error table , post hook on that (check for the mssing entries)
+-- will trigger to fail the job
+-- error table (look at the stagong table) an dcompare the  timestamp > fact table
+-- rerun again it will proces the same file
+-- dbt macro to do the exception
+-- between stage and fact ...error table 
+-- pre-hook , incremental, fr loop , in the for loop 
+-- error table
+-- item number , customer_number both not available and message for that one
+-- select customer_numbe from customer_Account_d from staging into dimension (with
+-- join conditin and customer number is null)
+-- insert into error table
+-- extra (to test w_ and stg_oralce__test) -- to be removed

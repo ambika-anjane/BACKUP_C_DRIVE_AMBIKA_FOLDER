@@ -1,0 +1,40 @@
+-- files created so far
+-- if not required need to delete below
+-- stg_oracle__hyperion_budget_load
+-- stg_orcle__hyperion_budget_file_period_load
+-- w_hyperion_budget_f
+
+
+--in sales_forecast
+--actual_total_value in prod and omni (production is null) -- no issues 
+-- map this actual_ttl_value with ttl_dol (check in table)
+--actuall_ttl_value is populating  value in prod  and this col not present in omni 
+--i need to bring this col in omni and it should be poputale value and it should validate with prod
+-- hot_abc_flag is populating  value in prod
+-- in omni it is populating null vlue 
+-- need to chk with this col ...and it has to populate vaue
+-- gl_segment_2,one_month_lag_4_cast_dol column is not there in omni and it is there in prod and it is  populating 5 values in prod (need to chk this col)
+-- and for dol col populating values
+
+-- hyperion 
+-- any client tool supports snowflake 
+-- through UI i will load the data
+-- pivot function to get mar, apr...row values (or trnas)
+-- only hot_abc_flag in sales_forecast
+-- 
+
+--hyperon_1.6.23
+-- checking customer and make it as flag col
+-- stg_oracle__financial_forecast (rename)
+-- second stage as intermediate (int__get_forecast) --remove
+-- bring germany...some case when from text file to staging
+-- remove single line columns from staging
+-- bring customer_grp ...cg_countto load
+--updte all the changes in the stage and load...and check customer_level
+-- bring w_day_d inthe load itself and conditions derived so far good 
+-- now to proceed with customer_lvel
+-- in the load model using jinja (according to filename siwtch over to budget,forecaat,3+6+9)
+-- in the source table we have to bring column which decides the file type (budget/forecast/3+6+9)
+-- step 6,7,8,9 will do in macro (in pre_hook)
+-- ask derek to give file for customer and check for the customer_level
+-- then final

@@ -1,0 +1,66 @@
+1. create table in database
+2. staging for that
+3. renaming the cols
+4. trimming of the cols (removing PL,CL,etcc...)
+bring case statements here in staging
+w_dayd_ condtion
+remove pivot from file_upload
+final code with col naming and join conditions
+-- to discuss with venkat
+-- facing column delimter issue in finanacial_forecast table loading
+-- to confirm case when column names (new column names)
+-- to confirm 'a' cte...
+-- a cte is removed and how can i use that for join condition
+-- final model should be done in 4 line sql??
+-- line no : 59,60,63,62,65,66 (account not having grossunits, customer in sample load file)
+
+--- 3.6.23 updates
+-- to incluse item_id from w_product_id
+-- tested the code with exception CG_AMAZON.COM (HC)
+-- datasource_num_id is not there in the source table...(which source_id )
+
+
+
+case when GL_ACCOUNT_CODE='GrossUnits' then '401000' else gl_account_code end
+
+
+select * from 
+(
+select 
+GL_BUSINESS_UNIT_CODE,
+GL_COMPANY_CODE,
+GL_SALES_CHANNEL_CODE,
+GL_LOCATION_CODE,
+ORGANIZATION_ID,
+GL_ACCOUNT_CODE,
+CUSTOMER,
+GL_BRAND_CODE,
+GL_PRODUCT_LINE_CODE,
+SKU,
+SKU_ORG_ID,
+GL_DEPARTMENT_CODE,
+CUSTOMER_LEVEL,
+UNITS_FLAG,
+MONTH,
+SALES,
+CURRENCY
+from stg_oracle__hyperion_budget_load 
+) pivot (sum(sales) for units_flag in ('SALES_UNITS','SALES_AMOUNT')) as p
+(GL_BUSINESS_UNIT_CODE,
+GL_COMPANY_CODE,
+GL_SALES_CHANNEL_CODE,
+GL_LOCATION_CODE,
+ORGANIZATION_ID,
+gl_account_code,
+CUSTOMER,
+GL_BRAND_CODE,
+GL_PRODUCT_LINE_CODE,
+SKU,
+SKU_ORG_ID,
+GL_DEPARTMENT_CODE,
+CUSTOMER_LEVEL,
+MONTH,
+CURRENCY,
+SALES_UNITS,
+SALES_AMOUNT
+) ;

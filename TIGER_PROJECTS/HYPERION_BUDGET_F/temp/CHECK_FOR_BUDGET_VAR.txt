@@ -1,0 +1,902 @@
+{% set forecast_scenario = var("forecast_scenario", "BUDGET") %}
+{% set forecast_scenario = var("forecast_scenario", "3PLUS9") %}
+{% set forecast_scenario = var("forecast_scenario", "6PLUS6") %}
+{% set forecast_scenario = var("forecast_scenario", "9PLUS3") %}
+
+
+
+with
+    period_load as (select * from {{ ref("stg_oracle__hyperion_financial_forecast") }}),
+cg_amounts as (
+select
+-- substitue of period in intgration_id
+  -- period_load.sales_units,
+  '{{forecast_scenario}}'  forecast_scenario,
+     case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END BUDGET_UNITS,
+    case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END BUDGET_AMOUNT,
+    case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC3PLUS9_UNITS,
+     case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC3PLUS9_AMOUNT,
+    case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC6PLUS6_UNITS,
+     case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC6PLUS6_AMOUNT,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC9PLUS3_UNITS,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC9PLUS3_AMOUNT
+    
+
+from
+    period_load 
+
+
+union all
+select
+-- substitue of period in intgration_id
+  -- period_load.sales_units,
+  '{{forecast_scenario}}'  forecast_scenario,
+     case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END BUDGET_UNITS,
+    case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END BUDGET_AMOUNT,
+    case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC3PLUS9_UNITS,
+     case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC3PLUS9_AMOUNT,
+    case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC6PLUS6_UNITS,
+     case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC6PLUS6_AMOUNT,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC9PLUS3_UNITS,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC9PLUS3_AMOUNT
+    
+
+from
+    period_load 
+
+)
+select * from cg_amounts 
+
+
+--
+
+{% set forecast_scenario = var("forecast_scenario", "BUDGET") %}
+{% set forecast_scenario = var("forecast_scenario", "3PLUS9") %}
+{% set forecast_scenario = var("forecast_scenario", "6PLUS6") %}
+{% set forecast_scenario = var("forecast_scenario", "9PLUS3") %}
+
+
+
+with
+    period_load as (select * from {{ ref("stg_oracle__hyperion_financial_forecast") }}),
+cg_amounts as (
+select
+-- substitue of period in intgration_id
+  -- period_load.sales_units,
+  '{{forecast_scenario}}'  forecast_scenario,
+     case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+    case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+    case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+    case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT
+    
+
+from
+    period_load 
+
+
+union all
+select
+-- substitue of period in intgration_id
+  -- period_load.sales_units,
+  '{{forecast_scenario}}'  forecast_scenario,
+     case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END BUDGET_UNITS,
+    case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END BUDGET_AMOUNT,
+    case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC3PLUS9_UNITS,
+     case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC3PLUS9_AMOUNT,
+    case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC6PLUS6_UNITS,
+     case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC6PLUS6_AMOUNT,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC9PLUS3_UNITS,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC9PLUS3_AMOUNT
+    
+
+from
+    period_load 
+
+)
+select * from cg_amounts 
+
+
+
+{% set forecast_scenario = var("forecast_scenario", "BUDGET") %}
+{% set forecast_scenario = var("forecast_scenario", "3PLUS9") %}
+{% set forecast_scenario = var("forecast_scenario", "6PLUS6") %}
+{% set forecast_scenario = var("forecast_scenario", "9PLUS3") %}
+
+
+
+with
+    period_load as (select * from {{ ref("stg_oracle__hyperion_financial_forecast") }}),
+cg_amounts as (
+select
+-- substitue of period in intgration_id
+  -- period_load.sales_units,
+  '{{forecast_scenario}}'  forecast_scenario,
+     case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+    case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+    case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+    case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT
+    
+
+from
+    period_load 
+
+
+union all
+select
+-- substitue of period in intgration_id
+  -- period_load.sales_units,
+  '{{forecast_scenario}}'  forecast_scenario,
+     case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END BUDGET_UNITS,
+    case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END BUDGET_AMOUNT,
+    case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC3PLUS9_UNITS,
+     case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC3PLUS9_AMOUNT,
+    case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC6PLUS6_UNITS,
+     case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC6PLUS6_AMOUNT,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC9PLUS3_UNITS,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC9PLUS3_AMOUNT
+    
+
+from
+    period_load 
+
+)
+select * from cg_amounts 
+
+
+{% set forecast_scenario = var("forecast_scenario", "BUDGET") %}
+{% set forecast_scenario = var("forecast_scenario", "3PLUS9") %}
+{% set forecast_scenario = var("forecast_scenario", "6PLUS6") %}
+{% set forecast_scenario = var("forecast_scenario", "9PLUS3") %}
+
+
+
+with
+    period_load as (select * from {{ ref("stg_oracle__hyperion_financial_forecast") }}),
+cg_amounts as (
+select
+-- substitue of period in intgration_id
+  -- period_load.sales_units,
+  '{{forecast_scenario}}'  forecast_scenario,
+     case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+    case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+    case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+    case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT
+    
+
+from
+    period_load 
+
+
+union all
+select
+-- substitue of period in intgration_id
+  -- period_load.sales_units,
+  '{{forecast_scenario}}'  forecast_scenario,
+     case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END BUDGET_UNITS,
+    case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END BUDGET_AMOUNT,
+    case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC3PLUS9_UNITS,
+     case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC3PLUS9_AMOUNT,
+    case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC6PLUS6_UNITS,
+     case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC6PLUS6_AMOUNT,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC9PLUS3_UNITS,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC9PLUS3_AMOUNT
+    
+
+from
+    period_load 
+
+)
+select * from cg_amounts 
+
+
+{% set forecast_scenario = var("forecast_scenario", "BUDGET") %}
+{% set forecast_scenario = var("forecast_scenario", "3PLUS9") %}
+{% set forecast_scenario = var("forecast_scenario", "6PLUS6") %}
+{% set forecast_scenario = var("forecast_scenario", "9PLUS3") %}
+
+
+
+with
+    period_load as (select * from {{ ref("stg_oracle__hyperion_financial_forecast") }}),
+cg_amounts as (
+select
+-- substitue of period in intgration_id
+  -- period_load.sales_units,
+  '{{forecast_scenario}}'  forecast_scenario,
+     case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+    case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+    case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+    case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT
+    
+
+from
+    period_load 
+
+
+union all
+select
+-- substitue of period in intgration_id
+  -- period_load.sales_units,
+  '{{forecast_scenario}}'  forecast_scenario,
+     case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END BUDGET_UNITS,
+    case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END BUDGET_AMOUNT,
+    case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC3PLUS9_UNITS,
+     case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC3PLUS9_AMOUNT,
+    case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC6PLUS6_UNITS,
+     case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC6PLUS6_AMOUNT,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC9PLUS3_UNITS,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC9PLUS3_AMOUNT
+    
+
+from
+    period_load 
+
+)
+select * from cg_amounts 
+
+
+{% set forecast_scenario = var("forecast_scenario", "BUDGET") %}
+{% set forecast_scenario = var("forecast_scenario", "3PLUS9") %}
+{% set forecast_scenario = var("forecast_scenario", "6PLUS6") %}
+{% set forecast_scenario = var("forecast_scenario", "9PLUS3") %}
+
+
+
+with
+    period_load as (select * from {{ ref("stg_oracle__hyperion_financial_forecast") }}),
+cg_amounts as (
+select
+-- substitue of period in intgration_id
+  -- period_load.sales_units,
+  '{{forecast_scenario}}'  forecast_scenario,
+     case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+    case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+    case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+    case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT
+    
+
+from
+    period_load 
+
+
+union all
+select
+-- substitue of period in intgration_id
+  -- period_load.sales_units,
+  '{{forecast_scenario}}'  forecast_scenario,
+     case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END BUDGET_UNITS,
+    case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END BUDGET_AMOUNT,
+    case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC3PLUS9_UNITS,
+     case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC3PLUS9_AMOUNT,
+    case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC6PLUS6_UNITS,
+     case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC6PLUS6_AMOUNT,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC9PLUS3_UNITS,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC9PLUS3_AMOUNT
+    
+
+from
+    period_load 
+
+)
+select * from cg_amounts 
+
+
+
+
+{% set forecast_scenario = var("forecast_scenario", "BUDGET") %}
+{% set forecast_scenario = var("forecast_scenario", "3PLUS9") %}
+{% set forecast_scenario = var("forecast_scenario", "6PLUS6") %}
+{% set forecast_scenario = var("forecast_scenario", "9PLUS3") %}
+
+
+
+with
+    period_load as (select * from {{ ref("stg_oracle__hyperion_financial_forecast") }}),
+cg_amounts as (
+select
+-- substitue of period in intgration_id
+  -- period_load.sales_units,
+  '{{forecast_scenario}}'  forecast_scenario,
+     case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+    case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+    case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+    case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT
+    
+
+from
+    period_load 
+
+
+union all
+select
+-- substitue of period in intgration_id
+  -- period_load.sales_units,
+  '{{forecast_scenario}}'  forecast_scenario,
+     case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END BUDGET_UNITS,
+    case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END BUDGET_AMOUNT,
+    case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC3PLUS9_UNITS,
+     case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC3PLUS9_AMOUNT,
+    case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC6PLUS6_UNITS,
+     case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC6PLUS6_AMOUNT,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC9PLUS3_UNITS,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC9PLUS3_AMOUNT
+    
+
+from
+    period_load 
+
+)
+select * from cg_amounts 
+
+
+
+{% set forecast_scenario = var("forecast_scenario", "BUDGET") %}
+{% set forecast_scenario = var("forecast_scenario", "3PLUS9") %}
+{% set forecast_scenario = var("forecast_scenario", "6PLUS6") %}
+{% set forecast_scenario = var("forecast_scenario", "9PLUS3") %}
+
+
+
+with
+    period_load as (select * from {{ ref("stg_oracle__hyperion_financial_forecast") }}),
+cg_amounts as (
+select
+-- substitue of period in intgration_id
+  -- period_load.sales_units,
+  '{{forecast_scenario}}'  forecast_scenario,
+     case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+    case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+    case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+    case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT
+    
+
+from
+    period_load 
+
+
+union all
+select
+-- substitue of period in intgration_id
+  -- period_load.sales_units,
+  '{{forecast_scenario}}'  forecast_scenario,
+     case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END BUDGET_UNITS,
+    case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END BUDGET_AMOUNT,
+    case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC3PLUS9_UNITS,
+     case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC3PLUS9_AMOUNT,
+    case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC6PLUS6_UNITS,
+     case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC6PLUS6_AMOUNT,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC9PLUS3_UNITS,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC9PLUS3_AMOUNT
+    
+
+from
+    period_load 
+
+)
+select * from cg_amounts 
+
+
+
+
+{% set forecast_scenario = var("forecast_scenario", "BUDGET") %}
+{% set forecast_scenario = var("forecast_scenario", "3PLUS9") %}
+{% set forecast_scenario = var("forecast_scenario", "6PLUS6") %}
+{% set forecast_scenario = var("forecast_scenario", "9PLUS3") %}
+
+
+
+with
+    period_load as (select * from {{ ref("stg_oracle__hyperion_financial_forecast") }}),
+cg_amounts as (
+select
+-- substitue of period in intgration_id
+  -- period_load.sales_units,
+  '{{forecast_scenario}}'  forecast_scenario,
+     case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+    case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+    case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+    case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END forecast_scenario_UNITS,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END forecast_scenario_AMOUNT
+    
+
+from
+    period_load 
+
+
+union all
+select
+-- substitue of period in intgration_id
+  -- period_load.sales_units,
+  '{{forecast_scenario}}'  forecast_scenario,
+     case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END BUDGET_UNITS,
+    case 
+     when forecast_scenario = 'BUDGET'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END BUDGET_AMOUNT,
+    case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC3PLUS9_UNITS,
+     case 
+     when forecast_scenario = '3PLUS9'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC3PLUS9_AMOUNT,
+    case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC6PLUS6_UNITS,
+     case 
+     when forecast_scenario = '6PLUS6'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC6PLUS6_AMOUNT,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_UNITS
+    END FC9PLUS3_UNITS,
+     case 
+     when forecast_scenario = '9PLUS3'
+    THEN PERIOD_LOAD.SALES_AMOUNT
+    END FC9PLUS3_AMOUNT
+    
+
+from
+    period_load 
+
+)
+select * from cg_amounts 
+
+
+
+
+
+
+
+
+
+
+
+
+
+

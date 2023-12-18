@@ -1,0 +1,140 @@
+-- venkats code
+
+{% set sql_statement %}
+    select distinct trim(scenario) scenario, 1 X from {{ ref("stg_oracle__hyperion_financial_forecast") }}
+{% endset %}
+
+{%- set scenario_types = dbt_utils.get_query_results_as_dict(sql_statement) -%}
+ {{log("*** This is scenario =  "~scenario_types['SCENARIO'], info=True)}}
+
+with
+    period_load as (select * from {{ ref("stg_oracle__hyperion_financial_forecast")  }}  ),
+    ecal as (
+        select distinct
+            month_name,month, ent_period, ent_period_start_date, ent_period_end_date
+        from {{ ref("w_day_d") }}
+        where current_ent_year_code = 'Current'
+    ),
+    w_customer_account_d as (select * from {{ ref("w_customer_account_d") }}),
+    cg_count as (
+        select
+            customer_group,
+            max(integration_id) integration_id
+        from w_customer_account_d
+        where customer_group is not null
+        and active_flag = 'Y' 
+        group by customer_group
+    ),
+
+    
+    w_gl_segment_d as (select * from {{ ref("w_gl_segment_d") }}),
+    w_int_org_d as (select * from {{ ref("w_int_org_d") }}),
+    w_inventory_product_d as (select * from {{ ref("w_inventory_product_d") }})
+select
+    period_load.currency,
+    ecal.ent_period_end_date, 
+    ecal.month_name,
+    ecal.ent_period_start_date,
+    ecal.ent_period,
+    period_load.customer,
+    period_load.sales_units budget_units,
+    period_load.sales_amount budget_amount,
+    period_load.customer
+    || '~'
+    || period_load.gl_location_code
+    || '~'
+    || period_load.gl_sales_channel_code
+    || '~'
+    || period_load.gl_brand_code
+    || '~'
+    || period_load.gl_product_line_code
+    || '~'
+    || period_load.gl_business_unit_code
+    || '~'
+    || period_load.gl_company_code
+    || '~'
+    || period_load.gl_department_code
+    || '~'
+    || period_load.gl_account_code
+    || '~'
+    || period_load.sku
+    ||'~'
+    || period_load.organization_id 
+    || '~'
+    || ecal.ent_period_end_date integration_id,
+   
+    period_load.gl_account_code,
+    nvl(na.integration_id, '0') gl_account_segment_id,
+    nvl(br.integration_id, '0') gl_brand_segment_id,
+    nvl(pl.integration_id, '0') gl_product_line_segment_id,
+    nvl(bu.integration_id, '0') gl_business_unit_segment_id,
+    nvl(loc.integration_id, '0') gl_location_segment_id,
+    nvl(coalesce(c.integration_id,cg_count.integration_id), '0') customer_account_id,
+    nvl(ch.integration_id, '0') gl_channel_segment_id,
+    nvl(le.integration_id, '0') gl_company_segment_id,
+    nvl(dp.integration_id, '0') gl_dept_segment_id,
+    nvl(og.integration_id, '0') inventory_org_id,
+    nvl(i.integration_id, '0') inventory_product_id,
+    'N' Delete_Flag,
+    $batch_start_time w_insert_dt, 
+    $batch_start_time w_update_dt
+from
+    period_load    inner join ecal
+    on upper(ecal.month) = upper(period_load.month)
+    inner join cg_count
+    on  cg_count.customer_group = period_load.customer
+    and period_load.customer_level = 'customer group'
+    inner join w_customer_account_d c
+    on period_load.customer_level = 'customer'
+    and c.CUSTOMER_ACCOUNT_NUMBER = period_load.customer
+    left join w_gl_segment_d na 
+    on  na.segment_value_code = period_load.gl_account_code
+    and na.segment_name = 'Account'
+    left join w_gl_segment_d br
+    on  br.segment_value_code = period_load.gl_brand_code
+    and br.segment_name = 'Brand'
+    left join w_gl_segment_d pl
+    on pl.segment_value_code = gl_product_line_code
+    and pl.segment_name = 'Product Line'
+    left join w_gl_segment_d bu
+    on bu.segment_value_code = period_load.gl_business_unit_code
+    and bu.segment_name = 'Business Unit'
+    left join w_gl_segment_d loc
+    on loc.segment_value_code = period_load.gl_sales_channel_code
+    and loc.segment_name = 'Location'
+    left join w_gl_segment_d ch
+    on ch.segment_value_code = period_load.gl_sales_channel_code
+    and ch.segment_name = 'Channel'
+    left join w_gl_segment_d le
+    on le.segment_value_code = period_load.gl_company_code
+    and le.segment_name in ('InterCompany', 'Company')
+    left join w_gl_segment_d dp
+    on dp.segment_value_code = period_load.gl_department_code
+    and dp.segment_name = 'Department'
+    left join w_int_org_d og
+    on og.integration_id = period_load.organization_id||'~'||'100'
+    inner join w_inventory_product_d i
+    on  i.integration_id = period_load.sku_org_id || '~' || '100'
+    and  i.dbt_valid_to is null 
+    {% if is_incremental() %}
+          and
+                (
+                    (
+                        period_load._batch_update_date >= $batch_start_time
+                        and period_load._batch_update_date <= $batch_end_time
+                    )
+                    or (
+                        period_load._batch_update_date >= $batch_start_time
+                        and period_load._batch_update_date <= $batch_end_time
+                    )
+                )
+        {% endif %}
+
+
+
+        -- keep it in the load folder
+-- to add incremental logic here
+-- in config make it as table and transient = true (at yaml file)
+-- posthookk here to raise an exception to raise the job fail
+
+

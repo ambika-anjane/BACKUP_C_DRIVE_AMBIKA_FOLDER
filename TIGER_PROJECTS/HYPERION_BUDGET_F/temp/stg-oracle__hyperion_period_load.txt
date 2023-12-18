@@ -1,0 +1,45 @@
+-- trial file (if not required need to delete)
+
+
+with hyperion_budget_load as (
+        select *
+        from {{ ref("stg_oracle__hyperion_budget_load") }}
+    ), 
+
+    day_d as (
+        select distinct month_name, ent_period, ent_period_start_date, ent_period_end_date
+        from {{ ref("w_day_d") }} 
+        where CURRENT_ENT_YEAR_CODE = 'Current'
+    ),
+
+    final as (
+        select
+            p.gl_business_unit_code,
+            p.gl_company_code,
+            p.gl_sales_channel_code,
+            p.gl_location_code,
+            p.gl_department_code,
+            p.gl_brand_code,
+            p.gl_product_line_code,
+            p.customer,
+            p.customer_level,
+            p.sku,
+            p.org_id,
+            p.gl_account_code,
+          
+            -- p.period,
+            -- p.forecast_type,-- set it as job variable / for now hard code to budget (set it in the top) like etl_proc_id (job var)
+            p.month,
+            p.sales,
+            p.currency,
+            day_d.month_name,
+            day_d.ent_period_start_date,
+            day_d.ent_period 
+        from hyperion_budget_load p, day_d
+        where upper(left(day_d.ent_period, 3)) = p.month
+    )
+select *
+from
+    final
+
+   

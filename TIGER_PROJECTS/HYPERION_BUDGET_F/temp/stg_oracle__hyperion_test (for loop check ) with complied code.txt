@@ -1,0 +1,78 @@
+
+-- unwanted
+
+-- next step to take thecol from for loop to update
+ {# pre_hook ={ 
+      "sql":  "update {{ this }} set BUDGETED_UNITS is null exclude FORECAST_3PLUS9_UNITS,FORECAST_6PLUS6_UNITS,FORECAST_9PLUS3_UNITS";
+      where {{ THIS }}.ent_period_start_date in (select ent_period_start_date from {{ ref("stg_oracle__hyperion_financial_forecast") }} 
+   --   WHERE ent_period_start_date = current_date())}
+      where (1=1)
+       {% if is_incremental() %}
+          and
+                (
+                    (
+                        period_load._batch_update_date >= $batch_start_time
+                        and period_load._batch_update_date <= $batch_end_time
+                    )
+                    or (
+                        period_load._batch_update_date >= $batch_start_time
+                        and period_load._batch_update_date <= $batch_end_time
+                    )
+                )
+        {% endif %})}
+-- -- to incluse the error table in this model and throw message , if any error in the error table should not process the load  #} 
+
+
+        
+
+
+      {{ config(
+    post_hook=[
+      "update table {{ this }} set BUDGETED_UNITS is null "
+    ]
+) }}
+
+{% set sql_statement %}
+    select distinct trim(scenario) scenario, 1 X from {{ ref("stg_oracle__hyperion_financial_forecast") }}
+{% endset %}
+
+{%- set load_scenario_types = dbt_utils.get_query_results_as_dict(sql_statement) -%}
+{% set all_scenario_types = ["BUDGETED", "3PLUS9", "6PLUS6", "9PLUS3"] %}
+with
+    stage as (select * from {{ ref("stg_oracle__hyperion_financial_forecast") }}),
+
+    final as (
+        select
+            customer,
+            {%- for scenarioType in all_scenario_types -%}
+                {%- set prefix = "" -%}
+                {%- if (scenarioType[:1] | int > 0) -%}
+                    {%- set prefix = "FORECAST_" -%}
+                {%- endif -%}
+                {% set ns = namespace(populateScenario="") %}
+                {%- for loadScenario in load_scenario_types["SCENARIO"] | unique -%}
+                    {%- if scenarioType | trim | lower == loadScenario | trim | lower -%}
+                        {%- set ns.populateScenario = scenarioType -%}
+                    {%- endif -%}
+                {%- endfor -%}
+                {% if ns.populateScenario | trim | lower == scenarioType | trim | lower %}
+                    (
+                        case
+                            when scenario = '{{scenarioType}}' then stage.sales_units
+                        end
+                    )::number(20, 10) as {{ prefix }}{{ scenarioType }}_units,
+                    (
+                        case
+                            when scenario = '{{scenarioType}}' then stage.sales_amount
+                        end
+                    )::number(20, 10) as {{ prefix }}{{ scenarioType }}_amount,
+                {% elif not(is_incremental())%}
+                   null as {{ prefix }}{{ scenarioType }}_units,
+            null as {{ prefix }}{{ scenarioType }}_amount,
+                {%- endif -%}
+            {% endfor %}
+            customer_level from stage
+    
+
+
+

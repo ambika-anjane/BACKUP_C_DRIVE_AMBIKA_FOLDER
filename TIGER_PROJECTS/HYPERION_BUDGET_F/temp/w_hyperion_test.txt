@@ -1,0 +1,63 @@
+select period_load.scenario
+from period_load
+
+/*
+select
+    case
+        -- not sure how this part will work yet....
+        {% for s in period_load.scenario %}
+            when upper(s) like 'BUDGETED' then {{ correct }}
+        {% endfor %}
+    end as scenerio
+from
+    period_load
+*/
+
+{% set r_query %}
+            select distinct scenario from  {{ ref("stg_oracle__test") }} where scenario in ('BUDGETED','3PLUS9')
+{% endset %}
+
+{% set results = run_query(r_query) %}
+{% if execute %}
+    {# Return the first column #}
+    {% set list = results.columns[0].values() %}
+    {% for l in list %} {{ l }} {% if not loop.last %}, {% endif %} {% endfor %}
+{% else %} {% set list = [] %}
+{% endif %}
+
+
+
+
+
+
+/* {% set properties = dbt_utils.get_column_values(table=ref('stg_oracle__test'), column='scenario') %}
+select case
+    {% for property in properties %}
+    when 
+        PROPERTY_NAME = '{{ property }}'
+        
+    then '{{ property }}'
+    {% endfor %}
+
+
+ 
+ {% set r_query %}
+            select distinct scenario from  {{ ref("stg_oracle__test") }} 
+{% endset %}
+
+{% set results = run_query(r_query) %}
+{% if execute %}
+    {# Return the first column #}
+    {% set list = results.columns[0].values() %}
+    {% for l in list %} {{ l }} {% if not loop.last %}, {% endif %} {% endfor %}
+{% else %} {% set list = [] %}
+{% endif %}
+*/
+
+-- select query for scenerio 
+-- dbt query results (sql query)
+
+
+  --  {% for 3plus in scen['3PLUS9'] | unique -%}
+  --    sum(case when 3plus = '{{ 3plus }}' then 1 else 0 end) as scenerios_in_{{ 3plus }},
+  --  {% endfor %}

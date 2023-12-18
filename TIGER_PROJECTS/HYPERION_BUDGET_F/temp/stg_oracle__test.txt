@@ -1,0 +1,163 @@
+with
+    source as (select * from dev_ods.oracle_financials.hyperion_financial_forecast),
+
+    renamed as (
+
+        select
+            trim(substr(bu_code, 4)) gl_business_unit_code,
+            case
+                when trim(le) = 'NoLegalEntity' then '000' else substr(le, 2)
+            end gl_company_code,
+            trim(substr(ch_code, 6)) gl_sales_channel_code,
+            trim(substr(lc_code, 3)) gl_location_code,
+
+            case
+                when trim(substr(invorg, 1, 3)) != 'IO'
+                then 82
+                else to_number(substr(invorg, 4))
+            end
+            organization_id,
+            case
+                when trim(account) = 'GrossUnits'
+                then '401000'
+                when trim(account) = '400010'
+                then '401000'
+                when trim(account) = '460000'
+                then '461000'
+                when trim(account) = '471000'
+                then '472000'
+                when trim(account) = '500000'
+                then '511000'
+                when trim(account) = '601000'
+                then '601001'
+                when trim(account) = '607000'
+                then '607010'
+                when trim(account) = '608000'
+                then '608010'
+                when trim(account) = 'OthVar'
+                then '610000'
+                when trim(account) = '710000'
+                then '710110'
+                when trim(account) = '720000'
+                then '720110'
+                when trim(account) = '730000'
+                then '730110'
+                when trim(account) = '740000'
+                then '740110'
+                when trim(account) = '750000'
+                then '750110'
+                when trim(account) = '763810'
+                then '763812'
+                when trim(account) = '764390'
+                then '764391'
+                when trim(account) = 'OthMisc'
+                then '761960'
+                when trim(account) = '770000'
+                then '770100'
+                else account
+            end gl_account_code,
+
+            case
+                when trim(customer) in ('NewCustomers', 'NoCustomer')
+                then '9999999'
+                when substr(upper(trim(customer)), 1, 3) = 'CG_'
+                then substr(trim(customer), 4)
+                when substr(upper(trim(customer)), 1, 1) = 'C'
+                then substr(trim(customer), 2)
+                when customer = 'CG_AMAZON.COM.CA,INC'
+                then 'AMAZON.COM.CA, INC'
+                when customer = 'CG_AMAZON.COM (HC)'
+                then 'AMAZON.COM (HC)'
+                when customer = 'CG_GERMANY CUST'
+                then 'GERMANY'
+                when customer = 'CG_LOWES COMPANIES CANADA,ULC'
+                then 'LOWES COMPANIES CANADA, ULC'
+                else trim(customer)
+            end customer,
+
+            /*  case
+                when trim(customer) in ('NewCustomers', 'NoCustomer')
+                then '9999999'
+                when regexp_instr(customer, 'V', 1, 1) > 0
+               then trim(substr(customer, 2, regexp_instr(customer, 'V', 1, 1) - 1))
+               ELSE  SUBSTR (customer, 2)  
+               end customer,  */
+            /*
+               WHEN customer  = 'CG_AMAZON.COM.CA,INC'
+                       THEN 'AMAZON.COM.CA, INC'
+                       WHEN CUSTOMER = 'CG_AMAZON.COM (HC)'
+                       THEN 'AMAZON.COM (HC)'
+                       WHEN customer = 'CG_GERMANY CUST'
+                       THEN 'GERMANY'
+                       WHEN customer = 'CG_LOWES COMPANIES CANADA,ULC'
+                       THEN 'LOWES COMPANIES CANADA, ULC'
+               when trim(customer)  like '%CG%' then trim(substr(customer, 5)) 
+               when trim(customer)  like '%C%' then trim(substr(customer, 2))
+               ELSE  SUBSTR (customer, 5)  END
+                       
+               
+               end customer,
+        
+            */
+            case
+                when trim(br_code) in ('NoBrand', 'Suspense_Brand', 'StaffingBrand')
+                then '999'
+                else trim(substr(br_code, 3))
+            end
+            gl_brand_code,
+            case
+                when trim(pl_code) = 'PCACORPADJ'
+                then '099'
+                else trim(substr(pl_code, 4))
+            end
+            gl_product_line_code,
+            case
+                when sku in ('NewSKUs', 'SKUadj', 'NoSKU')
+                then '-' || decode(sku, 'NewSKUs', '99', 'SKUadj', '00', '11')
+                else ltrim(substr(ltrim(rtrim(sku)), 2), ' 0')
+            end
+            sku,
+            ltrim(substr(ltrim(rtrim(sku)), 2), ' 0')
+            || '~'
+            || case
+                when substr(invorg, 1, 2) <> 'IO' then '82' else substr(invorg, 4)
+            end sku_org_id,
+
+            case
+                when trim(dept) in ('MarginDept', 'RoyaltyDept')
+                then '0000'
+                else trim(substr(dept, 2))
+            end
+            gl_department_code,
+            case
+                when customer like '%CG_%' then 'customer group' else 'customer'
+            end customer_level,
+
+            case
+                when account = 'GrossUnits' then 'SALES_UNITS' else 'SALES_AMOUNT'
+            end units_flag,
+          
+
+            -- decode(currency, 'USDInp', 'USD', currency) currency,
+            -- TO SWITCH BETWEEN UNITS OR AMOUNTS
+            -- substr(invorg, 1,3) organization_id,
+            mar,
+            apr,
+            may,
+            jun,
+            jul,
+            aug,
+            sep,
+            oct,
+            nov,
+            dec,
+            jan,
+            feb,
+            scenario,
+            _batch_insert_date,
+            _batch_update_date,
+            _source_id
+
+        from source
+    )
+    select * from renamed

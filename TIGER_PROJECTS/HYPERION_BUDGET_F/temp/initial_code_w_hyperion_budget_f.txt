@@ -1,0 +1,223 @@
+with
+   period_load  as (select * from {{ ref("stg_oracle__hyperion_budget_file_period_load") }}),
+    w_customer_account_d as (select * from {{ ref("w_customer_account_d")}} ),
+    w_gl_account_d AS (SELECT * from {{ ref('w_gl_account_d')}}),
+    w_gl_segment_d as (select * from {{ ref('w_gl_segment_d')}}),
+    w_int_org_d as (select * from {{ ref('w_int_org_d')}}),
+    w_inventory_product_d AS (select * from {{ ref('w_inventory_product_d')}})
+
+    -- step 10 to 12 in text file those should be written as macros / pre-hook
+    -- before this mergr...those co
+    
+     select
+            -- NVL (c.integration_id, '0') customer_account_id, (keep)
+          --   NVL (p.row_wid, 0) customer_wid, -- remove
+           --  NVL (p.integration_id, '0') customer_intgid, -- remove
+         --    NVL (a.row_wid, 0) gl_account_wid,(which id to use from a) -- a.integration_id  gl_account_id (remove)
+          --   NVL (a.intgid, '0') ccid, -- remove
+             DECODE (period_load.currency, 'USDInp', 'USD', period_load.currency) currency,
+             --cal.row_wid mcal_wid, (need?) -- remove
+
+             ecal.ent_period_end_date, -- substitue of period in intgration_id
+             sales,
+                period_load.customer 
+              || '~'
+             || period_load.gl_location_code
+             || '~'
+             || period_load.gl_sales_channel_code
+             || '~'
+             || period_load.gl_brand_code
+             || '~'
+             || period_load.gl_product_line_code
+             || '~'
+             || period_load.gl_business_unit_code
+             || '~'||period_load.gl_company_code||'~'||period_load.gl_department_code||'~'||period_load.gl_account_code||'~'|| period_load.sku || '~' || period_load.org_id || '~' || period_load.ent_period_end_date    intg_id,
+             period_load.gl_account_code,
+            NVL (na.integration_id, 0) gl_na_account_id -- customer_account_id ?? integration_id for 37 to 48 and rename according to alias
+            NVL (br.integration_id, 0) gl_brand_wid, -- segment_id ??
+            -- NVL (pl.scd1_wid, 0) gl_product_line_wid, -- segment_value_id/chart_id ??
+            -- NVL (bu.scd1_wid, 0) gl_business_unit_wid,
+            -- NVL (loc.scd1_wid,0) gl_location_wid,
+            --  ecal.row_wid acct_period_wid, (need ?? if so, whoch col)
+            --  nvl(ch.scd1_wid,0) gl_channel_wid, (need ?? if so, whoch col)
+            -- nvl(le.scd1_wid,0) gl_company_wid, (need ?? if so, whoch col)
+             -- nvl(dp.scd1_wid,0) gl_dept_wid, (need ?? if so, whoch col)
+             -- nvl(pd.row_wid,0) product_wid, no need
+           --  nvl(og.row_wid,0) org_wid, (ORG_ID /OPERATING_UNIT_ID ??)
+            -- nvl(i.row_wid,0) inventory_product_wid, (WHICH COL)
+              period_load.forecast_type
+        FROM period_load,
+        -- BALANCE_SEGMENT_CODE,COST_CENTER_SEGMENT_CODE,GL_FUTURE_USE_CODE,GL_PRODUCT_LINE_CODE
+        -- GL_INTERCOMPANY_CODE,GL_BRAND_CODE,GL_DEPARTMENT_CODE,GL_LOCATION_CODE,GL_SALES_CHANNEL_CODE,GL_COMPANY_CODE
+        -- GL_BUSINESS_UNIT_CODE,FINANCIAL_STATEMENT_CODE (WHICH CODES I SHOULD USE 1,2,3...ETC)
+   -- line no 54 to 69 remove the subselect and joins using a          (  SELECT account_seg1_code,
+             account_seg3_code,
+             account_seg4_code,
+                       account_seg6_code,
+                       account_seg7_code,
+                       account_seg8_code,
+                       MIN (row_wid) row_wid,
+                       MIN (integration_id) intgid
+                  FROM w_gl_account_d
+                 WHERE gl_account_number BETWEEN '400000' AND '9999999'
+              GROUP BY account_seg1_code,
+                       account_seg3_code,
+                       account_seg4_code,
+                       account_seg6_code,
+                       account_seg7_code,
+                       account_seg8_code) a,
+             w_inventory_product_d i,
+             w_customer_account_d c,
+         --    w_party_d p, --  not required
+         --    w_mcal_period_d cal, -- w_Dayd_d
+             w_ent_period_d ecal, --w_dayd_d
+             w_natural_account_d na,--w_gl_segment_d
+             w_gl_segment_d br,
+             w_gl_segment_d pl,
+             w_gl_segment_d loc,
+             w_gl_segment_d bu,
+             w_gl_segment_d ch,
+             w_gl_segment_d le,
+             w_gl_segment_d dp,
+        --     w_product_d pd, -- not required
+             w_int_org_d og
+  -- remove from 85     WHERE     a.account_seg1_code(+) = SUBSTR (b.bu_code, 3)
+             AND a.account_seg3_code(+) = SUBSTR (b.ch_code, 5)
+             AND a.account_seg4_code(+) = SUBSTR (b.lc_code, 2)
+             AND a.account_seg6_code(+) =  -- till 88  remove
+          -- do this from 90 to 108 @ base stage 
+                    CASE
+			WHEN period_load.account = '400010Corp' THEN '401000'
+			WHEN period_load.account = '460000Corp' THEN '461000'
+			WHEN period_load.account = '471000Corp' THEN '472000'
+			WHEN period_load.account = '500000Corp' THEN '511000'
+			WHEN period_load.account = '601000Corp' THEN '601001'
+			WHEN period_load.account = '607000Corp' THEN '607010'
+			WHEN period_load.account = '608000Corp' THEN '608010'
+			WHEN period_load.account = 'OthVarCorp' THEN '610000'
+			WHEN period_load.account = '710000Corp' THEN '710110'
+			WHEN period_load.account = '720000Corp' THEN '720110'
+			WHEN period_load.account = '730000Corp' THEN '730110'
+			WHEN period_load.account = '740000Corp' THEN '740110'
+			WHEN period_load.account = '750000Corp' THEN '750110'
+			WHEN period_load.account = '763810Corp' THEN '763812'
+			WHEN period_load.account = '764390Corp' THEN '764391'
+			WHEN period_load.account = 'OthMiscCorp' THEN '761960'
+			WHEN period_load.account = '770000Corp' THEN '770100'
+                       ELSE account
+                    END
+                  --  replace a with segment_d cols (code,name)
+                  -- keep all the substr cse in base_stage and call col_name  here for condition
+             AND a.account_seg7_code(+) =
+                    CASE
+                       WHEN period_load.br_code IN ('NoBrand', 'Suspense_Brand','StaffingBrand')
+                       THEN
+                          '999'
+                       ELSE
+                          SUBSTR (period_load.br_code, 2)
+                    END
+             AND a.account_seg8_code(+) =
+                    CASE
+                       WHEN period_load.pl_code = 'PCACORPADJ' THEN '099'
+                       ELSE SUBSTR (period_load.pl_code, 3)
+                    END
+        /*     AND pd.integration_id(+) =
+        -- push 126 transofmr case push it to base 
+                    CASE
+                       WHEN period_load.sku IN ('NewSKUs', 'SKUadj','NoSKU')
+                       THEN
+                            '-'||
+                                  CASE
+                                     WHEN period_load.pl_code = 'PCACORPADJ' THEN '099'
+                                     ELSE SUBSTR (period_load.pl_code, 3)
+                                  END
+                               || CASE
+                                     WHEN period_load.br_code IN ('NoBrand',
+                                                        'Suspense_Brand','StaffingBrand')
+                                     THEN
+                                        '999'
+                                     ELSE
+                                        SUBSTR (period_load.br_code, 2)
+                                  END
+                               || DECODE (b.sku,
+                                          'NewSKUs', '99',
+                                          'SKUadj', '00',
+                                          '11')
+                       ELSE
+                          LTRIM (SUBSTR (ltrim(rtrim(period_load.sku)), 2), ' 0')
+                    END */
+             AND og.integration_id(+) = -- push into base CASE  WHEN SUBSTR (period_load.invorg, 1, 2) <> 'IO' THEN '82'  ELSE SUBSTR (period_load.invorg, 3) END
+             and i.integration_id(+) = LTRIM (SUBSTR (ltrim(rtrim(period_load.sku)), 2), ' 0') ||'~'|| CASE  WHEN SUBSTR (period_load.invorg, 1, 2) <> 'IO' THEN '82'  ELSE SUBSTR (b.invorg, 3) END
+             and i.current_flg(+) = 'Y'  
+             AND 'C' || Account_num(+) =
+            -- push it to base        CASE
+                       WHEN period_load.customer in ('NewCustomers','NoCustomer') THEN 'C9999999'
+                       when instr(period_load.customer, 'V', -1,1) > 0 then substr(period_load.customer, 1,instr(b.customer,'V',-1,1)-1)
+                       ELSE period_load.customer
+                    END
+             --and c.current_flg(+) = 'Y'
+          --   AND c.party_id = p.integration_id(+)
+             AND period_load.account <> 'GrossUnits' (
+             AND period_load.forecast_type = 'BUDGET'
+             and period_load.currency <> 'CurrInp'
+             and b.fy_year = 'FY24'			--update fiscal year as needed
+             AND period_load.customer NOT LIKE 'CG_%'
+        -- AND cal.mcal_cal_name = '5-4-4' -- no
+        --     AND cal.mcal_period_name = b.period -- no
+        --     AND ecal.ent_cal_name = 'HOT Calendar' -- no column in day_d
+        --      AND ecal.adjustment_period_flg = 'N' -- no column in day_d
+         --    AND ecal.ent_period_name = period_load.period  -- no column in day_d
+         --    AND w_gl_segment_d.natural_account_lov_id = '1007682'  -- no column in W_GL_SEGEMTN_D 
+         -- NA.natural_account_VAL_CODE(SEGMENT_VALUE_CODE) 166 to 173 remove
+             AND NA.segment_val_code(+) =
+                    CASE
+			WHEN period_load.account = '400010Corp' THEN '401000'
+			WHEN period_load.account = '460000Corp' THEN '461000'
+			WHEN period_load.account = '471000Corp' THEN '472000'
+			WHEN period_load.account = '500000Corp' THEN '511000'
+			WHEN period_load.account = '601000Corp' THEN '601001'
+			WHEN period_load.account = '607000Corp' THEN '607010'
+			WHEN period_load.account = '608000Corp' THEN '608010'
+			WHEN period_load.account = 'OthVarCorp' THEN '610000'
+			WHEN period_load.account = '710000Corp' THEN '710110'
+			WHEN period_load.account = '720000Corp' THEN '720110'
+			WHEN period_load.account = '730000Corp' THEN '730110'
+			WHEN period_load.account = '740000Corp' THEN '740110'
+			WHEN period_load.account = '750000Corp' THEN '750110'
+			WHEN period_load.account = '763810Corp' THEN '763812'
+			WHEN period_load.account = '764390Corp' THEN '764391'
+			WHEN period_load.account = 'OthMiscCorp' THEN '761960'
+			WHEN period_load.account = '770000Corp' THEN '770100'
+                       ELSE account
+                    END
+           --  AND PL.x_SEGMENT_LOV_NAME(+) = 'HOT Product Line NEW' -- SEGMENT_NAME COL IS THERE (NOT LOV_NAME) IS IT SEGMENT_NAME
+             AND PL.SEGMENT_VAL_CODE(+) =
+                    CASE
+                       WHEN period_load.pl_code = 'PCACORPADJ' THEN '099'
+                       ELSE SUBSTR (period_load.pl_code, 3)
+                    END
+         --    AND BR.x_SEGMENT_LOV_NAME(+) = 'HOT Brand' -- SEGMENT_NAME COL IS THERE (NOT LOV_NAME) / IS IT SEGMENT_NAME
+             AND BR.SEGMENT_VAL_CODE(+) =
+                    CASE
+                       WHEN period_load.br_code IN ('NoBrand', 'Suspense_Brand','StaffingBrand')
+                       THEN
+                          '999'
+                       ELSE
+                          SUBSTR (period_load.br_code, 2)
+                    END
+            -- AND LOC.x_SEGMENT_LOV_NAME(+) = 'HOT Location' -- SEGMENT_NAME COL IS THERE (NOT LOV_NAME) -- update the choice
+             AND LOC.SEGMENT_VAL_CODE(+) = SUBSTR (period_load.lc_code, 2)
+            -- AND BU.x_SEGMENT_LOV_NAME(+) = 'HOT Business Unit NEW' -- SEGMENT_NAME COL IS THERE (NOT LOV_NAME) 
+             AND BU.SEGMENT_VAL_CODE(+) = SUBSTR (period_load.bu_code, 3)
+            --  and ch.x_segment_lov_name(+) = 'HOT Channel' -- SEGMENT_NAME COL IS THERE (NOT LOV_NAME) 
+             and ch.segment_val_code(+) = SUBSTR (period_load.ch_code, 5)
+           --  and le.x_segment_lov_name(+) = 'HOT Company' -- SEGMENT_NAME COL IS THERE (NOT LOV_NAME) 
+             and le.segment_val_code(+) = case when period_load.le = 'NoLegalEntity' then '000' else substr(period_load.le,3) end
+            -- and dp.x_segment_lov_name(+) = 'HOT Department' -- SEGMENT_NAME COL IS THERE (NOT LOV_NAME) / IS IT SEGMENT_NAME
+             and dp.segment_val_code(+) = case when period_load.dept in ('MarginDept','RoyaltyDept') then '0000' else substr(period_load.dept,2) end
+             AND period_load.sales <> 0) noncg_amount
+           ON (    noncg_amount.intg_id = dlr.integration_id
+                 AND dlr.scenario = 'BUDGET')
+               --AND noncg_amount.gl_account_wid = dlr.gl_account_wid
+              -- AND dlr.gl_account_num BETWEEN '400000' AND '409999')
+   
