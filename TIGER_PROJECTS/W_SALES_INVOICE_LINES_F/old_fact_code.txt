@@ -1,0 +1,84 @@
+-- depends_on: {{ref('stg_oracle__sales_invoices')}},{{ref('stg_oracle__sales_invoice_lines')}}
+
+{% if is_incremental() %}
+
+with incremental as (
+    select customer_trx_id
+    from {{ ref("stg_oracle__sales_invoice_lines") }}
+    where _batch_update_date >= $batch_start_time
+      and _batch_update_date <= $batch_end_time
+    
+    union all
+
+    select customer_trx_id
+    from {{ ref("stg_oracle__sales_invoice_all") }}
+    where _batch_update_date >= $batch_start_time
+      and _batch_update_date <= $batch_end_time
+)
+{% endif %}
+
+    select
+        NVL(fs.sales_orderline_id|| '~' || fs.source_id,'0')::VARCHAR(200) sales_orderline_id,
+        NVL(fs.sales_pickline_id|| '~' || fs.source_id,'0')::VARCHAR(200) sales_pickline_id,
+        NVL(fs.inventory_org_id|| '~' || fs.source_id,'0')::VARCHAR(200) inventory_org_id,
+      --  NVL(fs.inventory_item_id|| '~' || fs.source_id,'0')::VARCHAR(200) inventory_item_id,
+        NVL(fs.inventory_item_id || '~' || fs.inventory_org_id|| '~' || fs.source_id,'0')::VARCHAR(200) inventory_product_id,
+        NVL(fs.invoice_status_id|| '~' || fs.source_id,'0')::VARCHAR(200) invoice_status_id,
+        NVL(fs.operating_unit_org_id|| '~' || fs.source_id,'0')::VARCHAR(200) operating_unit_org_id,
+        NVL(fs.payment_terms_id|| '~' || fs.source_id,'0')::VARCHAR(200) payment_terms_id,
+     --   NVL('PLANT' || '~' || fs.inventory_org_id|| '~' || fs.source_id,'0')::VARCHAR(200)  plant_loc_id,
+     --   NVL(fs.sales_org_id|| '~' || fs.source_id,'0')::VARCHAR(200) sales_org_id,
+        NVL(fs.territory_id|| '~' || fs.source_id,'0')::VARCHAR(200) territory_id,
+        NVL(fs.xact_type_id|| '~' || fs.source_id,'0')::VARCHAR(200) xact_type_id,
+        fs.conversion_date,
+        fs.invoiced_on_date,
+        fs.payment_terms_eff_date,
+        fs.net_amt,
+        fs.list_amt,
+        fs.tax_amt,
+        fs.freight_amt,
+        fs.discount_amt,
+        fs.invoiced_quantity,
+        fs.invoice_number,
+        fs.invoice_item,
+        fs.sales_order_number,  
+        fs.sales_order_item,
+        fs.sales_order_item_detail_number,
+        fs.purch_order_number,
+        fs.delete_flg,
+        fs.loc_exch_rate_type,
+        fs.loc_exchange_rate,
+        fs.exchange_date,
+        NVL(fs.created_by_id|| '~' || fs.source_id,'0')::VARCHAR(200) created_by_id,
+        NVL(fs.changed_by_id|| '~' || fs.source_id,'0')::VARCHAR(200) changed_by_id,
+        fs.created_on_date,
+        fs.changed_on_date,
+        fs.aux1_changed_on_date,
+        fs.aux2_changed_on_date,
+        to_char(fs.sales_invoice_line_id) || '~' || fs.source_id integration_id,
+        NVL(fs.ledger_id|| '~' || fs.source_id,'0')::VARCHAR(200) ledger_id,
+        fs.discount_line_flg,
+        NVL(fs.customer_account_id || '~' || fs.source_id,'0')::VARCHAR(200) customer_account_id,
+        NVL(fs.xact_source_id|| '~' || fs.source_id,'0')::VARCHAR(200) xact_source_id,
+        NVL(fs.invoice_header_id|| '~' || fs.source_id,'0')::VARCHAR(200) invoice_header_id,
+        NVL(fs.legal_entity_id|| '~' || fs.source_id,'0')::VARCHAR(200) legal_entity_id,
+        NVL(fs.salesrep_id|| '~' || fs.source_id,'0')::VARCHAR(200) salesrep_id,
+        fs.uom_code,
+        fs.invoice_currency_code,
+        fs.loc_curr_code,
+        fs.interface_line_attribute11,
+        fs.type,
+        NVL(fs.sold_to_site_use_id|| '~' || fs.source_id,'0')::VARCHAR(200) sold_to_site_use_id,
+        NVL(fs.paying_site_use_id|| '~' || fs.source_id,'0')::VARCHAR(200) paying_site_use_id,
+        NVL(fs.bill_to_site_use_id || '~' || fs.source_id,'0')::VARCHAR(200) bill_to_site_use_id,
+        NVL(fs.ship_to_site_use_id|| '~' || fs.source_id,'0')::VARCHAR(200) ship_to_site_use_id,
+        fs.source_id as datasource_num_id,
+        $batch_start_time w_insert_dt,
+        $batch_start_time w_update_dt,
+        {{ env_var("DBT_ETL_PROC_ID") }} etl_proc_id
+        -- need to change this input file after confirms with venkat
+    from {{ref('stg__sales_invoice_lines')}} fs
+    where (1 = 1)
+      {% if is_incremental() %}
+      and fs.invoice_header_id in (select customer_trx_id from incremental )
+      {% endif %}

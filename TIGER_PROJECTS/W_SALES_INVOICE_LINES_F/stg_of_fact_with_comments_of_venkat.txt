@@ -1,0 +1,189 @@
+
+with
+    ra_trx_types as (select * from {{ ref("stg_oracle__sales_invoice_types") }}),
+    ra_cust_sales_lines_all as (select * from {{ ref("stg_oracle__sales_invoice_lines_all") }}),
+    ra_salesreps as (select * from {{ ref("stg_oracle__ra_salesreps_all") }}),
+    gl_ledger as (select * from {{ ref("stg_oracle__gl_ledgers") }}),
+    mtl_uom_conv as (select * from {{ ref("stg_oracle__item_uom_conversions") }}),
+    brand_cat as (select * from  {{ ref("stg_oracle__item_category_inventory_attributes") }})
+  --  terr_id_dim as (select * from "DEV_EDW"."EDW_OMNI"."W_TERRITORY_D")
+  -- this wont work cannot be matched with integration_id
+  -- stg_terr as (select * from {{ ref("stg_oracle__w_territory_d") }})
+  -- I am not able to match salesrep_id of terr_stg with invoice lines stage
+  -- sold site use id is null cust trx_all so..it is populating zero in  load 
+  -- it is null in base view as well
+  -- hot to proceed with territoyy_id??
+  
+  -- item inventory categories (master data) -- staging (inventory_item_id and inventory_org_id) left outer join on these two cols
+  -- select brand and category
+
+  -- check for quantity, amount  for all trasaction types (CM<INV,DM,DB,CB) -- check for each
+    -- check for ID's 
+
+select
+    ra_cust_sales_lines_all.sales_invoice_line_id,
+    ra_cust_sales_lines_all.sales_order_line_id,  
+    ra_cust_sales_lines_all.sales_pick_line_id,
+    ra_cust_sales_lines_all.inventory_org_id,
+    ra_cust_sales_lines_all.inventory_item_id,
+   ra_cust_sales_lines_all.invoice_status,
+    ra_cust_sales_lines_all.operating_unit_org_id,
+    ra_cust_sales_lines_all.payment_terms_id,
+ --   ra_cust_sales_lines_all.sales_org_id,
+  -- stg_terr.terr_id,
+   ra_cust_sales_lines_all.territory_id,
+   'SALES_IVCLNS' || '~' || to_char(ra_trx_types.type) xact_type_id,
+    to_char(ra_cust_sales_lines_all.bill_to_customer_id) customer_account_id,
+    ra_cust_sales_lines_all.xact_source_id,
+    ra_cust_sales_lines_all.customer_trx_id invoice_header_id,
+    ra_cust_sales_lines_all.legal_entity_id legal_entity_id,
+    ra_salesreps.resource_id sales_rep_id,
+    ra_cust_sales_lines_all.conversion_date,
+    ra_cust_sales_lines_all.invoiced_on_date,
+    ra_cust_sales_lines_all.payment_terms_eff_date,
+    ra_cust_sales_lines_all.net_amount,
+    ra_cust_sales_lines_all.list_amount,
+    ra_cust_sales_lines_all.tax_amount,
+    ra_cust_sales_lines_all.freight_amount,
+    brand_cat.inventory_ctg_brand as brand,
+    brand_cat.inventory_category as category,
+    (
+        case
+            when
+                (
+                    ra_cust_sales_lines_all.line_type = 'LINE'
+                    or ra_cust_sales_lines_all.line_type = 'CB'
+                    or ra_cust_sales_lines_all.link_to_cust_trx_line_id is null
+                )
+                and ra_cust_sales_lines_all.quantity_invoiced > 0
+                and ra_cust_sales_lines_all.extended_amount > 0
+                and ra_trx_types.type <> 'CM'
+            then
+                (
+                    case
+                        when
+                            (
+                                case
+                                    when
+                                        ra_cust_sales_lines_all.line_type = 'LINE'
+                                        or ra_cust_sales_lines_all.line_type = 'CB'
+                                    then
+                                        ra_cust_sales_lines_all.quantity_invoiced * (
+                                            case
+                                                when
+                                                    ra_cust_sales_lines_all.unit_standard_price
+                                                    is null
+                                                then 0
+                                                else
+                                                    to_number(
+                                                        ra_cust_sales_lines_all.unit_standard_price
+                                                    )
+                                            end
+                                        )
+                                    else 0
+                                end
+                            ) > (
+                                case
+                                    when
+                                        ra_cust_sales_lines_all.line_type = 'LINE'
+                                        or ra_cust_sales_lines_all.line_type = 'CB'
+                                    then ra_cust_sales_lines_all.extended_amount
+                                    else 0
+                                end
+                            )
+                        then
+                            (
+                                case
+                                    when
+                                        ra_cust_sales_lines_all.line_type = 'LINE'
+                                        or ra_cust_sales_lines_all.line_type = 'CB'
+                                    then
+                                        ra_cust_sales_lines_all.quantity_invoiced * (
+                                            case
+                                                when
+                                                    ra_cust_sales_lines_all.unit_standard_price
+                                                    is null
+                                                then 0
+                                                else
+                                                    to_number(
+                                                        ra_cust_sales_lines_all.unit_standard_price
+                                                    )
+                                            end
+                                        )
+                                    else 0
+
+                                end
+                            ) - (
+                                case
+                                    when
+                                        ra_cust_sales_lines_all.line_type = 'LINE'
+                                        or ra_cust_sales_lines_all.line_type = 'CB'
+                                    then ra_cust_sales_lines_all.extended_amount
+                                    else 0
+                                end
+                            )
+                        else 0
+                    end
+                )
+            else 0
+        end
+    ) discount_amount,
+    ra_cust_sales_lines_all.quantity_invoiced invoiced_quantity,
+    ra_cust_sales_lines_all.trx_number invoice_number,
+    to_char(ra_cust_sales_lines_all.line_number) invoice_item,
+    ra_cust_sales_lines_all.sales_order_number,
+    ra_cust_sales_lines_all.sales_order_item,
+    ra_cust_sales_lines_all.sales_order_item_detail_number,
+    ra_cust_sales_lines_all.purchase_order purch_order_number,
+    'N' delete_flag,
+    ra_cust_sales_lines_all.exchange_rate_type loc_exch_rate_type,
+    ra_cust_sales_lines_all.exchange_rate loc_exchange_rate,
+    ra_cust_sales_lines_all.exchange_date exchange_date,
+    to_char(ra_cust_sales_lines_all.created_by_id) created_by_id,
+    to_char(ra_cust_sales_lines_all.last_updated_by_id) changed_by_id,
+    ra_cust_sales_lines_all.created_on_date created_on_date,
+    ra_cust_sales_lines_all.changed_on_date changed_on_date,
+    ra_cust_sales_lines_all.last_update_date aux1_changed_on_date,
+    ra_trx_types.last_update_date aux2_changed_on_date,
+    to_char(ra_cust_sales_lines_all.set_of_books_id) ledger_id,
+      (
+        case
+            when
+                not ra_cust_sales_lines_all.interface_line_attribute11 is null
+                and ra_cust_sales_lines_all.interface_line_attribute11 <> '0'
+                and ra_trx_types.type = 'INV'
+            then 'Y'
+            else 'N'
+        end
+    ) discount_line_flag,
+    
+    ra_cust_sales_lines_all.uom_code uom_code,
+    mtl_uom_conv.conversion_rate conversion_rate,
+    invoiced_quantity * conversion_rate invoiced_qty_standard_uom,
+    ra_cust_sales_lines_all.invoice_currency_code invoice_currency_code,
+    gl_ledger.ledger_currency loc_curr_code,
+    ra_cust_sales_lines_all.interface_line_attribute11 interface_line_attribute11,
+    ra_cust_sales_lines_all.interface_line_attribute12 interface_line_attribute12,
+    ra_trx_types.type type,
+  --  ra_cust_sales_lines_all.sold_to_site_use_id sold_to_site_use_id, (REMOVE THIS)
+    ra_cust_sales_lines_all.paying_site_use_id paying_site_use_id,
+    ra_cust_sales_lines_all.bill_to_site_use_id bill_to_site_use_id,
+    ra_cust_sales_lines_all.ship_to_site_use_id ship_to_site_use_id,
+    ra_cust_sales_lines_all.source_id
+from ra_cust_sales_lines_all
+inner join
+    ra_trx_types
+    on ra_cust_sales_lines_all.org_id = ra_trx_types.org_id
+    and ra_cust_sales_lines_all.cust_trx_type_id = ra_trx_types.cust_trx_type_id
+inner join
+    ra_salesreps
+    on ra_cust_sales_lines_all.primary_salesrep_id = ra_salesreps.salesrep_id
+    and ra_cust_sales_lines_all.org_id = ra_salesreps.org_id
+inner join gl_ledger on ra_cust_sales_lines_all.set_of_books_id = gl_ledger.ledger_id
+left outer join brand_cat on ra_cust_sales_lines_all.inventory_item_id =  brand_cat.inventory_item_id 
+and ra_cust_sales_lines_all.org_id  = brand_cat.organization_id 
+left outer join mtl_uom_conv on ra_cust_sales_lines_all.inventory_item_id = mtl_uom_conv.uom_code
+
+
+
+

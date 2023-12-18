@@ -1,0 +1,48 @@
+with
+    xla_acctg_methods_tl as (
+        select 
+            *
+        from {{ source("oracle_master_data", "xla_acctg_methods_tl") }}
+    ),
+    gl_period_types as (
+        select
+           *
+        from {{ source("oracle_financials", "gl_period_types") }}
+    ),
+    gl_ledgers as (
+        select
+           *
+        from {{ source("oracle_master_data", "gl_ledgers") }}
+    )
+
+select
+    gl_ledgers.ledger_id,
+    gl_ledgers.name ledger_name,
+    gl_ledgers.short_name ledger_short_name,
+    gl_ledgers.description ledger_description,
+    gl_ledgers.ledger_category_code,
+    gl_ledgers.chart_of_accounts_id,
+    gl_ledgers.currency_code::varchar(3) ledger_currency,
+    gl_ledgers.period_set_name calendar_name,
+    gl_ledgers.sla_accounting_method_code sla_accounting_method_code,
+    gl_ledgers.last_update_date last_update_date,
+    gl_ledgers.last_updated_by changed_by_id,
+    gl_ledgers.creation_date created_on_date,
+    gl_ledgers.created_by created_by_id,
+    xla_acctg_methods_tl.name sla_accounting_method_name,
+    gl_period_types.user_period_type period_type,
+    gl_ledgers._batch_run_id,
+    gl_ledgers._batch_insert_date,
+    gl_ledgers._batch_update_date,
+    gl_ledgers._source_id
+from gl_ledgers
+left join
+    xla_acctg_methods_tl
+    on gl_ledgers.sla_accounting_method_code
+    = xla_acctg_methods_tl.accounting_method_code
+    and gl_ledgers.sla_accounting_method_type
+    = xla_acctg_methods_tl.accounting_method_type_code
+join gl_period_types on gl_ledgers.accounted_period_type = gl_period_types.period_type
+where 1=1
+    and nvl(gl_ledgers.complete_flag, 'Y') = 'Y' 
+    and gl_ledgers.object_type_code = 'L'

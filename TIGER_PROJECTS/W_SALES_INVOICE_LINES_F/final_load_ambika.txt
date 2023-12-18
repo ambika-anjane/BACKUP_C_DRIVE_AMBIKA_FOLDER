@@ -1,0 +1,89 @@
+ {% if is_incremental() %}
+with (
+ra_cust_trx_lines_all as (select * from {{ ref("stg_oracle__ra_cust_trx_lines_all") }})),
+
+ 
+incremental as (
+    select customer_trx_id
+    from ra_cust_trx_lines_all
+  
+    where _batch_update_date >= $batch_start_time
+      and _batch_update_date <= $batch_end_time
+
+  or
+
+    select customer_trx_id
+    from {{ ref("stg_oracle__ra_customer_trx_all") }}
+    where _batch_update_date >= $batch_start_time
+      and _batch_update_date <= $batch_end_time
+      and (complete_flag = 'Y')
+            and (
+                interface_line_context
+                in ('ORDER ENTRY', 'INTERCOMPANY', 'CRS')
+                or interface_line_context in ('ORDER ENTRY', 'INTERCOMPANY', 'CRS')
+            )
+   
+)
+   {% endif %} 
+
+
+
+ select
+    
+        NVL(fs.sales_ordln_id|| '~' || fs.datasource_num_id,'0')::VARCHAR(200) sales_ordln_id,
+        NVL(fs.sales_pckln_id|| '~' || fs.datasource_num_id,'0')::VARCHAR(200) sales_pckln_id,
+        NVL(fs.inventory_org_id|| '~' || fs.datasource_num_id,'0')::VARCHAR(200) inventory_org_id,
+        NVL(fs.inventory_item_id|| '~' || fs.datasource_num_id,'0')::VARCHAR(200) inventory_item_id,
+        NVL(fs.inventory_item_id || '~' || fs.inventory_org_id|| '~' || fs.datasource_num_id,'0')::VARCHAR(200) inventory_product_id,
+        NVL(fs.invoice_status_id|| '~' || fs.cust_trx_source_id,'0')::VARCHAR(200) invoice_status_id,
+        NVL(fs.operating_unit_org_id|| '~' || fs.datasource_num_id,'0')::VARCHAR(200) operating_unit_org_id,
+        NVL(fs.payment_terms_id|| '~' || fs.cust_trx_source_id,'0')::VARCHAR(200) payment_terms_id,
+        NVL('PLANT' || '~' || fs.inventory_org_id|| '~' || fs.datasource_num_id,'0')::VARCHAR(200)  plant_loc_id,
+        NVL(fs.sales_org_id|| '~' || fs.datasource_num_id,'0')::VARCHAR(200) sales_org_id,
+        NVL(fs.terr_id|| '~' || fs.cust_trx_source_id,'0')::VARCHAR(200) terr_id,
+        NVL(fs.xact_type_id|| '~' || fs.types_source_id,'0')::VARCHAR(200) xact_type_id, 
+        fs.conversion_dt,
+        fs.invoiced_on_dt,
+        fs.payment_terms_eff_dt,
+        fs.net_amt,
+        fs.list_amt,
+        fs.tax_amt,
+        fs.freight_amt,
+        fs.discount_amt,
+        fs.invoiced_qty,
+        fs.invoice_num,
+        fs.invoice_item,
+        fs.sales_order_num,  
+        fs.sales_order_item,
+        fs.sales_order_item_detail_nu,
+        fs.purch_order_num,
+        fs.delete_flg,
+        fs.loc_exch_rate_type,
+        fs.loc_exchange_rate,
+        fs.exchange_dt,
+        NVL(fs.created_by_id|| '~' || fs.datasource_num_id,'0')::VARCHAR(200) created_by_id,
+        NVL(fs.changed_by_id|| '~' || fs.datasource_num_id,'0')::VARCHAR(200) changed_by_id,
+        fs.created_on_date,
+        fs.changed_on_date,
+        fs.aux1_changed_on_date,
+        fs.aux2_changed_on_date,
+        concat(concat(to_char(fs.customer_trx_line_id), '~'), fs.datasource_num_id) integration_id,
+        fs.uom_code,
+        fs.invoice_currency_code,
+        fs.loc_curr_code,
+        fs.interface_line_attribute11,
+        fs.type,
+        NVL(fs.sold_to_site_use_id|| '~' || fs.cust_trx_source_id,'0')::VARCHAR(200) sold_to_site_use_id,
+        NVL(fs.paying_site_use_id|| '~' || fs.cust_trx_source_id,'0')::VARCHAR(200) paying_site_use_id,
+        NVL(fs.bill_to_site_use_id || '~' || fs.cust_trx_source_id,'0')::VARCHAR(200) bill_to_site_use_id,
+        NVL(fs.ship_to_site_use_id|| '~' || fs.cust_trx_source_id,'0')::VARCHAR(200) ship_to_site_use_id,
+        fs.datasource_num_id as datasource_num_id,
+        --$batch_start_time w_insert_dt,
+        --$batch_start_time w_update_dt,
+        {{ env_var("DBT_ETL_PROC_ID") }} etl_proc_id
+    from {{ref('stg_oracle__w_sales_invoice_line_fs')}} fs
+    where (1 = 1)
+      {% if is_incremental() %}
+      and fs.invoice_header_id in (select customer_trx_id from incremental)
+      {% endif %}
+

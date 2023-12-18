@@ -1,0 +1,13 @@
+version: 2
+
+models: 
+ - name: w_sales_invoice_line_f
+   description: 'Company financial ledgers'
+   config:
+      unique_key: 'integration_id'
+      tags: 'financials'  
+      merge_exclude_columns: ['w_insert_dt','delete_flag']
+   columns:
+     - name: integration_id
+       tests:
+         - unique

@@ -1,0 +1,88 @@
+-- depends_on: {{ref('stg_oracle__sales_invoices')}},{{ref('stg_oracle__sales_invoice_lines')}}
+
+{% if is_incremental() %}
+
+with incremental as (
+    select customer_trx_id
+    from {{ ref("stg_oracle__sales_invoice_lines") }}
+    where _batch_update_date >= $batch_start_time
+      and _batch_update_date <= $batch_end_time
+      and  interface_line_context is not null
+    
+    union all
+
+    select customer_trx_id
+    from {{ ref("stg_oracle__sales_invoices") }}
+    where _batch_update_date >= $batch_start_time
+      and _batch_update_date <= $batch_end_time
+      and interface_header_context is not null
+)
+{% endif %}
+
+    select
+            NVL(fs.sales_order_line_id|| '~' || fs.source_id,'0')::VARCHAR(200) sales_order_line_id,
+        NVL(fs.sales_pick_line_id|| '~' || fs.source_id,'0')::VARCHAR(200) sales_pick_line_id,
+        NVL(fs.inventory_org_id|| '~' || fs.source_id,'0')::VARCHAR(200) inventory_org_id,
+        NVL(fs.inventory_item_id || '~' || fs.inventory_org_id|| '~' || fs.source_id,'0')::VARCHAR(200) inventory_product_id,
+        NVL(fs.operating_unit_org_id|| '~' || fs.source_id,'0')::VARCHAR(200) operating_unit_org_id,
+        NVL(fs.payment_terms_id|| '~' || fs.source_id,'0')::VARCHAR(200) payment_terms_id,
+        nvl(to_char(fs.customer_account_id)||'~'||fs.ship_to_site_use_id||'~'||fs.brand||'~'||fs.category||'~'||fs.source_id,'0')::varchar(500)  territory_id,
+        NVL(fs.customer_account_id || '~' || fs.source_id,'0')::VARCHAR(200) customer_account_id,
+        NVL(fs.xact_source_id|| '~' || fs.source_id,'0')::VARCHAR(200) xact_source_id,
+        NVL(fs.invoice_header_id|| '~' || fs.source_id,'0')::VARCHAR(200) invoice_header_id,
+        NVL(fs.legal_entity_id|| '~' || fs.source_id,'0')::VARCHAR(200) legal_entity_id,
+        NVL(fs.sales_rep_id|| '~' || fs.source_id,'0')::VARCHAR(200) sales_rep_id,
+        NVL(fs.xact_type_id|| '~' || fs.source_id,'0')::VARCHAR(200) xact_type_id,
+        NVL(fs.customer_ship_to_loc_id|| '~' || fs.source_id,'0')::VARCHAR(200) ship_to_location_id,
+        NVL(fs.customer_bill_to_loc_id|| '~' || fs.source_id,'0')::VARCHAR(200) bill_to_location_id,
+        nvl(fs.invoice_status_id|| '~' || fs.source_id,'0')::VARCHAR(200) invoice_Status_id,
+        nvl(fs.invoiced_on_date::date,'0') invoiced_on_date,
+        nvl(fs.payment_terms_eff_date::date,'0') payment_terms_eff_date,
+        fs.net_amount,
+        fs.list_amount,
+        fs.tax_amount,
+        fs.freight_amount,
+        fs.discount_amount,
+        fs.invoiced_quantity,
+        fs.quantity_credited,
+        fs.unit_selling_price,
+        fs.unit_standard_price,
+        fs.uom_conversion_rate,
+        fs.invoice_number,
+        fs.invoice_item,
+        fs.sales_order_number,  
+        fs.sales_order_item,
+        fs.sales_order_item_detail_number,
+        fs.purch_order_number,
+        fs.delete_flag,
+        fs.loc_exch_rate_type,
+        fs.loc_exchange_rate,
+        nvl(fs.exchange_date::date,'0') exchange_date,
+        NVL(fs.created_by_id|| '~' || fs.source_id,'0')::VARCHAR(200) created_by_id,
+        NVL(fs.changed_by_id|| '~' || fs.source_id,'0')::VARCHAR(200) changed_by_id,
+        nvl(fs.created_on_date::date,'0') created_on_date,
+        nvl(fs.changed_on_date::date,'0') changed_on_date,
+        fs.aux1_changed_on_date,
+        fs.aux2_changed_on_date,
+        NVL(fs.ledger_id|| '~' || fs.source_id,'0')::VARCHAR(200) ledger_id,
+        fs.discount_line_flag,
+        fs.invoiced_uom_code,
+        fs.doc_curr_code,
+        fs.loc_curr_code,
+        fs.price_adjustment_id,
+        fs.invoice_type,
+        NVL(fs.paying_site_use_id|| '~' || fs.source_id,'0')::VARCHAR(200) paying_site_use_id,
+        NVL(fs.bill_to_site_use_id || '~' || fs.source_id,'0')::VARCHAR(200) bill_to_site_use_id,
+        NVL(fs.ship_to_site_use_id|| '~' || fs.source_id,'0')::VARCHAR(200) ship_to_site_use_id,
+        to_char(fs.sales_invoice_line_id) || '~' || fs.source_id integration_id,
+        fs.source_id as datasource_num_id,
+      --  $batch_start_time w_insert_dt,
+      --  $batch_start_time w_update_dt,
+        {{ env_var("DBT_CLOUD_RUN_ID", 9999) }}::number(32)  etl_proc_id
+    from {{ref('stg__sales_invoice_lines')}} fs
+    where integration_id = '300325567~100'
+      {% if is_incremental() %}
+      and fs.invoice_header_id in (select customer_trx_id from incremental )
+      {% endif %}
+
+

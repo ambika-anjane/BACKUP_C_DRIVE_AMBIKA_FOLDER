@@ -1,0 +1,316 @@
+with
+    ra_cust_trx as (select * from {{ ref("stg_oracle__sales_invoices") }}),
+    ra_cust_trx_lines_all as (select * from {{ ref("stg_oracle__sales_invoice_lines") }})
+
+select
+ra_cust_trx_lines_all.customer_trx_line_id sales_invoice_line_id,
+ra_cust_trx.cust_trx_type_id,
+ra_cust_trx_lines_all.interface_line_context,
+ra_cust_trx_lines_all.line_type,
+ra_cust_trx_lines_all.interface_line_attribute6,
+ra_cust_trx_lines_all.link_to_cust_trx_line_id,
+ra_cust_trx_lines_all.interface_line_attribute7,
+ra_cust_trx_lines_all.warehouse_id,
+--ra_cust_trx_lines_all.inventory_item_id,
+ra_cust_trx_lines_all.org_id,
+ra_cust_trx_lines_all.extended_amount,
+ra_cust_trx_lines_all.quantity_invoiced,
+ra_cust_trx_lines_all.quantity_credited,
+ra_cust_trx_lines_all.unit_standard_price,
+ra_cust_trx_lines_all.unit_selling_price,
+ra_cust_trx_lines_all.line_number,
+ra_cust_trx_lines_all.sales_order,
+ra_cust_trx_lines_all.interface_line_attribute13,
+ra_cust_trx_lines_all.interface_line_attribute12,
+ra_cust_trx_lines_all.created_by created_by_id,
+ra_cust_trx_lines_all.last_updated_by last_updated_by_id,
+ra_cust_trx_lines_all.creation_date created_on_date,
+ra_cust_trx_lines_all.last_update_date changed_on_date,
+ra_cust_trx_lines_all.set_of_books_id,
+ra_cust_trx_lines_all.interface_line_attribute11,
+ra_cust_trx_lines_all.uom_code,
+ra_cust_trx.invoice_status,
+ra_cust_trx.term_id,
+--ra_cust_trx.territory_id,
+--ra_cust_trx.exchange_date,
+-- ra_cust_trx.trx_date,
+ra_cust_trx.term_due_date,
+ra_cust_trx.trx_number,
+ra_cust_trx.purchase_order,
+ra_cust_trx.exchange_rate_type,
+ra_cust_trx.exchange_rate,
+(
+        case
+            when ra_cust_trx.exchange_date is null
+            then ra_cust_trx.trx_date
+            else ra_cust_trx.exchange_date
+
+        end
+    ) exchange_date,
+-- ra_cust_trx.trx_date,
+ra_cust_trx.last_update_date,
+ra_cust_trx.bill_to_customer_id,
+ra_cust_trx.customer_trx_id,
+ra_cust_trx.legal_entity_id,
+ra_cust_trx.invoice_currency_code,
+ra_cust_trx.primary_salesrep_id,
+ra_cust_trx.sold_to_site_use_id,
+ra_cust_trx.paying_site_use_id,
+ra_cust_trx.bill_to_site_use_id,
+ra_cust_trx.ship_to_site_use_id,
+ra_cust_trx_lines_all._source_id source_id,
+ra_cust_trx._source_id,
+(
+        case
+            when ra_cust_trx_lines_all.line_type = 'DM'
+            then null
+            else
+                (
+                    case
+                        when
+                            (
+                                case
+                                    when ra_cust_trx_lines_all.line_type = 'LINE'
+                                    then ra_cust_trx_lines_all.interface_line_context
+                                    else ra_cust_trx_lines_all1.interface_line_context
+                                end
+                            )
+                            = 'ORDER ENTRY'
+                        then
+                            (
+                                case
+                                    when ra_cust_trx_lines_all.line_type = 'LINE'
+                                    then ra_cust_trx_lines_all.interface_line_attribute6
+                                    else
+                                        ra_cust_trx_lines_all1.interface_line_attribute6
+                                end
+                            )
+                        else null
+
+
+                    end
+                )
+        end
+    ) sales_order_line_id,
+    (
+        case
+            when ra_cust_trx_lines_all.line_type = 'DM'
+            then null
+            else
+                (
+                    case
+                        when
+                            (
+                                case
+                                    when
+                                        ra_cust_trx_lines_all.line_type = 'LINE'
+                                        or ra_cust_trx_lines_all.link_to_cust_trx_line_id
+                                        is null
+                                    then ra_cust_trx_lines_all.interface_line_context
+                                    else ra_cust_trx_lines_all1.interface_line_context
+                                end
+                            )
+                            = 'ORDER ENTRY'
+                        then
+                            (
+                                case
+                                    when
+                                        ra_cust_trx_lines_all.line_type = 'LINE'
+                                        or ra_cust_trx_lines_all.link_to_cust_trx_line_id
+                                        is null
+                                    then ra_cust_trx_lines_all.interface_line_attribute7
+                                    else
+                                        ra_cust_trx_lines_all1.interface_line_attribute7
+
+                                end
+                            )
+                        else null
+                    end
+                )
+        end
+    ) sales_pick_line_id,
+    to_char(
+            (
+                case
+                    when ra_cust_trx_lines_all.line_type = 'LINE' or ra_cust_trx_lines_all.link_to_cust_trx_line_id is null
+                    then ra_cust_trx_lines_all.warehouse_id
+                    else ra_cust_trx_lines_all1.warehouse_id
+                end
+            )
+        ) inventory_org_id,
+          to_char(
+            (
+                case
+                    when ra_cust_trx_lines_all.line_type = 'LINE' or ra_cust_trx_lines_all.link_to_cust_trx_line_id is null
+                    then ra_cust_trx_lines_all.inventory_item_id
+                    else ra_cust_trx_lines_all1.inventory_item_id
+                end
+            )
+        ) inventory_item_id,
+        to_char(ra_cust_trx_lines_all.org_id) operating_unit_org_id,
+        to_char(ra_cust_trx.term_id) payment_terms_id,
+      --  to_char(ra_cust_trx_lines_all.org_id) sales_org_id,
+        to_char(ra_cust_trx.territory_id) territory_id,
+        ra_cust_trx.trx_date invoiced_on_date,
+        ra_cust_trx.term_due_date payment_terms_eff_date,
+   
+         (
+            case
+                when ra_cust_trx_lines_all.line_type = 'LINE' or ra_cust_trx_lines_all.line_type = 'CB'
+                then ra_cust_trx_lines_all.extended_amount
+                else 0
+            end
+        ) net_amount,
+        (
+            case
+                when ra_cust_trx_lines_all.line_type = 'LINE' or ra_cust_trx_lines_all.line_type = 'CB'
+                then
+                    ra_cust_trx_lines_all.quantity_invoiced * (
+                        (
+                            case
+                                when
+                                    ra_cust_trx_lines_all.unit_standard_price is null
+                                then 0
+                                else
+                                    to_number( ra_cust_trx_lines_all.unit_standard_price )
+                            end
+                        )
+                    )
+                else 0
+            end
+        ) list_amount,
+          (
+            case
+                when ra_cust_trx_lines_all.line_type = 'TAX'
+                then ra_cust_trx_lines_all.extended_amount
+                else 0
+            end
+        ) tax_amount,
+        (
+            case
+                when ra_cust_trx_lines_all.line_type = 'FREIGHT'
+                then ra_cust_trx_lines_all.extended_amount
+                else 0
+            end
+        ) freight_amount,
+        
+     (
+        case
+            when
+                (
+                    case
+                        when
+                            ra_cust_trx_lines_all.line_type = 'LINE'
+                            or ra_cust_trx_lines_all.link_to_cust_trx_line_id is null
+                        then ra_cust_trx_lines_all.interface_line_context
+                        else ra_cust_trx_lines_all1.interface_line_context
+                    end
+                )
+                = 'ORDER ENTRY'
+            then
+                (
+                    case
+                        when ra_cust_trx_lines_all.line_type = 'LINE'
+                        then ra_cust_trx_lines_all.sales_order
+                        else ra_cust_trx_lines_all1.sales_order
+                    end
+                )
+            else null
+        end
+    ) sales_order_number,
+     (
+        case
+            when
+                (
+                    case
+                        when
+                            ra_cust_trx_lines_all.line_type = 'LINE'
+                            or ra_cust_trx_lines_all.link_to_cust_trx_line_id is null
+                        then ra_cust_trx_lines_all.interface_line_context
+                        else ra_cust_trx_lines_all1.interface_line_context
+                    end
+                )
+                = 'ORDER ENTRY'
+            then
+                (
+                    case
+                        when ra_cust_trx_lines_all.line_type = 'LINE'
+                        then ra_cust_trx_lines_all.sales_order_line
+                        else ra_cust_trx_lines_all1.sales_order_line
+                    end
+                )
+            else null
+        end
+    )
+    sales_order_item,
+    (
+        case
+            when
+                (
+                    case
+                        when
+                            ra_cust_trx_lines_all.line_type = 'LINE'
+                            or ra_cust_trx_lines_all.link_to_cust_trx_line_id is null
+                        then ra_cust_trx_lines_all.interface_line_context
+                        else ra_cust_trx_lines_all1.interface_line_context
+                    end
+                )
+                = 'ORDER ENTRY'
+            then
+                (
+                    case
+                        when ra_cust_trx_lines_all.interface_line_attribute13 is null
+                        then
+                            trim(
+                                to_char(
+                                    ra_cust_trx_lines_all.interface_line_attribute12
+                                )
+                            )
+                        else
+                            trim(
+                                to_char(
+                                    ra_cust_trx_lines_all.interface_line_attribute12
+                                )
+                            )
+                            || '.'
+                            || trim(
+                                to_char(
+                                    ra_cust_trx_lines_all.interface_line_attribute13
+                                )
+                            )
+                    end
+                )
+            else null
+        end
+    ) sales_order_item_detail_number,
+  
+    'SALES_INVOICE_SOURCE~' || (
+        case
+            when to_char(ra_cust_trx_lines_all.interface_line_context) is null
+            then to_char(ra_cust_trx_lines_all1.interface_line_context)
+            else to_char(ra_cust_trx_lines_all.interface_line_context)
+
+        end
+    )
+    xact_source_id
+   
+
+from 
+ra_cust_trx
+inner join
+    ra_cust_trx_lines_all
+    on ra_cust_trx.customer_trx_id = ra_cust_trx_lines_all.customer_trx_id
+--and ra_cust_trx_lines_all.customer_trx_line_id = '305926779'
+left outer join
+    ra_cust_trx_lines_all ra_cust_trx_lines_all1
+    on ra_cust_trx_lines_all.link_to_cust_trx_line_id
+    = ra_cust_trx_lines_all1.customer_trx_line_id
+where(1=1)
+ --ra_cust_trx_lines_all.cust_trx_lines_all.customer_trx_line_id= '300325567'
+    and (ra_cust_trx.complete_flag = 'Y')
+    /* and (
+        ra_cust_trx_lines_all.interface_line_context
+        in ('ORDER ENTRY', 'INTERCOMPANY', 'CRS')
+       -- or ra_cust_trx_lines_all1.interface_line_context
+       -- in ('ORDER ENTRY', 'INTERCOMPANY', 'CRS') 
+    ) */
