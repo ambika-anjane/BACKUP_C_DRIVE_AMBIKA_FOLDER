@@ -1,0 +1,197 @@
+-- trial file (if not required need to delete)
+
+with
+    hyperion_budget_load as (
+        select * from {{ ref("stg_oracle__hyperion_budget_load") }}
+    ),
+
+    sub_1 as (
+        select
+            bu_code,
+            lc_code,
+            customer,
+            ch_code,
+            br_code,
+            pl_code,
+            sku,
+            invorg,
+            dept,
+            le,
+            account,
+            'USD' currency,
+            'MAR-23' PERIOD,
+            mar sales
+        from hyperion_budget_load
+    ),
+
+    sub_2 as (
+        select
+            bu_code,
+            lc_code,
+            customer,
+            ch_code,
+            br_code,
+            pl_code,
+            sku,
+            invorg,
+            dept,
+            le,
+            account,
+            'USD' currency,
+            'Apr-23',
+            apr sales
+        from hyperion_budget_load
+    ),
+
+    sub_3 as (
+        select
+            bu_code,
+            lc_code,
+            customer,
+            ch_code,
+            br_code,
+            pl_code,
+            sku,
+            invorg,
+            dept,
+            le,
+            account,
+            'USD' currency,
+            'May-23',
+            may sales
+
+        from hyperion_budget_load
+    ),
+
+    sub_3 as (
+        select
+            bu_code,
+            lc_code,
+            customer,
+            ch_code,
+            br_code,
+            pl_code,
+            sku,
+            invorg,
+            dept,
+            le,
+            account,
+            'USD' currency,
+            'May -23',
+            may sales
+
+        from hyperion_budget_load
+    ),
+
+
+    sub_4 as (
+        select
+            bu_code,
+            lc_code,
+            customer,
+            ch_code,
+            br_code,
+            pl_code,
+            sku,
+            invorg,
+            dept,
+            le,
+            account,
+            'USD' currency,
+            'June -23',
+            jun sales
+
+        from hyperion_budget_load
+    ),
+
+    final as (
+        select *
+        from sub_1
+        union all
+        select *
+        from sub_2
+        union all
+        select *
+        from sub_3
+        union all
+        select *
+        from sub_4
+    )
+
+select *
+from final
+
+
+--- trial codes:
+
+pivot as (
+        select *
+        from
+            {{ ref("stg_oracle__hyperion_budget_load") }} pivot (
+                sum(sales) for bu_code in (
+                    {% for pivot_col in pivot_cols %}
+                        '{{pivot_col}}'{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                )
+            )
+        where trim(sku) in ('S2190186', 'SKUadj', 'S2190228', 'S2184263')
+    ),
+
+ /*
+    pivot as (
+        select *
+        from
+            {{ ref("stg_oracle__hyperion_budget_load") }}
+            UNPIVOT(sales for month in (jan,feb,mar,apr,may,jun,jul,aug,sep,oct,nov,dec,jan,feb))
+order by month
+ pivot (
+                sum(mar) for bu_code in (
+                    {% for pivot_col in pivot_cols %}
+                        '{{pivot_col}}'{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                )
+            )
+        where trim(sku) in ('S2190186', 'SKUadj', 'S2190228', 'S2184263')
+    )
+select *
+from  unpivot
+    
+with
+    hyperion_budget_load as (
+        select * from {{ ref("stg_oracle__hyperion_budget_load") }}
+    ),
+
+    test as (
+        select
+            bu_code,
+            lc_code,
+            customer,
+            ch_code,
+            br_code,
+            pl_code,
+            sku,
+            invorg,
+            dept,
+            le,
+            account,
+            'USD' currency,
+            'Mar-23' period,
+            mar sales
+        from hyperion_budget_load
+    ),
+
+-- hyperion_sales as (select  * from test (sum(sales) for bu_code in (select bu_code from hyperion_budget_load group by bu_code)))
+-- hyperion_sales as (select  * from test pivot (sum(sales) for bu_code in (select bu_code from hyperion_budget_load group by bu_code)))
+-- (select  * from test pivot (sum(sales) for BU_CODE in ('Mar-23')))
+select *
+from hyperion_sales
+    
+
+    -- select bu_code, lc_code, customer, ch_code, br_code,
+    -- pl_code,sku,invorg,dept,le,account,'USD' currency
+    -- ,'Mar-23',mar sales
+    -- from wc_hyp_budget_file_load
+    
+*/
+    pivot
+

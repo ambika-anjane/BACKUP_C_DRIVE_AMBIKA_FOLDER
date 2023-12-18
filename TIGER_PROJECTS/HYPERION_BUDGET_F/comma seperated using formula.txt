@@ -1,0 +1,100 @@
+ BU_CODE, 	 LE, 	 CH_CODE, 	 LC_CODE, 	 DEPT, 	 BR_CODE, 	 PL_CODE, 	 CUSTOMER, 	 SKU, 	 INVORG, 	 ACCOUNT, 	 Mar, 	 Apr, 	 May, 	 Jun, 	 Jul, 	 Aug, 	 Sep, 	 Oct, 	 Nov, 	 Dec, 	 Jan, 	 Feb 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B120, 	 PL021, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 402000, 	 , 	 , 	 , 	 35776, 	 24960, 	 56576, 	 45760, 	 41600, 	 -12480, 	 49920, 	 83200, 	 -20800 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B120, 	 PL021, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 484000, 	 , 	 , 	 , 	 -894.4, 	 -624, 	 -1414.4, 	 -1144, 	 -1040, 	 312, 	 -1248, 	 -2080, 	 520 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B120, 	 PL021, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 519000, 	 , 	 , 	 , 	 22449.16824, 	 15662.2104, 	 35501.01024, 	 28714.0524, 	 26103.684, 	 5220.7368, 	 31324.4208, 	 52207.368, 	 0.00000000000728 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B120, 	 PL021, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 608000, 	 , 	 , 	 , 	 357.76, 	 249.6, 	 565.76, 	 457.6, 	 416, 	 -124.8, 	 499.2, 	 832, 	 -208 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B920, 	 PL013, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 402000, 	 , 	 , 	 , 	 , 	 -101400, 	 , 	 , 	 , 	 , 	 , 	 -101400, 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B920, 	 PL013, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 484000, 	 , 	 , 	 , 	 , 	 2535, 	 , 	 , 	 , 	 , 	 , 	 2535, 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B920, 	 PL013, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 519000, 	 , 	 , 	 , 	 , 	 -51232.5, 	 , 	 , 	 , 	 , 	 , 	 -51232.5, 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B920, 	 PL013, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 608000, 	 , 	 , 	 , 	 , 	 -1014, 	 , 	 , 	 , 	 , 	 , 	 -1014, 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B960, 	 PL011, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 402000, 	 , 	 27874.5, 	 12000, 	 28012.5, 	 12000, 	 6000, 	 37980.5, 	 16000, 	 17000, 	 27994, 	 17000, 	 15793 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B960, 	 PL011, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 475000, 	 , 	 -1840.0305, 	 -1068, 	 -1852.3125, 	 -1068, 	 -534, 	 -2101.5125, 	 -1424, 	 -1513, 	 -1659.85, 	 -1513, 	 -1405.577 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B960, 	 PL011, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 519000, 	 , 	 12326.88, 	 4380, 	 12377.25, 	 4380, 	 2190, 	 18158.69, 	 5840, 	 6205, 	 13011.52, 	 6205, 	 5764.445 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B960, 	 PL011, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 608000, 	 , 	 278.745, 	 120, 	 280.125, 	 120, 	 60, 	 379.805, 	 160, 	 170, 	 279.94, 	 170, 	 157.93 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B960, 	 PL071, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 402000, 	 17862, 	 6000, 	 12000, 	 21997.5, 	 18000, 	 6000, 	 38002.5, 	 16000, 	 7000, 	 30000, 	 17000, 	 25793 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B960, 	 PL071, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 475000, 	 -1589.718, 	 -150, 	 -1068, 	 -1317.9375, 	 -1602, 	 -534, 	 -2102.0625, 	 -1424, 	 -623, 	 -1710, 	 -1513, 	 -2295.577 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B960, 	 PL071, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 519000, 	 6519.63, 	 3480, 	 4380, 	 10178.55, 	 6570, 	 2190, 	 18171.45, 	 5840, 	 2555, 	 14175, 	 6205, 	 9414.445 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B960, 	 PL071, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 608000, 	 178.62, 	 60, 	 120, 	 219.975, 	 180, 	 60, 	 380.025, 	 160, 	 70, 	 300, 	 170, 	 257.93 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B960, 	 PL053, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 402000, 	 , 	 8000, 	 3000, 	 3000, 	 3000, 	 4954, 	 6000, 	 5000, 	 5000, 	 5000, 	 5431, 	 6500 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B960, 	 PL053, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 475000, 	 , 	 -712, 	 -267, 	 -267, 	 -267, 	 -440.906, 	 -534, 	 -445, 	 -445, 	 -445, 	 -483.359, 	 -578.5 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B960, 	 PL053, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 519000, 	 , 	 2920, 	 1095, 	 1095, 	 1095, 	 1808.21, 	 2190, 	 1825, 	 1825, 	 1825, 	 1982.315, 	 2372.5 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B960, 	 PL053, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 608000, 	 , 	 80, 	 30, 	 30, 	 30, 	 49.54, 	 60, 	 50, 	 50, 	 50, 	 54.31, 	 65 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B965, 	 PL071, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 402000, 	 , 	 30000, 	 , 	 29000, 	 , 	 24000, 	 , 	 39000, 	 24000, 	 , 	 , 	 59000 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B965, 	 PL071, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 475000, 	 , 	 -750, 	 , 	 -725, 	 , 	 -600, 	 , 	 -975, 	 -600, 	 , 	 , 	 -1475 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B965, 	 PL071, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 519000, 	 , 	 12653.33662, 	 , 	 12221.15775, 	 , 	 10133.70573, 	 , 	 16453.47888, 	 10188.32973, 	 , 	 , 	 24860.38671 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L410, 	 MarginDept, 	 B965, 	 PL071, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 608000, 	 , 	 300, 	 , 	 290, 	 , 	 240, 	 , 	 390, 	 240, 	 , 	 , 	 590 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L435, 	 MarginDept, 	 B120, 	 PL012, 	 C209091, 	 SKUadj, 	 IO679, 	 402000, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 8500, 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L435, 	 MarginDept, 	 B120, 	 PL012, 	 C209091, 	 SKUadj, 	 IO679, 	 484000, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 -212.5, 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L435, 	 MarginDept, 	 B120, 	 PL012, 	 C209091, 	 SKUadj, 	 IO679, 	 519000, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 4109, 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L435, 	 MarginDept, 	 B120, 	 PL012, 	 C209091, 	 SKUadj, 	 IO679, 	 608000, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 85, 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L435, 	 MarginDept, 	 B120, 	 PL013, 	 C209091, 	 SKUadj, 	 IO679, 	 402000, 	 , 	 , 	 , 	 , 	 16500, 	 , 	 , 	 17000, 	 , 	 , 	 , 	 16500 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L435, 	 MarginDept, 	 B120, 	 PL013, 	 C209091, 	 SKUadj, 	 IO679, 	 484000, 	 , 	 , 	 , 	 , 	 -412.5, 	 , 	 , 	 -425, 	 , 	 , 	 , 	 -412.5 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L435, 	 MarginDept, 	 B120, 	 PL013, 	 C209091, 	 SKUadj, 	 IO679, 	 519000, 	 , 	 , 	 , 	 , 	 6779.104, 	 , 	 , 	 9520, 	 , 	 , 	 , 	 6779.104 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L435, 	 MarginDept, 	 B120, 	 PL013, 	 C209091, 	 SKUadj, 	 IO679, 	 608000, 	 , 	 , 	 , 	 , 	 165, 	 , 	 , 	 170, 	 , 	 , 	 , 	 165 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L435, 	 MarginDept, 	 B120, 	 PL021, 	 C209091, 	 SKUadj, 	 IO679, 	 402000, 	 , 	 , 	 , 	 , 	 12750, 	 , 	 , 	 , 	 , 	 , 	 , 	 12750 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L435, 	 MarginDept, 	 B120, 	 PL021, 	 C209091, 	 SKUadj, 	 IO679, 	 484000, 	 , 	 , 	 , 	 , 	 -318.75, 	 , 	 , 	 , 	 , 	 , 	 , 	 -318.75 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L435, 	 MarginDept, 	 B120, 	 PL021, 	 C209091, 	 SKUadj, 	 IO679, 	 519000, 	 , 	 , 	 , 	 , 	 5358.179, 	 , 	 , 	 , 	 , 	 , 	 , 	 5358.179 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L435, 	 MarginDept, 	 B120, 	 PL021, 	 C209091, 	 SKUadj, 	 IO679, 	 608000, 	 , 	 , 	 , 	 , 	 127.5, 	 , 	 , 	 , 	 , 	 , 	 , 	 127.5 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L450, 	 MarginDept, 	 B960, 	 PL011, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 402000, 	 , 	 , 	 , 	 14490, 	 , 	 14490, 	 , 	 , 	 21715, 	 , 	 21725, 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L450, 	 MarginDept, 	 B960, 	 PL011, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 475000, 	 , 	 , 	 , 	 -1289.61, 	 , 	 -1289.61, 	 , 	 , 	 -1932.635, 	 , 	 -1933.525, 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L450, 	 MarginDept, 	 B960, 	 PL011, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 519000, 	 , 	 , 	 , 	 5506.2, 	 , 	 5506.2, 	 , 	 , 	 8251.7, 	 , 	 8255.5, 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L450, 	 MarginDept, 	 B960, 	 PL011, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 608000, 	 , 	 , 	 , 	 144.9, 	 , 	 144.9, 	 , 	 , 	 217.15, 	 , 	 217.25, 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L460, 	 MarginDept, 	 B120, 	 PL021, 	 C204439, 	 SKUadj, 	 IO679, 	 402000, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 12750, 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L460, 	 MarginDept, 	 B120, 	 PL021, 	 C204439, 	 SKUadj, 	 IO679, 	 484000, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 -318.75, 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L460, 	 MarginDept, 	 B120, 	 PL021, 	 C204439, 	 SKUadj, 	 IO679, 	 519000, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 5358.179, 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L460, 	 MarginDept, 	 B120, 	 PL021, 	 C204439, 	 SKUadj, 	 IO679, 	 608000, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 127.5, 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L460, 	 MarginDept, 	 B960, 	 PL011, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 402000, 	 , 	 12340, 	 , 	 12327.5, 	 12340, 	 , 	 18420, 	 , 	 6800, 	 11623.5, 	 18375, 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L460, 	 MarginDept, 	 B960, 	 PL011, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 475000, 	 , 	 -1098.26, 	 , 	 -1097.1475, 	 -1098.26, 	 , 	 -1639.38, 	 , 	 -605.2, 	 -1034.4915, 	 -1635.375, 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L460, 	 MarginDept, 	 B960, 	 PL011, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 519000, 	 , 	 4689.2, 	 , 	 4684.45, 	 4689.2, 	 , 	 6999.6, 	 , 	 2584, 	 4416.93, 	 6982.5, 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L460, 	 MarginDept, 	 B960, 	 PL011, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 608000, 	 , 	 123.4, 	 , 	 123.275, 	 123.4, 	 , 	 184.2, 	 , 	 68, 	 116.235, 	 183.75, 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L482, 	 MarginDept, 	 B920, 	 PL012, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 402000, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 52500, 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L482, 	 MarginDept, 	 B920, 	 PL012, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 484000, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 -1312.5, 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L482, 	 MarginDept, 	 B920, 	 PL012, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 519000, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 24244.5, 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L482, 	 MarginDept, 	 B920, 	 PL012, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 608000, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 525, 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L482, 	 MarginDept, 	 B920, 	 PL013, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 402000, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 50050, 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L482, 	 MarginDept, 	 B920, 	 PL013, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 484000, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 -1251.25, 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L482, 	 MarginDept, 	 B920, 	 PL013, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 519000, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 29196.31, 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L482, 	 MarginDept, 	 B920, 	 PL013, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 608000, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 500.5, 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L455, 	 MarginDept, 	 B120, 	 PL012, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 402000, 	 , 	 , 	 , 	 6000, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L455, 	 MarginDept, 	 B120, 	 PL012, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 484000, 	 , 	 , 	 , 	 -150, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L455, 	 MarginDept, 	 B120, 	 PL012, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 519000, 	 , 	 , 	 , 	 3287.2, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L455, 	 MarginDept, 	 B120, 	 PL012, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 608000, 	 , 	 , 	 , 	 60, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L455, 	 MarginDept, 	 B120, 	 PL013, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 402000, 	 , 	 , 	 , 	 18000, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L455, 	 MarginDept, 	 B120, 	 PL013, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 484000, 	 , 	 , 	 , 	 -450, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L455, 	 MarginDept, 	 B120, 	 PL013, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 519000, 	 , 	 , 	 , 	 10800, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L455, 	 MarginDept, 	 B120, 	 PL013, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 608000, 	 , 	 , 	 , 	 180, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L455, 	 MarginDept, 	 B120, 	 PL021, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 402000, 	 , 	 , 	 , 	 9000, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L455, 	 MarginDept, 	 B120, 	 PL021, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 484000, 	 , 	 , 	 , 	 -225, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L455, 	 MarginDept, 	 B120, 	 PL021, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 519000, 	 , 	 , 	 , 	 4208, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L455, 	 MarginDept, 	 B120, 	 PL021, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 608000, 	 , 	 , 	 , 	 90, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L440, 	 MarginDept, 	 B120, 	 PL021, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 402000, 	 , 	 , 	 , 	 14250, 	 9000, 	 , 	 , 	 14250, 	 11250, 	 , 	 14250, 	 9000 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L440, 	 MarginDept, 	 B120, 	 PL021, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 484000, 	 , 	 , 	 , 	 -356.25, 	 -225, 	 , 	 , 	 -356.25, 	 -281.25, 	 , 	 -356.25, 	 -225 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L440, 	 MarginDept, 	 B120, 	 PL021, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 519000, 	 , 	 , 	 , 	 5291.008, 	 4463.87464, 	 , 	 , 	 5291.008, 	 5579.8433, 	 , 	 5291.008, 	 4463.87464 
+ BU2070, 	 NoLegalEntity, 	 Chnl17, 	 L440, 	 MarginDept, 	 B120, 	 PL021, 	 NoCustomer, 	 SKUadj, 	 IO679, 	 608000, 	 , 	 , 	 , 	 142.5, 	 90, 	 , 	 , 	 142.5, 	 112.5, 	 , 	 142.5, 	 90 
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190186, 	 IO666, 	 401000, 	 1277.861767, 	 1485.921283, 	 640.1185704, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190186, 	 IO666, 	 462000, 	 -12.61323089, 	 -14.66689802, 	 -6.318338596, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190186, 	 IO666, 	 463000, 	 -2.504487017, 	 -2.912263796, 	 -1.254571261, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190186, 	 IO666, 	 464000, 	 -0.29118062, 	 -0.338590208, 	 -0.145860943, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190186, 	 IO666, 	 466000, 	 -2.699155561, 	 -3.138627978, 	 -1.352086465, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190186, 	 IO666, 	 470000, 	 -17.31371735, 	 -20.13271056, 	 -8.672950612, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190186, 	 IO666, 	 471000, 	 -159.7327209, 	 -185.7401604, 	 -80.0148213, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190186, 	 IO666, 	 488100, 	 -7.218998166, 	 -8.394384505, 	 -3.616208658, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190186, 	 IO666, 	 511000, 	 612.2145747, 	 711.8944238, 	 306.6762997, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190186, 	 IO666, 	 514000, 	 -0.38161201, 	 -0.443745499, 	 -0.191160688, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190186, 	 IO666, 	 603000, 	 26.88720692, 	 31.26494119, 	 13.46859331, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190186, 	 IO666, 	 608000, 	 56.32996053, 	 65.50151932, 	 28.21733518, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190228, 	 IO666, 	 401000, 	 4694.61577, 	 4285.282218, 	 3990.194867, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190228, 	 IO666, 	 462000, 	 -46.33855879, 	 -42.29820112, 	 -39.38551918, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190228, 	 IO666, 	 463000, 	 -9.200998531, 	 -8.398743865, 	 -7.82040084, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190228, 	 IO666, 	 464000, 	 -1.069741006, 	 -0.976468008, 	 -0.909227779, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190228, 	 IO666, 	 466000, 	 -9.916172929, 	 -9.051560683, 	 -8.428264263, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190228, 	 IO666, 	 470000, 	 -63.60723247, 	 -58.06118234, 	 -54.06305115, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190228, 	 IO666, 	 471000, 	 -586.8269712, 	 -535.6602772, 	 -498.7743584, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190228, 	 IO666, 	 488100, 	 -26.52119619, 	 -24.20875659, 	 -22.54172569, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190228, 	 IO666, 	 511000, 	 3079.725847, 	 2811.19798799999, 	 2617.617046, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190228, 	 IO666, 	 514000, 	 -1.919687017, 	 -1.752305415, 	 -1.631640512, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190228, 	 IO666, 	 603000, 	 98.77837246, 	 90.1656757, 	 83.95680799, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_C & S WHOLESALE GROCERS, 	 S2190228, 	 IO666, 	 608000, 	 206.9453268, 	 188.9013228, 	 175.8934535, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_HEB KAZ US, 	 S2184263, 	 IO666, 	 401000, 	 1508.349588, 	 1532.003898, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_HEB KAZ US, 	 S2184263, 	 IO666, 	 462000, 	 -14.88827829, 	 -15.12175995, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  
+ BU5100, 	 NoLegalEntity, 	 Chnl03, 	 L110, 	 MarginDept, 	 B610, 	 PL036, 	 CG_HEB KAZ US, 	 S2184263, 	 IO666, 	 463000, 	 -2.956221131, 	 -3.002581321, 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	 , 	  

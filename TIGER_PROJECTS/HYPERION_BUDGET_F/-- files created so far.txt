@@ -1,0 +1,54 @@
+-- files created so far
+-- if not required need to delete below
+-- stg_oracle__hyperion_budget_load
+-- stg_orcle__hyperion_budget_file_period_load
+-- w_hyperion_budget_f
+
+-- TEST CODE
+
+    final as (
+        select count(sales)
+        from sub_1
+        union all
+        select count(sales)
+        from sub_2
+        union all
+        select count(sales)
+        from sub_3
+        union all
+        select count(sales)
+        from sub_4
+    )
+
+select *
+from final
+
+-- DOUBTS :
+I COULD SEE FY_YEAR IN PROD (IN BOTH)
+stg_oracle__hyperion_budget_load (HERE IT IS NULL)
+stg_orcle__hyperion_budget_file_period_load (HERE IT IS FY21)
+-- SHOULD I CREATE FY-YEAR IN BOTH THE TABLES AS THE EXTRA COLUMN AS IT NOT IN THE SAMPLE FILE
+
+
+-- w_hyperion_budget_f _old_code
+with
+   hyperion_budget_file_period_load  as (select * from {{ ref("stg_oracle__hyperion_budget_file_period_load") }}),
+    w_customer_account_d as (select * from {{ ref("w_customer_account_d")}} )
+    
+SELECT DISTINCT
+     customer
+ FROM
+     hyperion_budget_file_period_load a,
+     (
+         SELECT DISTINCT
+             customer_group
+         FROM
+             w_customer_account_d 
+         --WHERE
+           --  row_wid < 0 --name = 'Customer Group' 
+     ) b
+ WHERE
+     TRIM(substr(customer,4) ) = b.customer_group (+)
+     AND customer LIKE '%C%'
+     AND customer_group IS NULL
+

@@ -1,0 +1,84 @@
+   BUDGET QUERIES:
+   CUSTOMERS : 142773, SPAIN ALL OTHER, TESCO UK'
+
+   select budget_amount,inventory_product_id,inventory_org_id from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '511000'
+   and customer = '142773'  and budget_amount is not null
+   select sum(budget_amount)  from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '511000'
+   and customer = '142773'  and budget_amount is not null
+   select budget_units,inventory_product_id,inventory_org_id from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '401000'
+   and customer = '142773'  and budget_units is not null
+   select sum(budget_units)  from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '401000'
+   and customer = '142773'  and budget_units is not null
+   
+   select budget_amount,inventory_product_id,inventory_org_id from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '511000'
+   and customer =  'SPAIN ALL OTHER'  and budget_amount is not null
+   select sum(budget_amount) from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ent_period = 'Jun-23' and gl_Account_code = '401000'
+   and customer = 'SPAIN ALL OTHER'  and budget_amount is not null
+   select budget_units,inventory_product_id,inventory_org_id from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '401000'
+   and customer =  'SPAIN ALL OTHER'  and budget_units is not null
+   select sum(budget_units) from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ent_period = 'Jun-23' and gl_Account_code = '401000'
+   and customer = 'SPAIN ALL OTHER'  and budget_units is not null
+
+   select budget_amount,inventory_product_id,inventory_org_id from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '511000'
+   and customer =  'TESCO UK'  and budget_amount is not null
+   select sum(budget_amount) from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ent_period = 'Jun-23' and gl_Account_code = '511000'
+   and customer = 'TESCO UK'  and budget_amount is not null
+   select budget_units,inventory_product_id,inventory_org_id from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '401000'
+   and customer =  'TESCO UK'  and budget_units is not null
+   select sum(budget_units) from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ent_period = 'Jun-23' and gl_Account_code = '401000'
+   and customer = 'TESCO UK'  and budget_units is not null
+
+   PROD QUERIES:
+
+   SELECT  sum(BUDGETED_AMOUNT)
+   FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"  a WHERE ENT_PERIOD_WID ='20230630'
+   AND a.CUSTOMER_ACCOUNT_INTGID =  'SPAIN ALL OTHER' and a.gl_Account_num = '511000'
+
+   SELECT  sum(BUDGETED_AMOUNT)
+   FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"  a WHERE ENT_PERIOD_WID ='20230630'
+   AND a.CUSTOMER_ACCOUNT_INTGID =  'SPAIN ALL OTHER' and a.gl_Account_num = '511000'  
+
+
+   3plus9 QUERIES:
+
+   select forecast_3plus9_amount,inventory_product_id,inventory_org_id from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '511000'
+   and customer = '142773'  and  forecast_3plus9_amount is not null
+   select sum(forecast_3plus9_amount)  from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '511000'
+   and customer = '142773'  and forecast_3plus9_amount is not null
+   select forecast_3plus9_units,inventory_product_id,inventory_org_id from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '401000'
+   and customer = '142773'  and forecast_3plus9_units is not null
+   select sum(forecast_3plus9_units)  from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '401000'
+   and customer = '142773'  and forecast_3plus9_units is not null
+
+   select forecast_3plus9_amount,inventory_product_id,inventory_org_id,budget_amount from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '511000'
+   and customer =  'SPAIN ALL OTHER'  and forecast_3plus9_amount is not null
+   select sum(forecast_3plus9_amount) from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ent_period = 'Jun-23' and gl_Account_code = '511000'
+   and customer = 'SPAIN ALL OTHER'  and forecast_3plus9_amount is not null
+   select forecast_3plus9_units,inventory_product_id,inventory_org_id from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '401000'
+   and customer =  'SPAIN ALL OTHER'  and forecast_3plus9_units is not null
+   select sum(forecast_3plus9_units) from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ent_period = 'Jun-23' and gl_Account_code = '401000'
+   and customer = 'SPAIN ALL OTHER'  and forecast_3plus9_units is not null
+
+   select forecast_3plus9_amount,inventory_product_id,inventory_org_id from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '511000'
+   and customer =  'TESCO UK'  and forecast_3plus9_amount is not null
+   select sum(forecast_3plus9_amount) from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ent_period = 'Jun-23' and gl_Account_code = '511000'
+   and customer = 'TESCO UK'  and forecast_3plus9_amount is not null
+   select  forecast_3plus9_units,inventory_product_id,inventory_org_id from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ENT_PERIOD = 'Jun-23' and gl_Account_code = '401000'
+   and customer =  'TESCO UK'  and  forecast_3plus9_units is not null
+   select sum(forecast_3plus9_units) from "DEV_EDW"."EDW_OMNI"."W_HYPERION_BUDGET_F" where ent_period = 'Jun-23' and gl_Account_code = '401000'
+   and customer = 'TESCO UK'  and  forecast_3plus9_units is not null
+
+   PROD QUERIES:
+
+   SELECT  sum(FC3PLUS9_AMOUNT)
+   FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"  a WHERE ENT_PERIOD_WID ='20230630'
+   AND a.CUSTOMER_ACCOUNT_INTGID =  'SPAIN ALL OTHER' and a.gl_Account_num = '511000'
+
+  SELECT  sum(FC3PLUS9_UNITS)
+  FROM "PROD_EDW"."BI11G_DW"."WC_HYPERION_BUDGET_F"  a WHERE ENT_PERIOD_WID ='20230630'
+  AND a.CUSTOMER_ACCOUNT_INTGID =  'SPAIN ALL OTHER' 
+ 
+
+
+
+   

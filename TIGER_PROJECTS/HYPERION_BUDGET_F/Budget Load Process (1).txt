@@ -1,0 +1,2183 @@
+------------------------------------------------------
+
+/* Step 1:  Connect to BI11G_DW schema in EDWPRD; take a backup of Fact table - use current MMYY in backup table name */
+
+create table wc_hyperion_budget_f_0323_bkp as select * from wc_hyperion_budget_f;
+
+------------------------------------------------------
+
+/* Step 2:  Disconnect from BI11G_DW schema in EDWPRD - !!!!DO NOT PERFORM STEP 3 IN PRODUCTION!!!! */
+
+------------------------------------------------------
+
+/* Step 3:  Connect to BI_TEST schema in EDWPRD; truncate Fact table */
+
+truncate table wc_hyperion_budget_f;
+
+------------------------------------------------------
+
+/* Step 4:  Insert records into BI_TEST Fact table from BI11G_DW backup table */
+
+INSERT INTO wc_hyperion_budget_f
+    SELECT * FROM bi11g_dw.wc_hyperion_budget_f_0323_bkp;
+
+------------------------------------------------------
+
+/* Step 5:  Truncate the staging table */
+
+truncate table wc_hyp_budget_file_load;
+
+------------------------------------------------------
+
+/* Step 6:  Use SQL Developer to upload data into staging table; verify upload */
+
+Refer to the How to Upload the Budget File Word document for details 
+-- (it  must be csv file) ...from whom i have to take this file (check with derek)
+-- so that i can check the stage with seeding
+-- later it can be placed ina folder where maliton job will create this file.
+
+-- csv file load into raw table 
+-- staging will be based on this csv
+
+select * from wc_hyp_budget_file_load;
+
+w_salesfcast_snap
+------------------------------------------------------
+
+/* Step 7:  Truncate the period table */
+
+truncate table wc_hyp_budget_file_period_load;
+
+------------------------------------------------------
+
+(these are the intemediate steps) 
+-- adding period names
+-- business will have seg1 to seg 10 an dit will have transaction amount, item_orh and invntory column
+-- period as (FY-24/25) 
+-- march.
+-- chk for sample file with derek
+-- final it should be a fact table.
+-- item_d, org_d, customer_d, day_d, 
+
+/* Step 8:  Insert the data into the period table - update fiscal year and months as needed; verify upload */
+-- physical year from w_day_D  cuurent_enterprise_yearcode = "current" ( all the yars dates)
+-- take distinct ent_period (mar,apr,...)
+-- take month_name from w_day_d 
+-- ent_period_start_date 
+-- after pivoting ....months wil come as rows
+-- match 
+-- period_start_date (map woth marh)
+--
+
+\insert into wc_hyp_budget_file_period_load
+select 'FY24',x.*,'BUDGET' from
+(
+select bu_code, lc_code, customer, ch_code, br_code, pl_code,sku,invorg,dept,le,account,'USD' currency
+,'Mar-23',mar sales
+from wc_hyp_budget_file_load
+union
+select bu_code, lc_code, customer, ch_code, br_code, pl_code,sku,invorg,dept,le,account,'USD' currency
+,'Apr-23',apr sales
+from wc_hyp_budget_file_load
+union
+select bu_code, lc_code, customer, ch_code, br_code, pl_code,sku,invorg,dept,le,account,'USD' currency
+,'May-23',may sales
+from wc_hyp_budget_file_load
+union
+select bu_code, lc_code, customer, ch_code, br_code, pl_code,sku,invorg,dept,le,account,'USD' currency
+,'Jun-23',jun sales
+from wc_hyp_budget_file_load
+union
+select bu_code, lc_code, customer, ch_code, br_code, pl_code,sku,invorg,dept,le,account,'USD' currency
+,'Jul-23',jul sales
+from wc_hyp_budget_file_load
+union
+select bu_code, lc_code, customer, ch_code, br_code, pl_code,sku,invorg,dept,le,account,'USD' currency
+,'Aug-23',aug sales
+from wc_hyp_budget_file_load
+union
+select bu_code, lc_code, customer, ch_code, br_code, pl_code,sku,invorg,dept,le,account,'USD' currency
+,'Sep-23',sep sales
+from wc_hyp_budget_file_load
+union
+select bu_code, lc_code, customer, ch_code, br_code, pl_code,sku,invorg,dept,le,account,'USD' currency
+,'Oct-23',oct sales
+from wc_hyp_budget_file_load
+union
+select bu_code, lc_code, customer, ch_code, br_code, pl_code,sku,invorg,dept,le,account,'USD' currency
+,'Nov-23',nov sales
+from wc_hyp_budget_file_load
+union
+select bu_code, lc_code, customer, ch_code, br_code, pl_code,sku,invorg,dept,le,account,'USD' currency
+,'Dec-23',dec sales
+from wc_hyp_budget_file_load
+union
+select bu_code, lc_code, customer, ch_code, br_code, pl_code,sku,invorg,dept,le,account,'USD' currency
+,'Jan-24',jan sales
+from wc_hyp_budget_file_load
+union
+select bu_code, lc_code, customer, ch_code, br_code, pl_code,sku,invorg,dept,le,account,'USD' currency
+,'Feb-24',feb sales
+from wc_hyp_budget_file_load
+) x
+where nvl(x.sales,0) <> 0;
+
+select * from wc_hyp_budget_file_period_load;
+
+------------------------------------------------------
+
+/* Step 9:  Check for new Customer Groups in upload file */
+
+-- 
+
+SELECT DISTINCT
+     customer
+ FROM
+     wc_hyp_budget_file_period_load a,
+     (
+         SELECT DISTINCT
+             x_customer_group
+         FROM
+             w_customer_account_d
+         WHERE
+             row_wid < 0 --name = 'Customer Group' 
+     ) b
+ WHERE
+     TRIM(substr(customer,4) ) = b.x_customer_group (+)
+     AND customer LIKE 'CG_%'
+     AND x_customer_group IS NULL;
+
+------------------------------------------------------
+
+/* Step 10:  Insert any new Customer Groups into dimension table - remove the "CG_" from the customer group name */
+
+select min(row_wid) from W_CUSTOMER_ACCOUNT_D where row_wid < 0;
+
+INSERT INTO W_CUSTOMER_ACCOUNT_D 
+(ROW_WID,NAME,PARTY_ID,EFFECTIVE_FROM_DT,CURRENT_FLG,DATASOURCE_NUM_ID,ETL_PROC_WID,INTEGRATION_ID,X_CUSTOMER_GROUP,X_HYP_TOP_CUSTOMER,W_INSERT_DT,W_UPDATE_DT) 
+SELECT 
+'-91319082','LOWES COMPANIES CANADA,ULC','LOWES COMPANIES CANADA,ULC','01-MAR-20','Y','999','-1','LOWES COMPANIES CANADA,ULC','LOWES COMPANIES CANADA,ULC','Others',sysdate,sysdate 
+FROM DUAL; 
+
+------------------------------------------------------
+
+/* Step 11:  Check for new Products in upload file */
+
+SET DEFINE OFF;
+
+SELECT DISTINCT
+    pl
+    || br
+    || sku_nbr part_num  
+--, to_number(org),sku||pl||br||sku_nbr,org_code 
+   ,
+    DECODE(brand,'DR. SCHOLLS','DR SCHOLLS','PROFESSIONAL HOT TOOLS','HOT TOOLS',brand) x_inv_cat_brand,
+    'NA' x_inv_cateogry,
+    'NA' x_inv_cat_subtype,
+    DECODE(item_type,'AIR PURIFIERS','AIR PURIFIER','GRINDERS/SHAKERS','GRINDERS & SHAKERS','HUMIDIFICATION - PHARMACY','HUMIDIFICATION-PHARMACY'
+   ,'HUMIDIFICATION - SEASONAL','HUMIDIFICATION-SEASONAL','ANTIPERSPIRANTS','ANTIPERSPIRANT',item_type) x_inv_prod_line,
+    'NA' x_inv_sales_channel,
+    sku   x_item_family,
+    '-'
+    || pl
+    || br
+    || sku_nbr integration_id,
+    -1 * to_number(pl
+                     || br
+                     || sku_nbr) row_wid,
+    '612' AS datasource_num_id,
+    '91111' AS etl_proc_wid
+FROM
+    (
+        SELECT DISTINCT
+            upper(nvl( (
+                SELECT
+                    x_segment_val_desc
+                FROM
+                    w_gl_segment_d
+                WHERE
+                    x_segment_lov_name = 'HOT Product Line NEW'
+                    AND segment_val_code = CASE
+                        WHEN b.pl_code = 'PCACORPADJ' THEN '099'
+                        ELSE substr(b.pl_code,3)
+                    END
+            ),'NA') ) item_type,
+            upper(nvl( (
+                SELECT
+                    x_segment_val_desc
+                FROM
+                    w_gl_segment_d
+                WHERE
+                    x_segment_lov_name = 'HOT Brand'
+                    AND segment_val_code = CASE
+                        WHEN b.br_code IN(
+                            'NoBrand','Suspense_Brand','StaffingBrand'
+                        ) THEN '999'
+                        ELSE substr(b.br_code,2)
+                    END
+            ),'NA') ) brand,
+            sku,
+            DECODE(sku,'NewSKUs','99','SKUadj','00','11') sku_nbr,
+            CASE
+                WHEN b.pl_code = 'PCACORPADJ' THEN '099'
+                ELSE substr(b.pl_code,3)
+            END pl,
+            CASE
+                WHEN b.br_code IN (
+                    'NoBrand',
+                    'Suspense_Brand',
+                    'StaffingBrand'
+                ) THEN '999'
+                ELSE substr(b.br_code,2)
+            END br
+        FROM
+            (
+                SELECT DISTINCT
+                    sku,
+                    invorg,
+                    br_code,
+                    pl_code
+                FROM
+                    wc_hyp_budget_file_period_load
+                WHERE
+                    sku IN (
+                        'NewSKUs',
+                        'SKUadj'
+                    )
+            ) b
+    )
+WHERE
+    '-'
+    || pl
+    || br
+    || sku_nbr NOT IN (
+        SELECT
+            integration_id
+        FROM
+            w_product_d
+    );
+
+------------------------------------------------------
+
+/* Step 12:  Insert any new Products into dimension table */
+
+INSERT INTO w_product_d (
+    part_num,
+    x_inv_cat_brand,
+    x_inv_category,
+    x_inv_cat_sub_type,
+    x_inv_product_line,
+    x_inv_cat_saleschannel,
+    x_item_family_name,
+    integration_id,
+    row_wid,
+    datasource_num_id,
+    etl_proc_wid
+)
+    SELECT DISTINCT
+        pl
+        || br
+        || sku_nbr part_num  
+--, to_number(org),sku||pl||br||sku_nbr,org_code 
+       ,
+        DECODE(brand,'DR. SCHOLLS','DR SCHOLLS','PROFESSIONAL HOT TOOLS','HOT TOOLS',brand) x_inv_cat_brand,
+        'NA' x_inv_cateogry,
+        'NA' x_inv_cat_subtype,
+        DECODE(item_type,'AIR PURIFIERS','AIR PURIFIER','GRINDERS/SHAKERS','GRINDERS & SHAKERS','HUMIDIFICATION - PHARMACY','HUMIDIFICATION-PHARMACY'
+       ,'HUMIDIFICATION - SEASONAL','HUMIDIFICATION-SEASONAL','ANTIPERSPIRANTS','ANTIPERSPIRANT',item_type) x_inv_prod_line,
+        'NA' x_inv_sales_channel,
+        sku   x_item_family,
+        '-'
+        || pl
+        || br
+        || sku_nbr integration_id,
+        -1 * to_number(pl
+                         || br
+                         || sku_nbr) row_wid,
+        '612' AS datasource_num_id,
+        '91111' AS etl_proc_wid
+    FROM
+        (
+            SELECT DISTINCT
+                upper(nvl( (
+                    SELECT
+                        x_segment_val_desc
+                    FROM
+                        w_gl_segment_d
+                    WHERE
+                        x_segment_lov_name = 'HOT Product Line NEW'
+                        AND segment_val_code = CASE
+                            WHEN b.pl_code = 'PCACORPADJ' THEN '099'
+                            ELSE substr(b.pl_code,3)
+                        END
+                ),'NA') ) item_type,
+                upper(nvl( (
+                    SELECT
+                        x_segment_val_desc
+                    FROM
+                        w_gl_segment_d
+                    WHERE
+                        x_segment_lov_name = 'HOT Brand'
+                        AND segment_val_code = CASE
+                            WHEN b.br_code IN(
+                                'NoBrand','Suspense_Brand','StaffingBrand'
+                            ) THEN '999'
+                            ELSE substr(b.br_code,2)
+                        END
+                ),'NA') ) brand,
+                sku,
+                DECODE(sku,'NewSKUs','99','SKUadj','00','11') sku_nbr,
+                CASE
+                    WHEN b.pl_code = 'PCACORPADJ' THEN '099'
+                    ELSE substr(b.pl_code,3)
+                END pl,
+                CASE
+                    WHEN b.br_code IN (
+                        'NoBrand',
+                        'Suspense_Brand',
+                        'StaffingBrand'
+                    ) THEN '999'
+                    ELSE substr(b.br_code,2)
+                END br
+            FROM
+                (
+                    SELECT DISTINCT
+                        sku,
+                        invorg,
+                        br_code,
+                        pl_code
+                    FROM
+                        wc_hyp_budget_file_period_load
+                    WHERE
+                        sku IN (
+                            'NewSKUs',
+                            'SKUadj'
+                        )
+                ) b
+        )
+    WHERE
+        '-'
+        || pl
+        || br
+        || sku_nbr NOT IN (
+            SELECT
+                integration_id
+            FROM
+                w_product_d
+        );
+        
+------------------------------------------------------
+
+/* Step 13 OPTIONAL:  Set budget and forecast column values to NULL for current fiscal year if reloading budget after initial load */
+
+/* comment/uncomment columns and set start month as needed based on the budget data to be reloaded */
+
+UPDATE wc_hyperion_budget_f
+SET
+    budgeted_amount = NULL
+--    ,budgeted_units = NULL
+    ,forecast_amount = NULL
+--    ,forecasted_units = NULL
+    
+WHERE
+    ent_period_wid > 20230301		--or 20230601, 20230901, 20231201 as needed
+AND scenario = 'BUDGET';
+
+------------------------------------------------------
+
+/* Step 14:  Merge Amounts for Customers */  
+
+ MERGE INTO wc_hyperion_budget_f dlr
+        USING (SELECT /*+ use_hash(b) */
+            NVL (pd.integration_id, 0) item_id,
+             CASE
+                WHEN SUBSTR (b.invorg, 1, 2) <> 'IO' THEN 82
+                ELSE TO_NUMBER (SUBSTR (b.invorg, 3))
+             END
+                org_id,
+             NVL (c.row_wid, 0) customer_account_wid,
+             NVL (c.integration_id, '0') customer_account_intgid,
+             NVL (p.row_wid, 0) customer_wid,
+             NVL (p.integration_id, '0') customer_intgid,
+             NVL (a.row_wid, 0) gl_account_wid,
+             NVL (a.intgid, '0') ccid,
+             DECODE (b.currency, 'USDInp', 'USD', b.currency) currency,
+             cal.row_wid mcal_wid,
+             ecal.ent_period_end_dt_wid ent_wid,
+             sales,
+                b.customer
+             || '~'
+             || b.lc_code
+             || '~'
+             || b.ch_code
+             || '~'
+             || b.br_code
+             || '~'
+             || b.pl_code
+             || '~'
+             || b.bu_code
+             || '~'||b.le||'~'||b.dept||'~'||b.account||'~'|| b.sku || '~' || b.invorg || '~' || b.period    intg_id,
+             b.account,
+             NVL (na.row_wid, 0) gl_na_account_wid,
+             NVL (br.scd1_wid, 0) gl_brand_wid,
+             NVL (pl.scd1_wid, 0) gl_product_line_wid,
+             NVL (bu.scd1_wid, 0) gl_business_unit_wid,
+             NVL (loc.scd1_wid,0) gl_location_wid,
+             ecal.row_wid acct_period_wid,
+             nvl(ch.scd1_wid,0) gl_channel_wid,
+             nvl(le.scd1_wid,0) gl_company_wid,
+             nvl(dp.scd1_wid,0) gl_dept_wid,
+             nvl(pd.row_wid,0) product_wid,
+             nvl(og.row_wid,0) org_wid,
+             nvl(i.row_wid,0) inventory_product_wid,
+             b.forecast_type
+        FROM wc_hyp_budget_file_period_load b,
+             (  SELECT account_seg1_code,
+                       account_seg3_code,
+                       account_seg4_code,
+                       account_seg6_code,
+                       account_seg7_code,
+                       account_seg8_code,
+                       MIN (row_wid) row_wid,
+                       MIN (integration_id) intgid
+                  FROM w_gl_account_d
+                 WHERE natural_account_num BETWEEN '400000' AND '9999999'
+              GROUP BY account_seg1_code,
+                       account_seg3_code,
+                       account_seg4_code,
+                       account_seg6_code,
+                       account_seg7_code,
+                       account_seg8_code) a,
+             w_inventory_product_d i,
+             w_customer_account_d c,
+             w_party_d p, --  not required
+             w_mcal_period_d cal, -- w_Dayd_d
+             w_ent_period_d ecal, --w_dayd_d
+             w_natural_account_d na,--w_gl_segment_d
+             w_gl_segment_d br,
+             w_gl_segment_d pl,
+             w_gl_segment_d loc,
+             w_gl_segment_d bu,
+             w_gl_segment_d ch,
+             w_gl_segment_d le,
+             w_gl_segment_d dp,
+             w_product_d pd, -- not required
+             w_int_org_d og- i have
+       WHERE     a.account_seg1_code(+) = SUBSTR (b.bu_code, 3)
+             AND a.account_seg3_code(+) = SUBSTR (b.ch_code, 5)
+             AND a.account_seg4_code(+) = SUBSTR (b.lc_code, 2)
+             AND a.account_seg6_code(+) =
+                    CASE
+			WHEN b.account = '400010Corp' THEN '401000'
+			WHEN b.account = '460000Corp' THEN '461000'
+			WHEN b.account = '471000Corp' THEN '472000'
+			WHEN b.account = '500000Corp' THEN '511000'
+			WHEN b.account = '601000Corp' THEN '601001'
+			WHEN b.account = '607000Corp' THEN '607010'
+			WHEN b.account = '608000Corp' THEN '608010'
+			WHEN b.account = 'OthVarCorp' THEN '610000'
+			WHEN b.account = '710000Corp' THEN '710110'
+			WHEN b.account = '720000Corp' THEN '720110'
+			WHEN b.account = '730000Corp' THEN '730110'
+			WHEN b.account = '740000Corp' THEN '740110'
+			WHEN b.account = '750000Corp' THEN '750110'
+			WHEN b.account = '763810Corp' THEN '763812'
+			WHEN b.account = '764390Corp' THEN '764391'
+			WHEN b.account = 'OthMiscCorp' THEN '761960'
+			WHEN b.account = '770000Corp' THEN '770100'
+                       ELSE account
+                    END
+             AND a.account_seg7_code(+) =
+                    CASE
+                       WHEN b.br_code IN ('NoBrand', 'Suspense_Brand','StaffingBrand')
+                       THEN
+                          '999'
+                       ELSE
+                          SUBSTR (b.br_code, 2)
+                    END
+             AND a.account_seg8_code(+) =
+                    CASE
+                       WHEN b.pl_code = 'PCACORPADJ' THEN '099'
+                       ELSE SUBSTR (b.pl_code, 3)
+                    END
+             AND pd.integration_id(+) =
+                    CASE
+                       WHEN b.sku IN ('NewSKUs', 'SKUadj','NoSKU')
+                       THEN
+                            '-'||
+                                  CASE
+                                     WHEN b.pl_code = 'PCACORPADJ' THEN '099'
+                                     ELSE SUBSTR (b.pl_code, 3)
+                                  END
+                               || CASE
+                                     WHEN b.br_code IN ('NoBrand',
+                                                        'Suspense_Brand','StaffingBrand')
+                                     THEN
+                                        '999'
+                                     ELSE
+                                        SUBSTR (b.br_code, 2)
+                                  END
+                               || DECODE (b.sku,
+                                          'NewSKUs', '99',
+                                          'SKUadj', '00',
+                                          '11')
+                       ELSE
+                          LTRIM (SUBSTR (ltrim(rtrim(b.sku)), 2), ' 0')
+                    END
+             AND og.integration_id(+) = CASE  WHEN SUBSTR (b.invorg, 1, 2) <> 'IO' THEN '82'  ELSE SUBSTR (b.invorg, 3) END
+             and i.integration_id(+) = LTRIM (SUBSTR (ltrim(rtrim(b.sku)), 2), ' 0') ||'~'|| CASE  WHEN SUBSTR (b.invorg, 1, 2) <> 'IO' THEN '82'  ELSE SUBSTR (b.invorg, 3) END
+             and i.current_flg(+) = 'Y'  
+             AND 'C' || Account_num(+) =
+                    CASE
+                       WHEN b.customer in ('NewCustomers','NoCustomer') THEN 'C9999999'
+                       when instr(b.customer, 'V', -1,1) > 0 then substr(b.customer, 1,instr(b.customer,'V',-1,1)-1)
+                       ELSE b.customer
+                    END
+             --and c.current_flg(+) = 'Y'
+             AND c.party_id = p.integration_id(+)
+             AND b.account <> 'GrossUnits' (
+             AND b.forecast_type = 'BUDGET'
+             --and b.currency <> 'CurrInp'
+             and b.fy_year = 'FY24'			--update fiscal year as needed
+             AND b.customer NOT LIKE 'CG_%'
+             AND cal.mcal_cal_name = '5-4-4'
+             AND cal.mcal_period_name = b.period
+             AND ecal.ent_cal_name = 'HOT Calendar'
+             AND ecal.adjustment_period_flg = 'N'
+             AND ecal.ent_period_name = b.period
+             AND na.natural_account_lov_id = '1007682'
+             AND NA.natural_account_VAL_CODE(+) =
+                    CASE
+			WHEN b.account = '400010Corp' THEN '401000'
+			WHEN b.account = '460000Corp' THEN '461000'
+			WHEN b.account = '471000Corp' THEN '472000'
+			WHEN b.account = '500000Corp' THEN '511000'
+			WHEN b.account = '601000Corp' THEN '601001'
+			WHEN b.account = '607000Corp' THEN '607010'
+			WHEN b.account = '608000Corp' THEN '608010'
+			WHEN b.account = 'OthVarCorp' THEN '610000'
+			WHEN b.account = '710000Corp' THEN '710110'
+			WHEN b.account = '720000Corp' THEN '720110'
+			WHEN b.account = '730000Corp' THEN '730110'
+			WHEN b.account = '740000Corp' THEN '740110'
+			WHEN b.account = '750000Corp' THEN '750110'
+			WHEN b.account = '763810Corp' THEN '763812'
+			WHEN b.account = '764390Corp' THEN '764391'
+			WHEN b.account = 'OthMiscCorp' THEN '761960'
+			WHEN b.account = '770000Corp' THEN '770100'
+                       ELSE account
+                    END
+             AND PL.x_SEGMENT_LOV_NAME(+) = 'HOT Product Line NEW'
+             AND PL.SEGMENT_VAL_CODE(+) =
+                    CASE
+                       WHEN b.pl_code = 'PCACORPADJ' THEN '099'
+                       ELSE SUBSTR (b.pl_code, 3)
+                    END
+             AND BR.x_SEGMENT_LOV_NAME(+) = 'HOT Brand'
+             AND BR.SEGMENT_VAL_CODE(+) =
+                    CASE
+                       WHEN b.br_code IN ('NoBrand', 'Suspense_Brand','StaffingBrand')
+                       THEN
+                          '999'
+                       ELSE
+                          SUBSTR (b.br_code, 2)
+                    END
+             AND LOC.x_SEGMENT_LOV_NAME(+) = 'HOT Location'
+             AND LOC.SEGMENT_VAL_CODE(+) = SUBSTR (b.lc_code, 2)
+             AND BU.x_SEGMENT_LOV_NAME(+) = 'HOT Business Unit NEW'
+             AND BU.SEGMENT_VAL_CODE(+) = SUBSTR (b.bu_code, 3)
+             and ch.x_segment_lov_name(+) = 'HOT Channel'
+             and ch.segment_val_code(+) = SUBSTR (b.ch_code, 5)
+             and le.x_segment_lov_name(+) = 'HOT Company'
+             and le.segment_val_code(+) = case when b.le = 'NoLegalEntity' then '000' else substr(b.le,3) end
+             and dp.x_segment_lov_name(+) = 'HOT Department'
+             and dp.segment_val_code(+) = case when b.dept in ('MarginDept','RoyaltyDept') then '0000' else substr(b.dept,2) end
+             AND b.sales <> 0) noncg_amount
+           ON (    noncg_amount.intg_id = dlr.integration_id
+                 AND dlr.scenario = 'BUDGET')
+               --AND noncg_amount.gl_account_wid = dlr.gl_account_wid
+              -- AND dlr.gl_account_num BETWEEN '400000' AND '409999')
+   WHEN MATCHED
+   THEN
+      UPDATE SET BUDGETED_AMOUNT = noncg_amount.sales
+   WHEN NOT MATCHED
+   THEN
+      INSERT     (inventory_item_id,
+                                 org_id,
+                                 customer_account_wid,
+                                 customer_account_intgid,
+                                 customer_wid,
+                                 customer_intgid,
+                                 gl_account_wid,
+                                 ccid,
+                                 currency_code,
+                                 mcal_period_wid,
+                                 ent_period_wid,
+                                 BUDGETED_AMOUNT,
+                                 integration_id,
+                                 gl_account_num,
+                                 gl_natural_acct_wid,
+                                 gl_brand_wid,
+                                 gl_product_line_wid,
+                                 gl_business_unit_wid,
+                                 gl_location_wid,
+                                 acct_period_end_dt_wid,
+                                 gl_channel_wid,
+                                 gl_company_wid,
+                                 gl_dept_wid,
+                                 product_wid,
+                                 inventory_org_wid,
+                                 inventory_product_wid,
+                                 scenario)
+          VALUES (noncg_amount.item_id,
+                  noncg_amount.org_id,
+                  noncg_amount.customer_account_wid,
+                  noncg_amount.customer_account_intgid,
+                  noncg_amount.customer_wid,
+                  noncg_amount.customer_intgid,
+                  noncg_amount.gl_account_wid,
+                  noncg_amount.ccid,
+                  'USD',
+                  noncg_amount.mcal_wid,
+                  noncg_amount.ent_wid,
+                  noncg_amount.sales,
+                  noncg_amount.intg_id,
+                  noncg_amount.account,
+                  noncg_amount.gl_na_account_wid,
+                  noncg_amount.gl_brand_wid,
+                  noncg_amount.gl_product_line_wid,
+                  noncg_amount.gl_business_unit_wid,
+                  noncg_amount.gl_location_wid,
+                  noncg_amount.acct_period_wid,
+                  noncg_amount.gl_channel_wid,
+                  noncg_amount.gl_company_wid,
+                  noncg_amount.gl_dept_wid,
+                  noncg_amount.product_wid,
+                  noncg_amount.org_wid,
+                  noncg_amount.inventory_product_wid,
+                  'BUDGET'
+                  );
+
+------------------------------------------------------
+
+/* Step 15:  Merge Units for Customers */  
+
+ MERGE INTO wc_hyperion_budget_f dlr
+        USING (SELECT /*+ use_hash(b) */
+            NVL (pd.integration_id, 0) item_id,
+             CASE
+                WHEN SUBSTR (b.invorg, 1, 2) <> 'IO' THEN 82
+                ELSE TO_NUMBER (SUBSTR (b.invorg, 3))
+             END
+                org_id,
+             NVL (c.row_wid, 0) customer_account_wid,
+             NVL (c.integration_id, '0') customer_account_intgid,
+             NVL (p.row_wid, 0) customer_wid,
+             NVL (p.integration_id, '0') customer_intgid,
+             NVL (a.row_wid, 0) gl_account_wid,
+             NVL (a.intgid, '0') ccid,
+             DECODE (b.currency, 'USDInp', 'USD', b.currency) currency,
+             cal.row_wid mcal_wid,
+             ecal.ent_period_end_dt_wid ent_wid,
+             sales,
+                b.customer
+             || '~'
+             || b.lc_code
+             || '~'
+             || b.ch_code
+             || '~'
+             || b.br_code
+             || '~'
+             || b.pl_code
+             || '~'
+             || b.bu_code
+             || '~'||b.le||'~'||b.dept||'~'||b.account||'~'|| b.sku || '~' || b.invorg || '~' || b.period    intg_id,
+             b.account,
+             NVL (na.row_wid, 0) gl_na_account_wid,
+             NVL (br.scd1_wid, 0) gl_brand_wid,
+             NVL (pl.scd1_wid, 0) gl_product_line_wid,
+             NVL (bu.scd1_wid, 0) gl_business_unit_wid,
+             NVL (loc.scd1_wid,0) gl_location_wid,
+             ecal.row_wid acct_period_wid,
+             nvl(ch.scd1_wid,0) gl_channel_wid,
+             nvl(le.scd1_wid,0) gl_company_wid,
+             nvl(dp.scd1_wid,0) gl_dept_wid,
+             nvl(pd.row_wid,0) product_wid,
+             nvl(og.row_wid,0) org_wid,
+             nvl(i.row_wid,0) inventory_product_wid,
+             b.forecast_type
+        FROM wc_hyp_budget_file_period_load b,
+             (  SELECT account_seg1_code,
+                       account_seg3_code,
+                       account_seg4_code,
+                       account_seg6_code,
+                       account_seg7_code,
+                       account_seg8_code,
+                       MIN (row_wid) row_wid,
+                       MIN (integration_id) intgid
+                  FROM w_gl_account_d
+                 WHERE natural_account_num BETWEEN '400000' AND '9999999'
+              GROUP BY account_seg1_code,
+                       account_seg3_code,
+                       account_seg4_code,
+                       account_seg6_code,
+                       account_seg7_code,
+                       account_seg8_code) a,
+             w_inventory_product_d i,
+             w_customer_account_d c,
+             w_party_d p,
+             w_mcal_period_d cal,
+             w_ent_period_d ecal,
+             w_natural_account_d na,
+             w_gl_segment_d br,
+             w_gl_segment_d pl,
+             w_gl_segment_d loc,
+             w_gl_segment_d bu,
+             w_gl_segment_d ch,
+             w_gl_segment_d le,
+             w_gl_segment_d dp,
+             w_product_d pd,
+             w_int_org_d og
+       WHERE     a.account_seg1_code(+) = SUBSTR (b.bu_code, 3)
+             AND a.account_seg3_code(+) = SUBSTR (b.ch_code, 5)
+             AND a.account_seg4_code(+) = SUBSTR (b.lc_code, 2)
+             AND a.account_seg6_code(+) =
+                    CASE
+			WHEN b.account = '400010Corp' THEN '401000'
+			WHEN b.account = '460000Corp' THEN '461000'
+			WHEN b.account = '471000Corp' THEN '472000'
+			WHEN b.account = '500000Corp' THEN '511000'
+			WHEN b.account = '601000Corp' THEN '601001'
+			WHEN b.account = '607000Corp' THEN '607010'
+			WHEN b.account = '608000Corp' THEN '608010'
+			WHEN b.account = 'OthVarCorp' THEN '610000'
+			WHEN b.account = '710000Corp' THEN '710110'
+			WHEN b.account = '720000Corp' THEN '720110'
+			WHEN b.account = '730000Corp' THEN '730110'
+			WHEN b.account = '740000Corp' THEN '740110'
+			WHEN b.account = '750000Corp' THEN '750110'
+			WHEN b.account = '763810Corp' THEN '763812'
+			WHEN b.account = '764390Corp' THEN '764391'
+			WHEN b.account = 'OthMiscCorp' THEN '761960'
+			WHEN b.account = '770000Corp' THEN '770100'
+                       ELSE account
+                    END
+             AND a.account_seg7_code(+) =
+                    CASE
+                       WHEN b.br_code IN ('NoBrand', 'Suspense_Brand','StaffingBrand')
+                       THEN
+                          '999'
+                       ELSE
+                          SUBSTR (b.br_code, 2)
+                    END
+             AND a.account_seg8_code(+) =
+                    CASE
+                       WHEN b.pl_code = 'PCACORPADJ' THEN '099'
+                       ELSE SUBSTR (b.pl_code, 3)
+                    END
+             AND pd.integration_id(+) =
+                    CASE
+                       WHEN b.sku IN ('NewSKUs', 'SKUadj','NoSKU')
+                       THEN
+                            '-'||
+                                  CASE
+                                     WHEN b.pl_code = 'PCACORPADJ' THEN '099'
+                                     ELSE SUBSTR (b.pl_code, 3)
+                                  END
+                               || CASE
+                                     WHEN b.br_code IN ('NoBrand',
+                                                        'Suspense_Brand','StaffingBrand')
+                                     THEN
+                                        '999'
+                                     ELSE
+                                        SUBSTR (b.br_code, 2)
+                                  END
+                               || DECODE (b.sku,
+                                          'NewSKUs', '99',
+                                          'SKUadj', '00',
+                                          '11')
+                       ELSE
+                          LTRIM (SUBSTR (ltrim(rtrim(b.sku)), 2), ' 0')
+                    END
+             AND og.integration_id(+) = CASE  WHEN SUBSTR (b.invorg, 1, 2) <> 'IO' THEN '82'  ELSE SUBSTR (b.invorg, 3) END
+             and i.integration_id(+) = LTRIM (SUBSTR (ltrim(rtrim(b.sku)), 2), ' 0') ||'~'|| CASE  WHEN SUBSTR (b.invorg, 1, 2) <> 'IO' THEN '82'  ELSE SUBSTR (b.invorg, 3) END
+             and i.current_flg(+) = 'Y'  
+             AND 'C' || Account_num(+) =
+                    CASE
+                       WHEN b.customer in ('NewCustomers','NoCustomer') THEN 'C9999999'
+                       when instr(b.customer, 'V', -1,1) > 0 then substr(b.customer, 1,instr(b.customer,'V',-1,1)-1)
+                       ELSE b.customer
+                    END
+             --and c.current_flg(+) = 'Y'
+             AND c.party_id = p.integration_id(+)
+             AND b.account = 'GrossUnits' -- to get the units account
+             AND b.forecast_type = 'BUDGET'
+             --and b.currency <> 'CurrInp'
+             and b.fy_year = 'FY24'			--update fiscal year as needed
+             AND b.customer NOT LIKE 'CG_%'
+             AND cal.mcal_cal_name = '5-4-4'
+             AND cal.mcal_period_name = b.period
+             AND ecal.ent_cal_name = 'HOT Calendar'
+             AND ecal.adjustment_period_flg = 'N'
+             AND ecal.ent_period_name = b.period
+             AND na.natural_account_lov_id(+) = '1007682'
+             AND NA.natural_account_VAL_CODE(+) =
+                    CASE
+			WHEN b.account = '400010Corp' THEN '401000'
+			WHEN b.account = '460000Corp' THEN '461000'
+			WHEN b.account = '471000Corp' THEN '472000'
+			WHEN b.account = '500000Corp' THEN '511000'
+			WHEN b.account = '601000Corp' THEN '601001'
+			WHEN b.account = '607000Corp' THEN '607010'
+			WHEN b.account = '608000Corp' THEN '608010'
+			WHEN b.account = 'OthVarCorp' THEN '610000'
+			WHEN b.account = '710000Corp' THEN '710110'
+			WHEN b.account = '720000Corp' THEN '720110'
+			WHEN b.account = '730000Corp' THEN '730110'
+			WHEN b.account = '740000Corp' THEN '740110'
+			WHEN b.account = '750000Corp' THEN '750110'
+			WHEN b.account = '763810Corp' THEN '763812'
+			WHEN b.account = '764390Corp' THEN '764391'
+			WHEN b.account = 'OthMiscCorp' THEN '761960'
+			WHEN b.account = '770000Corp' THEN '770100'
+                       ELSE account
+                    END
+             AND PL.x_SEGMENT_LOV_NAME(+) = 'HOT Product Line NEW'
+             AND PL.SEGMENT_VAL_CODE(+) =
+                    CASE
+                       WHEN b.pl_code = 'PCACORPADJ' THEN '099'
+                       ELSE SUBSTR (b.pl_code, 3)
+                    END
+             AND BR.x_SEGMENT_LOV_NAME(+) = 'HOT Brand'
+             AND BR.SEGMENT_VAL_CODE(+) =
+                    CASE
+                       WHEN b.br_code IN ('NoBrand', 'Suspense_Brand','StaffingBrand')
+                       THEN
+                          '999'
+                       ELSE
+                          SUBSTR (b.br_code, 2)
+                    END
+             AND LOC.x_SEGMENT_LOV_NAME(+) = 'HOT Location'
+             AND LOC.SEGMENT_VAL_CODE(+) = SUBSTR (b.lc_code, 2)
+             AND BU.x_SEGMENT_LOV_NAME(+) = 'HOT Business Unit NEW'
+             AND BU.SEGMENT_VAL_CODE(+) = SUBSTR (b.bu_code, 3)
+             and ch.x_segment_lov_name(+) = 'HOT Channel'
+             and ch.segment_val_code(+) = SUBSTR (b.ch_code, 5)
+             and le.x_segment_lov_name(+) = 'HOT Company'
+             and le.segment_val_code(+) = case when b.le = 'NoLegalEntity' then '000' else substr(b.le,3) end
+             and dp.x_segment_lov_name(+) = 'HOT Department'
+             and dp.segment_val_code(+) = case when b.dept in ('MarginDept','RoyaltyDept') then '0000' else substr(b.dept,2) end
+             AND b.sales <> 0) noncg_amount
+           ON (    noncg_amount.intg_id = dlr.integration_id
+                 AND dlr.scenario = 'BUDGET')
+               --AND noncg_amount.gl_account_wid = dlr.gl_account_wid
+              -- AND dlr.gl_account_num BETWEEN '400000' AND '409999')
+   WHEN MATCHED
+   THEN
+      UPDATE SET BUDGETED_UNITS = noncg_amount.sales
+   WHEN NOT MATCHED
+   THEN
+      INSERT     (inventory_item_id,
+                                 org_id,
+                                 customer_account_wid,
+                                 customer_account_intgid,
+                                 customer_wid,
+                                 customer_intgid,
+                                 gl_account_wid,
+                                 ccid,
+                                 currency_code,
+                                 mcal_period_wid,
+                                 ent_period_wid,
+                                 BUDGETED_UNITS,
+                                 integration_id,
+                                 gl_account_num,
+                                 gl_natural_acct_wid,
+                                 gl_brand_wid,
+                                 gl_product_line_wid,
+                                 gl_business_unit_wid,
+                                 gl_location_wid,
+                                 acct_period_end_dt_wid,
+                                 gl_channel_wid,
+                                 gl_company_wid,
+                                 gl_dept_wid,
+                                 product_wid,
+                                 inventory_org_wid,
+                                 inventory_product_wid,
+                                 scenario)
+          VALUES (noncg_amount.item_id,
+                  noncg_amount.org_id,
+                  noncg_amount.customer_account_wid,
+                  noncg_amount.customer_account_intgid,
+                  noncg_amount.customer_wid,
+                  noncg_amount.customer_intgid,
+                  noncg_amount.gl_account_wid,
+                  noncg_amount.ccid,
+                  'USD',
+                  noncg_amount.mcal_wid,
+                  noncg_amount.ent_wid,
+                  noncg_amount.sales,
+                  noncg_amount.intg_id,
+                  noncg_amount.account,
+                  noncg_amount.gl_na_account_wid,
+                  noncg_amount.gl_brand_wid,
+                  noncg_amount.gl_product_line_wid,
+                  noncg_amount.gl_business_unit_wid,
+                  noncg_amount.gl_location_wid,
+                  noncg_amount.acct_period_wid,
+                  noncg_amount.gl_channel_wid,
+                  noncg_amount.gl_company_wid,
+                  noncg_amount.gl_dept_wid,
+                  noncg_amount.product_wid,
+                  noncg_amount.org_wid,
+                  noncg_amount.inventory_product_wid,
+                  'BUDGET'
+                  );
+
+------------------------------------------------------
+
+/* Step 16:  Merge Amounts for Customer Groups */
+    
+      MERGE INTO wc_hyperion_budget_f dlr
+        USING (SELECT /*+ use_hash(b) */
+            NVL (pd.integration_id, 0) item_id,
+             CASE
+                WHEN SUBSTR (b.invorg, 1, 2) <> 'IO' THEN 82
+                ELSE TO_NUMBER (SUBSTR (b.invorg, 3))
+             END
+                org_id,
+             NVL (cg_count.row_wid, 0) customer_account_wid,
+             NVL (cg_count.integration_id, '0') customer_account_intgid,
+             NVL (p.row_wid, 0) customer_wid,
+             NVL (p.integration_id, '0') customer_intgid,
+             NVL (a.row_wid, 0) gl_account_wid,
+             NVL (a.intgid, '0') ccid,
+             DECODE (b.currency, 'USDInp', 'USD', b.currency) currency,
+             cal.row_wid mcal_wid,
+             ecal.ent_period_end_dt_wid ent_wid,
+             sales,
+                b.customer
+             || '~'
+             || b.lc_code
+             || '~'
+             || b.ch_code
+             || '~'
+             || b.br_code
+             || '~'
+             || b.pl_code
+             || '~'
+             || b.bu_code
+             || '~'||b.le||'~'||b.dept||'~'||b.account||'~'|| b.sku || '~' || b.invorg || '~' || b.period    intg_id,
+             b.account,
+             NVL (na.row_wid, 0) gl_na_account_wid,
+             NVL (br.scd1_wid, 0) gl_brand_wid,
+             NVL (pl.scd1_wid, 0) gl_product_line_wid,
+             NVL (bu.scd1_wid, 0) gl_business_unit_wid,
+             NVL (loc.scd1_wid,0) gl_location_wid,
+             ecal.row_wid acct_period_wid,
+             nvl(ch.scd1_wid,0) gl_channel_wid,
+             nvl(le.scd1_wid,0) gl_company_wid,
+             nvl(dp.scd1_wid,0) gl_dept_wid,
+             nvl(pd.row_wid,0) product_wid,
+             nvl(og.row_wid,0) org_wid,
+             nvl(i.row_wid,0) inventory_product_wid,
+             b.forecast_type
+        FROM wc_hyp_budget_file_period_load b,
+             (  SELECT account_seg1_code,
+                       account_seg3_code,
+                       account_seg4_code,
+                       account_seg6_code,
+                       account_seg7_code,
+                       account_seg8_code,
+                       MIN (row_wid) row_wid,
+                       MIN (integration_id) intgid
+                  FROM w_gl_account_d
+                 WHERE natural_account_num BETWEEN '400000' AND '9999999'
+              GROUP BY account_seg1_code,
+                       account_seg3_code,
+                       account_seg4_code,
+                       account_seg6_code,
+                       account_seg7_code,
+                       account_seg8_code) a,
+             w_inventory_product_d i,
+             --w_customer_account_d c,
+           -- add it to load model  (  SELECT x_customer_group,
+                       Max (party_id) party_id,
+                       Max (row_wid) row_wid,
+                       Max (integration_id) integration_id
+                  FROM w_customer_account_d
+                 WHERE x_customer_group IS NOT NULL and row_wid < 0
+              GROUP BY x_customer_group) cg_count, -- till here
+             w_party_d p,
+             w_mcal_period_d cal,
+             w_ent_period_d ecal,
+             w_natural_account_d na,
+             w_gl_segment_d br,
+             w_gl_segment_d pl,
+             w_gl_segment_d loc,
+             w_gl_segment_d bu,
+             w_gl_segment_d ch,
+             w_gl_segment_d le,
+             w_gl_segment_d dp,
+             w_product_d pd,
+             w_int_org_d og
+       WHERE     a.account_seg1_code(+) = SUBSTR (b.bu_code, 3)
+             AND a.account_seg3_code(+) = SUBSTR (b.ch_code, 5)
+             AND a.account_seg4_code(+) = SUBSTR (b.lc_code, 2)
+             AND a.account_seg6_code(+) =
+                    CASE
+			WHEN b.account = '400010Corp' THEN '401000'
+			WHEN b.account = '460000Corp' THEN '461000'
+			WHEN b.account = '471000Corp' THEN '472000'
+			WHEN b.account = '500000Corp' THEN '511000'
+			WHEN b.account = '601000Corp' THEN '601001'
+			WHEN b.account = '607000Corp' THEN '607010'
+			WHEN b.account = '608000Corp' THEN '608010'
+			WHEN b.account = 'OthVarCorp' THEN '610000'
+			WHEN b.account = '710000Corp' THEN '710110'
+			WHEN b.account = '720000Corp' THEN '720110'
+			WHEN b.account = '730000Corp' THEN '730110'
+			WHEN b.account = '740000Corp' THEN '740110'
+			WHEN b.account = '750000Corp' THEN '750110'
+			WHEN b.account = '763810Corp' THEN '763812'
+			WHEN b.account = '764390Corp' THE	N '764391'
+			WHEN b.account = 'OthMiscCorp' THEN '761960'
+			WHEN b.account = '770000Corp' THEN '770100'
+                       ELSE account
+                    END
+             AND a.account_seg7_code(+) =
+                    CASE
+                       WHEN b.br_code IN ('NoBrand', 'Suspense_Brand','StaffingBrand')
+                       THEN
+                          '999'
+                       ELSE
+                          SUBSTR (b.br_code, 2)
+                    END
+             AND a.account_seg8_code(+) =
+                    CASE
+                       WHEN b.pl_code = 'PCACORPADJ' THEN '099'
+                       ELSE SUBSTR (b.pl_code, 3)
+                    END
+             AND pd.integration_id(+) =
+                    CASE
+                       WHEN b.sku IN ('NewSKUs', 'SKUadj','NoSKU')
+                       THEN
+                            '-'||
+                                  CASE
+                                     WHEN b.pl_code = 'PCACORPADJ' THEN '099'
+                                     ELSE SUBSTR (b.pl_code, 3)
+                                  END
+                               || CASE
+                                     WHEN b.br_code IN ('NoBrand',
+                                                        'Suspense_Brand','StaffingBrand')
+                                     THEN
+                                        '999'
+                                     ELSE
+                                        SUBSTR (b.br_code, 2)
+                                  END
+                               || DECODE (b.sku,
+                                          'NewSKUs', '99',
+                                          'SKUadj', '00',
+                                          '11')
+                       ELSE
+                          LTRIM (SUBSTR (ltrim(rtrim(b.sku)), 2), ' 0')
+                    END
+             AND og.integration_id(+) = CASE  WHEN SUBSTR (b.invorg, 1, 2) <> 'IO' THEN '82'  ELSE SUBSTR (b.invorg, 3) END
+             and i.integration_id(+) = LTRIM (SUBSTR (ltrim(rtrim(b.sku)), 2), ' 0') ||'~'|| CASE  WHEN SUBSTR (b.invorg, 1, 2) <> 'IO' THEN '82'  ELSE SUBSTR (b.invorg, 3) END
+             and i.current_flg(+) = 'Y'  
+             AND cg_count.x_customer_group(+) = move to staging  CASE b.customer  WHEN 'CG_AMAZON.COM.CA,INC'
+                       THEN 'AMAZON.COM.CA, INC'
+                       WHEN 'CG_GERMANY CUST'
+                       THEN 'GERMANY'
+                       WHEN 'CG_LOWES COMPANIES CANADA,ULC'
+                       THEN 'LOWES COMPANIES CANADA, ULC'
+                       ELSE  SUBSTR (b.customer, 4)  END -- tilll here
+-- case when customer_level is 'customer' then join customer_account_d.customer_account_number = customer
+case when customer_lvel is cg then join cg_accopunt.inte_id = customer
+-- combine customer and customer_group sub select in one load
+-- the amunts
+             --and c.current_flg(+) = 'Y'
+             AND cg_count.party_id = p.integration_id(+)
+             AND b.account <> 'GrossUnits'
+             AND b.forecast_type = 'BUDGET'
+             --and b.currency <> 'CurrInp'
+             and b.fy_year = 'FY24'			--update fiscal year as needed
+             AND b.customer LIKE 'CG_%'
+             AND cal.mcal_cal_name = '5-4-4'
+             AND cal.mcal_period_name = b.period
+             AND ecal.ent_cal_name = 'HOT Calendar'
+             AND ecal.adjustment_period_flg = 'N'
+             AND ecal.ent_period_name = b.period
+             AND na.natural_account_lov_id = '1007682'
+             AND NA.natural_account_VAL_CODE(+) =
+                    CASE
+			WHEN b.account = '400010Corp' THEN '401000'
+			WHEN b.account = '460000Corp' THEN '461000'
+			WHEN b.account = '471000Corp' THEN '472000'
+			WHEN b.account = '500000Corp' THEN '511000'
+			WHEN b.account = '601000Corp' THEN '601001'
+			WHEN b.account = '607000Corp' THEN '607010'
+			WHEN b.account = '608000Corp' THEN '608010'
+			WHEN b.account = 'OthVarCorp' THEN '610000'
+			WHEN b.account = '710000Corp' THEN '710110'
+			WHEN b.account = '720000Corp' THEN '720110'
+			WHEN b.account = '730000Corp' THEN '730110'
+			WHEN b.account = '740000Corp' THEN '740110'
+			WHEN b.account = '750000Corp' THEN '750110'
+			WHEN b.account = '763810Corp' THEN '763812'
+			WHEN b.account = '764390Corp' THEN '764391'
+			WHEN b.account = 'OthMiscCorp' THEN '761960'
+			WHEN b.account = '770000Corp' THEN '770100'
+                       ELSE account
+                    END
+             AND PL.x_SEGMENT_LOV_NAME(+) = 'HOT Product Line NEW'
+             AND PL.SEGMENT_VAL_CODE(+) =
+                    CASE
+                       WHEN b.pl_code = 'PCACORPADJ' THEN '099'
+                       ELSE SUBSTR (b.pl_code, 3)
+                    END
+             AND BR.x_SEGMENT_LOV_NAME(+) = 'HOT Brand'
+             AND BR.SEGMENT_VAL_CODE(+) =
+                    CASE
+                       WHEN b.br_code IN ('NoBrand', 'Suspense_Brand','StaffingBrand')
+                       THEN
+                          '999'
+                       ELSE
+                          SUBSTR (b.br_code, 2)
+                    END
+             AND LOC.x_SEGMENT_LOV_NAME(+) = 'HOT Location'
+             AND LOC.SEGMENT_VAL_CODE(+) = SUBSTR (b.lc_code, 2)
+             AND BU.x_SEGMENT_LOV_NAME(+) = 'HOT Business Unit NEW'
+             AND BU.SEGMENT_VAL_CODE(+) = SUBSTR (b.bu_code, 3)
+             and ch.x_segment_lov_name(+) = 'HOT Channel'
+             and ch.segment_val_code(+) = SUBSTR (b.ch_code, 5)
+             and le.x_segment_lov_name(+) = 'HOT Company'
+             and le.segment_val_code(+) = case when b.le = 'NoLegalEntity' then '000' else substr(b.le,3) end
+             and dp.x_segment_lov_name(+) = 'HOT Department'
+             and dp.segment_val_code(+) = case when b.dept in ('MarginDept','RoyaltyDept') then '0000' else substr(b.dept,2) end
+             AND b.sales <> 0) cg_amounts
+           ON (    cg_amounts.intg_id = dlr.integration_id
+                 AND dlr.scenario = 'BUDGET')
+               --AND noncg_amounts.gl_account_wid = dlr.gl_account_wid
+              -- AND dlr.gl_account_num BETWEEN '400000' AND '409999')
+   WHEN MATCHED
+   THEN
+      UPDATE SET BUDGETED_AMOUNT = cg_amounts.sales
+   WHEN NOT MATCHED
+   THEN
+      INSERT     (inventory_item_id,
+                                 org_id,
+                                 customer_account_wid,
+                                 customer_account_intgid,
+                                 customer_wid,
+                                 customer_intgid,
+                                 gl_account_wid,
+                                 ccid,
+                                 currency_code,
+                                 mcal_period_wid,
+                                 ent_period_wid,
+                                 BUDGETED_AMOUNT,
+                                 integration_id,
+                                 gl_account_num,
+                                 gl_natural_acct_wid,
+                                 gl_brand_wid,
+                                 gl_product_line_wid,
+                                 gl_business_unit_wid,
+                                 gl_location_wid,
+                                 acct_period_end_dt_wid,
+                                 gl_channel_wid,
+                                 gl_company_wid,
+                                 gl_dept_wid,
+                                 product_wid,
+                                 inventory_org_wid,
+                                 inventory_product_wid,
+                                 scenario)
+          VALUES (cg_amounts.item_id,
+                  cg_amounts.org_id,
+                  cg_amounts.customer_account_wid,
+                  cg_amounts.customer_account_intgid,
+                  cg_amounts.customer_wid,
+                  cg_amounts.customer_intgid,
+                  cg_amounts.gl_account_wid,
+                  cg_amounts.ccid,
+                  'USD',
+                  cg_amounts.mcal_wid,
+                  cg_amounts.ent_wid,
+                  cg_amounts.sales,
+                  cg_amounts.intg_id,
+                  cg_amounts.account,
+                  cg_amounts.gl_na_account_wid,
+          
+
+
+        cg_amounts.gl_brand_wid,
+                  cg_amounts.gl_product_line_wid,
+                  cg_amounts.gl_business_unit_wid,
+                  cg_amounts.gl_location_wid,
+                  cg_amounts.acct_period_wid,
+                  cg_amounts.gl_channel_wid,
+                  cg_amounts.gl_company_wid,
+                  cg_amounts.gl_dept_wid,
+                  cg_amounts.product_wid,
+                  cg_amounts.org_wid,
+                  cg_amounts.inventory_product_wid,
+                  'BUDGET'
+                  );
+
+------------------------------------------------------
+
+/* Step 17:  Merge Units for Customer Groups */
+    
+      MERGE INTO wc_hyperion_budget_f dlr
+        USING (SELECT /*+ use_hash(b) */
+            NVL (pd.integration_id, 0) item_id,
+             CASE
+                WHEN SUBSTR (b.invorg, 1, 2) <> 'IO' THEN 82
+                ELSE TO_NUMBER (SUBSTR (b.invorg, 3))
+             END
+                org_id,
+             NVL (cg_count.row_wid, 0) customer_account_wid,
+             NVL (cg_count.integration_id, '0') customer_account_intgid,
+             NVL (p.row_wid, 0) customer_wid,
+             NVL (p.integration_id, '0') customer_intgid,
+             NVL (a.row_wid, 0) gl_account_wid,
+             NVL (a.intgid, '0') ccid,
+             DECODE (b.currency, 'USDInp', 'USD', b.currency) currency,
+             cal.row_wid mcal_wid,
+             ecal.ent_period_end_dt_wid ent_wid,
+             sales,
+                b.customer
+             || '~'
+             || b.lc_code
+             || '~'
+             || b.ch_code
+             || '~'
+             || b.br_code
+             || '~'
+             || b.pl_code
+             || '~'
+             || b.bu_code
+             || '~'||b.le||'~'||b.dept||'~'||b.account||'~'|| b.sku || '~' || b.invorg || '~' || b.period    intg_id,
+             b.account,
+             NVL (na.row_wid, 0) gl_na_account_wid,
+             NVL (br.scd1_wid, 0) gl_brand_wid,
+             NVL (pl.scd1_wid, 0) gl_product_line_wid,
+             NVL (bu.scd1_wid, 0) gl_business_unit_wid,
+             NVL (loc.scd1_wid,0) gl_location_wid,
+             ecal.row_wid acct_period_wid,
+             nvl(ch.scd1_wid,0) gl_channel_wid,
+             nvl(le.scd1_wid,0) gl_company_wid,
+             nvl(dp.scd1_wid,0) gl_dept_wid,
+             nvl(pd.row_wid,0) product_wid,
+             nvl(og.row_wid,0) org_wid,
+             nvl(i.row_wid,0) inventory_product_wid,
+             b.forecast_type
+        FROM wc_hyp_budget_file_period_load b,
+             (  SELECT account_seg1_code,
+                       account_seg3_code,
+                       account_seg4_code,
+                       account_seg6_code,
+                       account_seg7_code,
+                       account_seg8_code,
+                       MIN (row_wid) row_wid,
+                       MIN (integration_id) intgid
+                  FROM w_gl_account_d
+                 WHERE natural_account_num BETWEEN '400000' AND '9999999'
+              GROUP BY account_seg1_code,
+                       account_seg3_code,
+                       account_seg4_code,
+                       account_seg6_code,
+                       account_seg7_code,
+                       account_seg8_code) a,
+             w_inventory_product_d i,
+             --w_customer_account_d c,
+             (  SELECT x_customer_group,
+                       Max (party_id) party_id,
+                       Max (row_wid) row_wid,
+                       Max (integration_id) integration_id
+                  FROM w_customer_account_d
+                 WHERE x_customer_group IS NOT NULL and row_wid < 0
+              GROUP BY x_customer_group) cg_count,
+             w_party_d p,
+             w_mcal_period_d cal,
+             w_ent_period_d ecal,
+             w_natural_account_d na,
+             w_gl_segment_d br,
+             w_gl_segment_d pl,
+             w_gl_segment_d loc,
+             w_gl_segment_d bu,
+             w_gl_segment_d ch,
+             w_gl_segment_d le,
+             w_gl_segment_d dp,
+             w_product_d pd,
+             w_int_org_d og
+       WHERE     a.account_seg1_code(+) = SUBSTR (b.bu_code, 3)
+             AND a.account_seg3_code(+) = SUBSTR (b.ch_code, 5)
+             AND a.account_seg4_code(+) = SUBSTR (b.lc_code, 2)
+             AND a.account_seg6_code(+) =
+                    CASE
+			WHEN b.account = '400010Corp' THEN '401000'
+			WHEN b.account = '460000Corp' THEN '461000'
+			WHEN b.account = '471000Corp' THEN '472000'
+			WHEN b.account = '500000Corp' THEN '511000'
+			WHEN b.account = '601000Corp' THEN '601001'
+			WHEN b.account = '607000Corp' THEN '607010'
+			WHEN b.account = '608000Corp' THEN '608010'
+			WHEN b.account = 'OthVarCorp' THEN '610000'
+			WHEN b.account = '710000Corp' THEN '710110'
+			WHEN b.account = '720000Corp' THEN '720110'
+			WHEN b.account = '730000Corp' THEN '730110'
+			WHEN b.account = '740000Corp' THEN '740110'
+			WHEN b.account = '750000Corp' THEN '750110'
+			WHEN b.account = '763810Corp' THEN '763812'
+			WHEN b.account = '764390Corp' THEN '764391'
+			WHEN b.account = 'OthMiscCorp' THEN '761960'
+			WHEN b.account = '770000Corp' THEN '770100'
+                       ELSE account
+                    END
+             AND a.account_seg7_code(+) =
+                    CASE
+                       WHEN b.br_code IN ('NoBrand', 'Suspense_Brand','StaffingBrand')
+                       THEN
+                          '999'
+                       ELSE
+                          SUBSTR (b.br_code, 2)
+                    END
+             AND a.account_seg8_code(+) =
+                    CASE
+                       WHEN b.pl_code = 'PCACORPADJ' THEN '099'
+                       ELSE SUBSTR (b.pl_code, 3)
+                    END
+             AND pd.integration_id(+) =
+                    CASE
+                       WHEN b.sku IN ('NewSKUs', 'SKUadj','NoSKU')
+                       THEN
+                            '-'||
+                                  CASE
+                                     WHEN b.pl_code = 'PCACORPADJ' THEN '099'
+                                     ELSE SUBSTR (b.pl_code, 3)
+                                  END
+                               || CASE
+                                     WHEN b.br_code IN ('NoBrand',
+                                                        'Suspense_Brand','StaffingBrand')
+                                     THEN
+                                        '999'
+                                     ELSE
+                                        SUBSTR (b.br_code, 2)
+                                  END
+                               || DECODE (b.sku,
+                                          'NewSKUs', '99',
+                                          'SKUadj', '00',
+                                          '11')
+                       ELSE
+                          LTRIM (SUBSTR (ltrim(rtrim(b.sku)), 2), ' 0')
+                    END
+             AND og.integration_id(+) = CASE  WHEN SUBSTR (b.invorg, 1, 2) <> 'IO' THEN '82'  ELSE SUBSTR (b.invorg, 3) END
+             and i.integration_id(+) = LTRIM (SUBSTR (ltrim(rtrim(b.sku)), 2), ' 0') ||'~'|| CASE  WHEN SUBSTR (b.invorg, 1, 2) <> 'IO' THEN '82'  ELSE SUBSTR (b.invorg, 3) END
+             and i.current_flg(+) = 'Y'  
+             AND cg_count.x_customer_group(+) =   b.customer
+CASE   WHEN 'CG_AMAZON.COM.CA,INC'
+                       THEN 'AMAZON.COM.CA, INC'
+                       WHEN 'CG_GERMANY CUST'
+                       THEN 'GERMANY'
+                       WHEN 'CG_LOWES COMPANIES CANADA,ULC'
+                       THEN 'LOWES COMPANIES CANADA, ULC'
+                       ELSE  SUBSTR (b.customer, 4)  END
+             --and c.current_flg(+) = 'Y'
+             AND cg_count.party_id = p.integration_id(+)
+             AND b.account = 'GrossUnits'
+             AND b.forecast_type = 'BUDGET'
+             --and b.currency <> 'CurrInp'
+             and b.fy_year = 'FY24'			--update fiscal year as needed
+             AND b.customer LIKE 'CG_%'
+             AND cal.mcal_cal_name = '5-4-4'
+             AND cal.mcal_period_name = b.period
+             AND ecal.ent_cal_name = 'HOT Calendar'
+             AND ecal.adjustment_period_flg = 'N'
+             AND ecal.ent_period_name = b.period
+             AND na.natural_account_lov_id(+) = '1007682'
+             AND NA.natural_account_VAL_CODE(+) =
+                    CASE
+			WHEN b.account = '400010Corp' THEN '401000'
+			WHEN b.account = '460000Corp' THEN '461000'
+			WHEN b.account = '471000Corp' THEN '472000'
+			WHEN b.account = '500000Corp' THEN '511000'
+			WHEN b.account = '601000Corp' THEN '601001'
+			WHEN b.account = '607000Corp' THEN '607010'
+			WHEN b.account = '608000Corp' THEN '608010'
+			WHEN b.account = 'OthVarCorp' THEN '610000'
+			WHEN b.account = '710000Corp' THEN '710110'
+			WHEN b.account = '720000Corp' THEN '720110'
+			WHEN b.account = '730000Corp' THEN '730110'
+			WHEN b.account = '740000Corp' THEN '740110'
+			WHEN b.account = '750000Corp' THEN '750110'
+			WHEN b.account = '763810Corp' THEN '763812'
+			WHEN b.account = '764390Corp' THEN '764391'
+			WHEN b.account = 'OthMiscCorp' THEN '761960'
+			WHEN b.account = '770000Corp' THEN '770100'
+                       ELSE account
+                    END
+             AND PL.x_SEGMENT_LOV_NAME(+) = 'HOT Product Line NEW'
+             AND PL.SEGMENT_VAL_CODE(+) =
+                    CASE
+                       WHEN b.pl_code = 'PCACORPADJ' THEN '099'
+                       ELSE SUBSTR (b.pl_code, 3)
+                    END
+             AND BR.x_SEGMENT_LOV_NAME(+) = 'HOT Brand'
+             AND BR.SEGMENT_VAL_CODE(+) =
+                    CASE
+                       WHEN b.br_code IN ('NoBrand', 'Suspense_Brand','StaffingBrand')
+                       THEN
+                          '999'
+                       ELSE
+                          SUBSTR (b.br_code, 2)
+                    END
+             AND LOC.x_SEGMENT_LOV_NAME(+) = 'HOT Location'
+             AND LOC.SEGMENT_VAL_CODE(+) = SUBSTR (b.lc_code, 2)
+             AND BU.x_SEGMENT_LOV_NAME(+) = 'HOT Business Unit NEW'
+             AND BU.SEGMENT_VAL_CODE(+) = SUBSTR (b.bu_code, 3)
+             and ch.x_segment_lov_name(+) = 'HOT Channel'
+             and ch.segment_val_code(+) = SUBSTR (b.ch_code, 5)
+             and le.x_segment_lov_name(+) = 'HOT Company'
+             and le.segment_val_code(+) = case when b.le = 'NoLegalEntity' then '000' else substr(b.le,3) end
+             and dp.x_segment_lov_name(+) = 'HOT Department'
+             and dp.segment_val_code(+) = case when b.dept in ('MarginDept','RoyaltyDept') then '0000' else substr(b.dept,2) end
+             AND b.sales <> 0) cg_amounts
+           ON (    cg_amounts.intg_id = dlr.integration_id
+                 AND dlr.scenario = 'BUDGET')
+               --AND noncg_amounts.gl_account_wid = dlr.gl_account_wid
+              -- AND dlr.gl_account_num BETWEEN '400000' AND '409999')
+   WHEN MATCHED
+   THEN
+      UPDATE SET BUDGETED_UNITS = cg_amounts.sales
+   WHEN NOT MATCHED
+   THEN
+      INSERT     (inventory_item_id,
+                                 org_id,
+                                 customer_account_wid,
+                                 customer_account_intgid,
+                                 customer_wid,
+                                 customer_intgid,
+                                 gl_account_wid,
+                                 ccid,
+                                 currency_code,
+                                 mcal_period_wid,
+                                 ent_period_wid,
+                                 BUDGETED_UNITS,
+                                 integration_id,
+                                 gl_account_num,
+                                 gl_natural_acct_wid,
+                                 gl_brand_wid,
+                                 gl_product_line_wid,
+                                 gl_business_unit_wid,
+                                 gl_location_wid,
+                                 acct_period_end_dt_wid,
+                                 gl_channel_wid,
+                                 gl_company_wid,
+                                 gl_dept_wid,
+                                 product_wid,
+                                 inventory_org_wid,
+                                 inventory_product_wid,
+                                 scenario)
+          VALUES (cg_amounts.item_id,
+                  cg_amounts.org_id,
+                  cg_amounts.customer_account_wid,
+                  cg_amounts.customer_account_intgid,
+                  cg_amounts.customer_wid,
+                  cg_amounts.customer_intgid,
+                  cg_amounts.gl_account_wid,
+                  cg_amounts.ccid,
+                  'USD',
+                  cg_amounts.mcal_wid,
+                  cg_amounts.ent_wid,
+                  cg_amounts.sales,
+                  cg_amounts.intg_id,
+                  cg_amounts.account,
+                  cg_amounts.gl_na_account_wid,
+                  cg_amounts.gl_brand_wid,
+                  cg_amounts.gl_product_line_wid,
+                  cg_amounts.gl_business_unit_wid,
+                  cg_amounts.gl_location_wid,
+                  cg_amounts.acct_period_wid,
+                  cg_amounts.gl_channel_wid,
+                  cg_amounts.gl_company_wid,
+                  cg_amounts.gl_dept_wid,
+                  cg_amounts.product_wid,
+                  cg_amounts.org_wid,
+                  cg_amounts.inventory_product_wid,
+                  'BUDGET'
+                  );
+
+------------------------------------------------------
+
+/* Step 18:  Verify merged records - update fiscal year start wid as needed */
+
+select count(1) from wc_hyp_budget_file_period_load;
+
+select count(1) from wc_hyperion_budget_f 
+where ent_period_wid > 20230301 
+and scenario = 'BUDGET';
+
+------------------------------------------------------
+
+/* Step 19:  Update sign for 500000-999999 accounts - update fiscal year start wid as needed */
+
+UPDATE wc_hyperion_budget_f a
+SET
+    BUDGETED_AMOUNT = - 1 * BUDGETED_AMOUNT
+WHERE
+    gl_natural_acct_wid IN (
+        SELECT
+            row_wid
+        FROM
+            w_natural_account_d
+        WHERE
+            natural_account_val_code > '500000'
+    )
+    AND ent_period_wid > 20230301
+    AND scenario = 'BUDGET';
+
+------------------------------------------------------
+
+/* Step 20:  Update forecast amounts and units to match budget - update fiscal year start wid as needed */
+
+update wc_hyperion_budget_f set forecast_amount = budgeted_amount where ent_period_wid > 20230301 and scenario = 'BUDGET';
+
+update wc_hyperion_budget_f set forecasted_units = budgeted_units where ent_period_wid > 20230301 and scenario = 'BUDGET';
+
+------------------------------------------------------
+
+/* Step 21:  Update actuals month based on scenario - ONLY NEEDED FOR INITAL BUDGET LOAD */
+
+SELECT
+    actuals_month,
+    scenario,
+    active_flag
+FROM
+    wc_forecast_scenarios_d;
+
+UPDATE wc_forecast_scenarios_d
+SET
+    active_flag = 'Y'
+WHERE
+    scenario = 'BUDGET';
+
+UPDATE wc_forecast_scenarios_d
+SET
+    active_flag = 'N'
+WHERE
+    scenario IN ('3+9', '6+6', '9+3');
+
+------------------------------------------------------
+
+/* Step 22:  Refresh materialized views */
+
+WC_HYPERION_SEGMENT_DH
+WC_GL_OTHER_A
+
+------------------------------------------------------
+
+/* Step 23:  Refresh Customer Net Sales table */
+
+------------------------------------------------------
+
+/* Step 24:  Truncate the Daily Dollar tables */
+
+truncate table wc_daily_dollar_open_orders_f;
+
+truncate table wc_daily_dollar_budget_f;
+
+------------------------------------------------------
+
+/* Step 25:  Insert records into BI_TEST tables from BI11G_DW tables */
+
+INSERT INTO wc_daily_dollar_open_orders_f
+    SELECT * FROM bi11g_dw.wc_daily_dollar_open_orders_f;
+
+INSERT INTO wc_daily_dollar_budget_f
+    SELECT * FROM bi11g_dw.wc_daily_dollar_budget_f;
+
+------------------------------------------------------
+
+/* Step 26:  Load PY amounts for Daily Dollar (Daily Sales Edition) - ONLY NEEDED FOR INITIAL BUDGET LOAD */
+
+UPDATE wc_daily_dollar_open_orders_f
+SET
+    prior_year_actuals_amount = NULL
+WHERE
+    ship_date >= '01-MAR-2023';		-- update ship date as needed
+
+MERGE INTO wc_daily_dollar_open_orders_f dld
+USING (
+          SELECT
+              nvl(cal.x_ship_date, cd.ship_date)           ship_date,
+              glf.gl_segment1_wid                         business_unit_wid,
+              glf.gl_segment4_wid                         location_wid,
+              glf.natural_account_wid,
+              glf.gl_segment7_wid                         brand_wid,
+              glf.gl_segment8_wid                         product_line_wid,
+              SUM(- 1 * sla_loc_amt)                      sales_amount
+          FROM
+              wc_sla_xact_day_a  glf,
+              w_ledger_d         lg,
+              w_mcal_period_d    mp,
+              w_gl_account_d     gl,
+              w_status_d         st,
+              w_day_d            cal,
+              (
+                  SELECT
+                      cal_year,
+                      cal_month,
+                      MAX(x_ship_date) ship_date
+                  FROM
+                      w_day_d
+                  GROUP BY
+                      cal_year,
+                      cal_month
+              )                  cd
+          WHERE
+                  glf.ledger_wid = lg.row_wid
+              AND lg.ledger_name NOT IN ( 'HOT FASB52 USD FR', 'HOT FASB52 USD GB', 'HOT FASB52 USD MX', 'CONSO HOT LATIN AMERICA LLC' )
+              AND lg.currency_code = 'USD'
+              AND acct_period_end_dt_wid = mp.row_wid
+              AND mp.mcal_year = '2023'				--UPDATED YEAR AS NEEDED
+              AND acct_period_end_dt = cal.year_ago_dt
+-- and MP.MCAL_PERIOD_NAME = 'Feb-20'
+              AND gl.account_seg9_code = '000'
+              AND st.row_wid = glf.gl_status_wid
+              AND st.w_substatus1_code = 'POSTED'
+              AND glf.gl_account_wid = gl.row_wid
+              AND gl.group_account_num = 'GROSS SALES'
+              AND cd.cal_year = cal.cal_year
+              AND cd.cal_month = cal.cal_month
+              AND gl.account_seg1_code NOT IN ( '1070', '1071', '1075', '1076', '1077',
+                                                '1072', '1074', '1073' )
+          GROUP BY
+              nvl(cal.x_ship_date, cd.ship_date),
+              glf.gl_segment1_wid,
+              glf.gl_segment4_wid,
+              glf.gl_segment7_wid,
+              glf.gl_segment8_wid,
+              glf.natural_account_wid
+      )
+sales ON ( sales.business_unit_wid = dld.business_unit_wid
+           AND sales.location_wid = dld.location_wid
+           AND sales.brand_wid = dld.brand_wid
+           AND sales.product_line_wid = dld.product_line_wid
+           AND sales.natural_account_wid = dld.natural_account_wid
+           AND sales.ship_date = dld.ship_date )
+WHEN MATCHED THEN UPDATE
+SET prior_year_actuals_amount = sales.sales_amount
+WHEN NOT MATCHED THEN
+INSERT (
+    ship_date,
+    business_unit_wid,
+    location_wid,
+    natural_account_wid,
+    brand_wid,
+    product_line_wid,
+    prior_year_actuals_amount )
+VALUES
+    ( sales.ship_date,
+      sales.business_unit_wid,
+      sales.location_wid,
+      sales.natural_account_wid,
+      sales.brand_wid,
+      sales.product_line_wid,
+      sales.sales_amount );
+
+------------------------------------------------------
+
+/* Step 27:  Update budget and forecast amounts for Daily Dollar (Daily Sales Edition) */
+
+UPDATE wc_daily_dollar_open_orders_f
+SET
+    budget_amount = NULL
+--    ,forecast_amount = NULL		-- FORECAST ONLY NEEDED FOR INITIAL LOAD
+WHERE
+      ship_date >= '01-Mar-23';		-- update ship date as needed
+
+MERGE INTO wc_daily_dollar_open_orders_f sales USING (
+                                                         SELECT
+                                                             cal.ship_date,
+                                                             bud.gl_business_unit_wid   business_unit_wid,
+                                                             bud.gl_location_wid        location_wid,
+                                                             bud.gl_natural_acct_wid    natural_account_wid,
+                                                             bud.gl_product_line_wid    AS product_line_wid,
+                                                             bud.gl_brand_wid           AS brand_wid,
+                                                             bud.forecast_amount / ship_days_count fcst_amt,
+                                                             bud.budget_amount / ship_days_count budget_amt
+                                                         FROM
+                                                             (
+                                                                 SELECT
+                                                                     bud.ent_period_wid,
+                                                                     bud.gl_business_unit_wid,
+                                                                     bud.gl_location_wid,
+                                                                     bud.gl_natural_acct_wid,
+                                                                     bud.gl_product_line_wid,
+                                                                     bud.gl_brand_wid,
+                                                                     SUM(bud.budgeted_amount) forecast_amount,
+                                                                     SUM(bud.budgeted_amount) budget_amount
+                                                                 FROM
+                                                                     wc_hyperion_budget_f bud,
+                                                                     w_natural_account_d s
+                                                                 WHERE
+                                                                     bud.ent_period_wid >= 20230331			--update date as needed
+                                                                     AND s.row_wid = bud.gl_natural_acct_wid
+                                                                     AND s.natural_account_val_code BETWEEN '400000' AND '409999'
+                                                                     AND bud.scenario = 'BUDGET'
+                                                                     AND ( nvl(budgeted_amount,0) <> 0 )
+                                                                 GROUP BY
+                                                                     bud.ent_period_wid,
+                                                                     bud.gl_business_unit_wid,
+                                                                     bud.gl_location_wid,
+                                                                     bud.gl_natural_acct_wid,
+                                                                     bud.gl_product_line_wid,
+                                                                     bud.gl_brand_wid
+                                                             ) bud,
+                                                             (
+                                                                 SELECT DISTINCT
+                                                                     ent_period_end_dt_wid,
+                                                                     x_ship_date   ship_date,
+                                                                     COUNT(DISTINCT x_ship_date) OVER(
+                                                                         PARTITION BY ent_period_end_dt_wid
+                                                                     ) ship_days_count
+                                                                 FROM
+                                                                     w_day_d
+                                                                 WHERE
+                                                                     ent_period_end_dt_wid >= 20230331			--update date as needed
+                                                             ) cal
+                                                         WHERE
+                                                             cal.ent_period_end_dt_wid = bud.ent_period_wid
+                                                     )
+dld ON ( sales.business_unit_wid = dld.business_unit_wid
+         AND sales.location_wid = dld.location_wid
+         AND sales.brand_wid = dld.brand_wid
+         AND sales.product_line_wid = dld.product_line_wid
+         AND sales.natural_account_wid = dld.natural_account_wid
+         AND sales.ship_date = dld.ship_date )
+WHEN MATCHED THEN UPDATE SET sales.budget_amount = dld.budget_amt --, sales.forecast_amount = dld.fcst_amt -- FORECAST ONLY NEEDED FOR INITAL LOAD
+WHEN NOT MATCHED THEN INSERT (
+    ship_date,
+    business_unit_wid,
+    location_wid,
+    natural_account_wid,
+    product_line_wid,
+    brand_wid,
+--    forecast_amount,		-- FORECAST ONLY NEEDED FOR INITAL LOAD
+    budget_amount ) VALUES (
+    dld.ship_date,
+    dld.business_unit_wid,
+    dld.location_wid,
+    dld.natural_account_wid,
+    dld.product_line_wid,
+    dld.brand_wid,
+--    dld.fcst_amt,		-- FORECAST ONLY NEEDED FOR INITAL LOAD
+    dld.budget_amt
+);
+
+------------------------------------------------------
+
+/* Step 28:  Load PY amounts for Daily Dollar (Legacy Edition) - ONLY NEEDED FOR INITIAL BUDGET LOAD */
+
+UPDATE wc_daily_dollar_budget_f
+SET
+    last_year_sales = NULL
+WHERE
+    ship_date >= '01-MAR-2023';		-- update ship date as needed
+
+MERGE INTO wc_daily_dollar_budget_f dld
+USING (
+          SELECT
+              cal.x_ship_date                  ship_date,
+              bu.scd1_wid                      gl_business_unit_wid,
+              lo.scd1_wid                      gl_location_wid,
+              na.row_wid                       natural_account_wid,
+              MIN(ga.row_wid)                  gl_account_wid,
+              SUM(xal.sla_loc_amt * - 1)          sales_amount
+          FROM
+              wc_sla_xact_day_a    xal,
+              w_ledger_d           gl,
+              w_gl_account_d       ga,
+              w_gl_segment_d       bu,
+              w_gl_segment_d       lo,
+              w_natural_account_d  na,
+              w_day_d              cal,
+              w_xact_source_d      xs
+          WHERE
+                  xs.source_code = 'Receivables'
+              AND xal.accounting_class_code = 'REVENUE'
+              AND cal.year_ago_dt = xal.acct_period_end_dt
+              AND cal.per_name_ent_year = '2024'		--update fiscal year as needed
+              AND ga.row_wid = xal.gl_account_wid
+              AND xal.ledger_wid = gl.row_wid
+              AND gl.currency_code = 'USD'
+              AND gl.ledger_category_code IN (
+                  'ALC',
+                  'PRIMARY'
+              )
+              AND gl.ledger_name NOT IN (
+                  'HOT FASB52 USD FR',
+                  'HOT FASB52 USD GB',
+                  'HOT FASB52 USD MX'
+              )
+--and ga.account_seg1_name  = 'OXO'
+--and ga.account_seg4_name = 'Canada'
+              AND ga.account_seg6_code <> '404000'
+              AND ga.group_account_num IN (
+                  'GROSS SALES',
+                  'SALES DED'
+              )
+              AND xal.gl_segment1_wid = bu.scd1_wid
+              AND xal.gl_segment4_wid = lo.scd1_wid
+              AND xal.natural_account_wid = na.row_wid
+              AND xal.journal_source_wid = xs.row_wid
+          GROUP BY
+              cal.x_ship_date,
+              bu.scd1_wid,
+              lo.scd1_wid,
+              na.row_wid 
+--order by 1
+      )
+sales ON ( sales.ship_date = dld.ship_date
+           AND sales.gl_account_wid = dld.gl_account_wid )
+WHEN MATCHED THEN UPDATE
+SET last_year_sales = sales.sales_amount
+WHEN NOT MATCHED THEN
+INSERT (
+    ship_date,
+    business_unit_wid,
+    location_wid,
+    natural_account_wid,
+    gl_account_wid,
+    last_year_sales )
+VALUES
+    ( sales.ship_date,
+      sales.gl_business_unit_wid,
+      sales.gl_location_wid,
+      sales.natural_account_wid,
+      sales.gl_account_wid,
+      sales.sales_amount );
+
+------------------------------------------------------
+
+/* Step 29:  Update budget and forecast amounts for Daily Dollar (Legacy Edition) */
+
+UPDATE wc_daily_dollar_budget_f
+SET
+    budget_amount = NULL
+--    ,forecast_amount = NULL		-- FORECAST ONLY NEEDED FOR INITIAL LOAD
+WHERE
+    ship_date >= '01-MAR-2023';		-- update ship date as needed
+
+MERGE INTO wc_daily_dollar_budget_f dld USING (
+                                                   SELECT
+                                                       cal.ship_date,
+                                                       bud.gl_business_unit_wid,
+                                                       bud.gl_location_wid,
+                                                       bud.gl_natural_acct_wid   natural_account_wid,
+                                                       coalesce(gcc.gl_account_wid,gcc2.gl_account_wid,gcc3.gl_account_wid) gl_account_wid,
+                                                       bud.forecast_amount / ship_days_count fcst_amt,
+                                                       bud.budget_amount / ship_days_count budget_amt,
+                                                       cal.ship_date
+                                                       || '~'
+                                                       || bud.gl_business_unit_wid
+                                                       || '~'
+                                                       || bud.gl_location_wid
+                                                       || '~'
+                                                       || bud.gl_natural_acct_wid integration_id
+                                                   FROM
+                                                       (
+                                                           SELECT
+                                                               bud.ent_period_wid,
+                                                               bu.integration_id   business_unit_id,
+                                                               lo.integration_id   location_id,
+                                                               na.integration_id   gl_account_id,
+                                                               SUM(bud.budgeted_amount) forecast_amount,
+                                                               SUM(bud.budgeted_amount) budget_amount,
+                                                               bud.gl_business_unit_wid,
+                                                               bud.gl_location_wid,
+                                                               bud.gl_natural_acct_wid,
+                                                               CASE
+                                                                   WHEN na.natural_account_val_code BETWEEN '400000' AND '409999' THEN
+                                                                   'GROSS SALES'
+                                                                   ELSE 'SALES DED'
+                                                               END group_account
+                                                           FROM
+                                                               wc_hyperion_budget_f bud,
+                                                               w_gl_segment_d bu,
+                                                               w_gl_segment_d lo,
+                                                               w_natural_account_d na
+                                                           WHERE
+                                                               bud.gl_business_unit_wid = bu.scd1_wid
+                                                               AND bud.gl_location_wid = lo.scd1_wid
+                                                               AND bud.gl_natural_acct_wid = na.row_wid
+                                                               AND bud.scenario = 'BUDGET'
+                                                               AND bud.ent_period_wid >= 20230331			--update date as needed
+                                                               AND na.natural_account_val_code BETWEEN '400000' AND '499999'
+                                                               AND na.natural_account_val_code NOT IN (
+                                                                   '467000',
+                                                                   '471000',
+                                                                   '479000',
+                                                                   '480000',
+                                                                   '470000',
+                                                                   '487000',
+                                                                   '404000'
+                                                               ) 
+--and bud.gl_account_num between '400000' and '499999' 
+                                                               AND bud.budgeted_amount IS NOT NULL
+                                                           GROUP BY
+                                                               bud.ent_period_wid,
+                                                               bu.integration_id,
+                                                               lo.integration_id,
+                                                               na.integration_id,
+                                                               bud.gl_business_unit_wid,
+                                                               bud.gl_location_wid,
+                                                               bud.gl_natural_acct_wid,
+                                                               CASE
+                                                                   WHEN na.natural_account_val_code BETWEEN '400000' AND '409999' THEN
+                                                                   'GROSS SALES'
+                                                                   ELSE 'SALES DED'
+                                                               END
+                                                       ) bud,
+                                                       (
+                                                           SELECT DISTINCT
+                                                               ent_period_end_dt_wid,
+                                                               x_ship_date   ship_date,
+                                                               COUNT(DISTINCT x_ship_date) OVER(
+                                                                   PARTITION BY ent_period_end_dt_wid
+                                                               ) ship_days_count
+                                                           FROM
+                                                               w_day_d
+                                                           WHERE
+                                                               ent_period_end_dt_wid >= 20230331			--update date as needed
+                                                       ) cal,
+                                                       (
+                                                           SELECT
+                                                               account_seg1_integration_id   business_unit_id,
+                                                               account_seg4_integration_id   location_id,
+                                                               account_seg6_integration_id   gl_account_id,
+                                                               MIN(row_wid) gl_account_wid
+                                                           FROM
+                                                               w_gl_account_d
+                                                           GROUP BY
+                                                               account_seg1_integration_id,
+                                                               account_seg4_integration_id,
+                                                               account_seg6_integration_id
+                                                       ) gcc,
+                                                       (
+                                                           SELECT
+                                                               account_seg1_integration_id   business_unit_id,
+                                                               account_seg4_integration_id   location_id,
+                                                               group_account_num,
+                                                               MIN(row_wid) gl_account_wid
+                                                           FROM
+                                                               w_gl_account_d
+                                                           WHERE
+                                                               account_seg6_code BETWEEN '400000' AND '499999'
+                                                               AND account_seg6_code NOT IN (
+                                                                   '467000',
+                                                                   '471000',
+                                                                   '479000',
+                                                                   '480000',
+                                                                   '470000',
+                                                                   '487000',
+                                                                   '404000'
+                                                               )
+                                                           GROUP BY
+                                                               account_seg1_integration_id,
+                                                               account_seg4_integration_id,
+                                                               group_account_num
+                                                       ) gcc2,
+                                                       (
+                                                           SELECT
+                                                               account_seg1_integration_id   business_unit_id,
+                                                               group_account_num,
+                                                               MIN(row_wid) gl_account_wid
+                                                           FROM
+                                                               w_gl_account_d
+                                                           WHERE
+                                                               account_seg6_code BETWEEN '400000' AND '499999'
+                                                               AND account_seg6_code NOT IN (
+                                                                   '467000',
+                                                                   '471000',
+                                                                   '479000',
+                                                                   '480000',
+                                                                   '470000',
+                                                                   '487000',
+                                                                   '404000'
+                                                               )
+                                                           GROUP BY
+                                                               account_seg1_integration_id,
+                                                               group_account_num
+                                                       ) gcc3
+                                                   WHERE
+                                                       cal.ent_period_end_dt_wid = bud.ent_period_wid
+                                                       AND gcc.business_unit_id (+) = bud.business_unit_id
+                                                       AND gcc.location_id (+) = bud.location_id
+                                                       AND gcc.gl_account_id (+) = bud.gl_account_id
+                                                       AND gcc2.business_unit_id (+) = bud.business_unit_id
+                                                       AND gcc2.location_id (+) = bud.location_id
+                                                       AND gcc2.group_account_num (+) = bud.group_account
+                                                       AND gcc3.business_unit_id (+) = bud.business_unit_id
+                                                       AND gcc3.group_account_num (+) = bud.group_account 
+--and gcc.gl_account_wid is null 
+                                               )
+sales ON ( sales.integration_id = dld.integration_id )
+WHEN MATCHED THEN UPDATE SET budget_amount = sales.budget_amt --, forecast_amount = sales.fcst_amt -- FORECAST ONLY NEEDED FOR INITIAL LOAD
+WHEN NOT MATCHED THEN INSERT (
+    ship_date,
+    business_unit_wid,
+    location_wid,
+    natural_account_wid,
+    gl_account_wid,
+    integration_id,
+--    forecast_amount,		-- FORECAST ONLY NEEDED FOR INITIAL LOAD
+    budget_amount ) VALUES (
+    sales.ship_date,
+    sales.gl_business_unit_wid,
+    sales.gl_location_wid,
+    sales.natural_account_wid,
+    sales.gl_account_wid,
+    sales.integration_id,
+--    sales.fcst_amt,		-- FORECAST ONLY NEEDED FOR INITIAL LOAD
+    sales.budget_amt);
+
+------------------------------------------------------
+
+/* Step 30:  Clear BI Server cache */
+
+Call SAPurgeAllCache()
+
+------------------------------------------------------
+
+/* Step 31:  Verify report amounts */
+
+SELECT
+     CASE
+         WHEN t330042.x_segment_val_desc LIKE '%Home%' THEN 'H&H Latin America'
+         WHEN t330042.x_segment_val_desc = 'KAZ-Can RMO'  THEN 'H&H Canada'
+         WHEN t330042.x_segment_val_desc = 'KAZ-US RMO'   THEN 'H&H US'
+         WHEN t330042.x_segment_val_desc = 'KAZ-Eur RMO'  THEN 'H&H Europe'
+         WHEN t330042.x_segment_val_desc = 'KAZ-FE RMO'   THEN 'H&H Far East'
+         WHEN t330042.x_segment_val_desc = 'KAZ-LATA RMO' THEN 'H&H Latin America'
+         ELSE t330042.x_segment_val_desc
+     END AS c1,
+     SUM(t491346.budgeted_amount * t491839.exch_rate) AS c2
+ FROM
+     wc_hyperion_segment_dh t491347 /* Dim_WC_HYPERION_SEGMENT_DH */,
+     w_natural_account_d t186985 /* Dim_W_NATURAL_ACCOUNT_D */,
+     w_gl_segment_d t330042 /* Dim_W_GL_SEGMENT_D_Segment1 */,
+     w_mcal_day_d t191332 /* Dim_W_MCAL_DAY_D_Fiscal_Day */,
+     wc_hyperion_budget_f t491346 /* Fact_WC_HYPERION_BUDGET_F */,
+     (
+         SELECT
+             from_currency,
+             to_currency,
+             exch_rate
+         FROM
+             (
+                 SELECT
+                     from_c.currency   from_currency,
+                     to_c.currency     to_currency,
+                     CASE
+                         WHEN from_c.currency = to_c.currency THEN 1
+                         ELSE from_c.rate * to_c.rate
+                     END exch_rate
+                 FROM
+                     (
+                         SELECT
+                             from_currency   currency,
+                             exch_rate       rate
+                         FROM
+                             wc_hyperion_exchange_rates
+                     ) from_c,
+                     (
+                         SELECT
+                             from_currency   currency,
+                             1 / exch_rate rate
+                         FROM
+                             wc_hyperion_exchange_rates
+                     ) to_c
+             ) a
+         WHERE
+             a.to_currency = CASE 'Global Currency 1'
+                 WHEN 'Global Currency 1'   THEN 'USD'
+                 WHEN 'Global Currency 2'   THEN 'EUR'
+                 WHEN 'Global Currency 3'   THEN 'GBP'
+                 WHEN 'Global Currency 5'   THEN 'CHF'
+                 ELSE 'USD'
+             END
+         ORDER BY
+             1,
+             2
+     ) t491839
+ WHERE
+     ( t491346.gl_brand_wid = t491347.gl_brand_wid
+       AND t491346.gl_business_unit_wid = t491347.gl_business_unit_wid
+       AND t186985.row_wid = t491346.gl_natural_acct_wid
+       AND t330042.scd1_wid = t491346.gl_business_unit_wid
+       AND t191332.mcal_period_end_dt_wid = t491346.ent_period_wid
+       AND t491346.currency_code = t491839.from_currency
+       AND t491346.gl_location_wid = t491347.gl_location_wid
+       AND t191332.mcal_cal_name = 'HOT Calendar'
+       AND t191332.mcal_day_dt = TO_DATE('2020-03-01','YYYY-MM-DD')		--update date as needed
+       AND t191332.adjustment_period_flg = 'N'
+       AND t330042.segment_lov_id = 1010808
+       AND t491346.gl_product_line_wid = t491347.gl_product_line_wid
+       AND t491346.scenario = 'BUDGET'
+       AND t491347.segment = 'Health & Home'
+       AND ( t186985.natural_account_val_code IN (
+         '401000',
+         '401100',
+         '401200',
+         '401309',
+         '401310',
+         '402000',
+         '403000',
+         '405000',
+         '406000',
+         '407000',
+         '407500',
+         '408000',
+         '408100',
+         '408101',
+         '408500'
+     ) )
+       AND ( t330042.x_segment_val_desc IN (
+         'Brazil - Home & Health',
+         'Caribbean - Home & Health',
+         'Chile - Home & Health',
+         'Colombia - Home & Health',
+         'Costa Rica - Home & Health',
+         'Health and Home Corp Co.',
+         'KAZ-Can RMO',
+         'KAZ-Eur RMO',
+         'KAZ-FE RMO',
+         'KAZ-LATA RMO',
+         'KAZ-US RMO',
+         'Mexico - Home & Health',
+         'Panama - Home & Health',
+         'Peru - Home & Health',
+         'Venezuela - Home & Health'
+     ) ) )
+ GROUP BY
+     CASE
+         WHEN t330042.x_segment_val_desc LIKE '%Home%' THEN 'H&H Latin America'
+         WHEN t330042.x_segment_val_desc = 'KAZ-Can RMO'  THEN 'H&H Canada'
+         WHEN t330042.x_segment_val_desc = 'KAZ-US RMO'   THEN 'H&H US'
+         WHEN t330042.x_segment_val_desc = 'KAZ-Eur RMO'  THEN 'H&H Europe'
+         WHEN t330042.x_segment_val_desc = 'KAZ-FE RMO'   THEN 'H&H Far East'
+         WHEN t330042.x_segment_val_desc = 'KAZ-LATA RMO' THEN 'H&H Latin America'
+         ELSE t330042.x_segment_val_desc
+     END
+ ORDER BY
+     c1;
+
+
+
+-- load the file direclty into table using UI
+-- create pivot for that tale data
+-- create cte for w_day_d
+-- work on step 14,15,16,17 either with macros or procedure to derive the amount and units for customers, customer_group
+-- discuss with venkat
+-- next step
