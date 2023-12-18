@@ -1,0 +1,785 @@
+
+  CREATE OR REPLACE FORCE VIEW "HOTDW"."WC_PIM_ATTRIBUTES_D" ("INVENTORY_ITEM_ID", "ORGANIZATION_ID", "HOT_DEPRECIATION", "HOT_PARENT_SKU", "COUNTRY_OF_PURCHASE", "ROYALTY_DESIGN_ITEM_NUMBER", "HOT_ENGINEERING_ITEM", "HOT_FTA_INDICATOR", "HOT_HF_MERCHANDISE_COLLECTION", "HOT_HF_MARKETING_FLAG", "LACEY_ACT_DECLARATION", "HOT_UNPACKED_WEIGHT", "HOT_UNPACKED_WIDTH", "HOT_UNPACKED_LENGTH", "HOT_UNPACKED_HEIGHT", "MEDICAL_DEVICE", "HOT_510K_NUMBER", "DEVICE_LISTING_NUMBER_SUPPLIER", "ESTABLISHMENT_REGULATION_NUM", "LEGAL_MANUFACTURER", "OWNER_OPERATOR_NUMBER", "ACCESSION_NUM_1", "ACCESSION_NUM_2", "PRODUCT_CODE", "FDA_PROGRAM_CODE", "FDA_CATEGORY_CODE", "INTENDED_USE_CODE", "FDA_BRAND", "UDI_NUMBER", "KIT_NUMBER", "DLS_NUMBER", "ACTIVE_INGREDIENT_NAME", "ACTIVE_INGREDIENT_AMT", "ACTIVE_INGREDIENT_UOM", "ACTIVE_INGREDIENT_PCT", "PFR_NUMBER", "EPA_ITEM", "ESTABLISHMENT_NUM1", "REGISTRATION_NUMBER", "HOT_SUPPLIER_NAME", "HOT_IP_WEIGHT", "HOT_IP_VOLUME", "HOT_IP_HEIGHT", "HOT_IP_WIDTH", "HOT_IP_LENGTH", "HOT_CASE_WEIGHT", "HOT_CASE_VOLUME", "HOT_CASE_HEIGHT", "HOT_CASE_WIDTH", "HOT_CASE_LENGTH", "HOT_WARRANTY_PERIOD", "HOT_WARRANTY_ELIGIBLE", "HOT_PALLET_QTY", "HOT_TIER_QTY", "HOT_TIE_QTY", "FRACCION_A") AS 
+  SELECT msi.inventory_item_id,
+          msi.organization_id,
+          HOT_DEPRECIATION,
+          COUNTRY_OF_PURCHASE,
+          HOT_PARENT_SKU,
+          ROYALTY_DESIGN_ITEM_NUMBER,
+          HOT_ENGINEERING_ITEM,
+          HOT_FTA_INDICATOR,
+          HOT_HF_MERCHANDISE_COLLECTION,
+          HOT_HF_MARKETING_FLAG,
+          LACEY_ACT_DECLARATION,
+          HOT_UNPACKED_WEIGHT,
+          HOT_UNPACKED_WIDTH,
+          HOT_UNPACKED_LENGTH,
+          HOT_UNPACKED_HEIGHT,
+          MEDICAL_DEVICE,
+          HOT_510K_NUMBER,
+          DEVICE_LISTING_NUMBER_SUPPLIER,
+          ESTABLISHMENT_REGULATION_NUM,
+          LEGAL_MANUFACTURER,
+          OWNER_OPERATOR_NUMBER,
+          ACCESSION_NUM_1,
+          ACCESSION_NUM_2,
+          PRODUCT_CODE,
+          FDA_PROGRAM_CODE,
+          FDA_CATEGORY_CODE,
+          INTENDED_USE_CODE,
+          FDA_BRAND,
+          UDI_NUMBER,
+          KIT_NUMBER,
+          DLS_NUMBER,
+          ACTIVE_INGREDIENT_NAME,
+          ACTIVE_INGREDIENT_AMT,
+          ACTIVE_INGREDIENT_UOM,
+          ACTIVE_INGREDIENT_PCT,
+          PFR_NUMBER,
+          EPA_ITEM,
+          ESTABLISHMENT_NUM1,
+          REGISTRATION_NUMBER,
+          HOT_SUPPLIER_NAME,
+          HOT_IP_WEIGHT,
+          HOT_IP_VOLUME,
+          HOT_IP_HEIGHT,
+          HOT_IP_WIDTH,
+          HOT_IP_LENGTH,
+          HOT_CASE_WEIGHT,
+          HOT_CASE_VOLUME,
+          HOT_CASE_HEIGHT,
+          HOT_CASE_WIDTH,
+          HOT_CASE_LENGTH,
+          HOT_WARRANTY_PERIOD,
+          HOT_WARRANTY_ELIGIBLE,
+          HOT_PALLET_QTY,
+          HOT_TIER_QTY,
+          HOT_TIE_QTY,
+          FRACCION_A
+     FROM apps.mtl_system_items_b msi
+          LEFT OUTER JOIN
+          (SELECT msi2.inventory_item_id,
+                  msi2.organization_id,
+                  emsieb.c_ext_attr1 HOT_DEPRECIATION,
+                  emsieb.c_ext_attr2 COUNTRY_OF_PURCHASE,
+                  emsieb.c_ext_attr3 HOT_PARENT_SKU,
+                  EMSIEB.C_EXT_ATTR4 ROYALTY_DESIGN_ITEM_NUMBER,
+                  EMSIEB.C_EXT_ATTR5 HOT_ENGINEERING_ITEM,
+                  EMSIEB.C_EXT_ATTR9 HOT_FTA_INDICATOR,
+                  EMSIEB.C_EXT_ATTR14 HOT_HF_MERCHANDISE_COLLECTION,
+                  EMSIEB.C_EXT_ATTR15 HOT_HF_MARKETING_FLAG,
+                  emsieb.c_ext_attr7 LACEY_ACT_DECLARATION,
+                   emsieb.c_ext_attr8 FRACCION_A
+             FROM apps.ego_data_level_b edlb,
+                  apps.ego_obj_ag_assocs_b eoaa,
+                  apps.ego_mtl_sy_items_ext_b emsieb,
+                  apps.mtl_item_catalog_groups_b micgb,
+                  apps.mtl_system_items_b msi2,
+                  apps.ego_fnd_dsc_flx_ctx_ext efdfce
+            WHERE     edlb.application_id IN (SELECT DISTINCT application_id
+                                                FROM apps.fnd_descr_flex_column_usages
+                                               WHERE descriptive_flexfield_name =
+                                                        'EGO_ITEMMGMT_GROUP')
+                  AND eoaa.data_level_id = edlb.data_level_id
+                  AND efdfce.descriptive_flex_context_code =
+                         'HOT_USER_ATTRIBUTE_SET'
+                  AND efdfce.attr_group_id = emsieb.attr_group_id
+                  AND efdfce.application_id = edlb.application_id
+                  -- AND eoaa.data_level = 'ITEM_LEVEL'
+                  AND edlb.attr_group_type = 'EGO_ITEMMGMT_GROUP'
+                  AND eoaa.attr_group_id = emsieb.attr_group_id
+                  AND emsieb.inventory_item_id = msi2.inventory_item_id
+                  AND emsieb.organization_id = msi2.organization_id
+                  AND emsieb.extension_id =
+                         (SELECT MAX (extension_id)
+                            FROM apps.ego_mtl_sy_items_ext_b ems2
+                           WHERE     ems2.inventory_item_id =
+                                        emsieb.inventory_item_id
+                                 AND emsieb.organization_id =
+                                        ems2.organization_id
+                                 AND emsieb.attr_group_id =
+                                        ems2.attr_group_id)
+                  AND msi2.organization_id = 82
+                  AND micgb.item_catalog_group_id =
+                         emsieb.item_catalog_group_id) HUAS
+             ON     msi.inventory_item_id = HUAS.inventory_item_id
+                AND msi.organization_id = HUAS.organization_id
+          LEFT OUTER JOIN
+          (SELECT msi2.inventory_item_id,
+                  msi2.organization_id,
+                  emsieb.c_ext_attr12 HOT_UNPACKED_WEIGHT,
+                  emsieb.c_ext_attr5 HOT_UNPACKED_WIDTH,
+                  emsieb.c_ext_attr7 HOT_UNPACKED_LENGTH,
+                  emsieb.c_ext_attr9 HOT_UNPACKED_HEIGHT,
+                  emsieb.c_ext_attr2 HOT_WARRANTY_PERIOD,
+                  emsieb.c_ext_attr3 HOT_WARRANTY_ELIGIBLE
+             FROM apps.ego_data_level_b edlb,
+                  apps.ego_obj_ag_assocs_b eoaa,
+                  apps.ego_mtl_sy_items_ext_b emsieb,
+                  apps.mtl_item_catalog_groups_b micgb,
+                  apps.mtl_system_items_b msi2,
+                  apps.ego_fnd_dsc_flx_ctx_ext efdfce
+            WHERE     edlb.application_id IN (SELECT DISTINCT application_id
+                                                FROM apps.fnd_descr_flex_column_usages
+                                               WHERE descriptive_flexfield_name =
+                                                        'EGO_ITEMMGMT_GROUP')
+                  AND eoaa.data_level_id = edlb.data_level_id
+                  AND efdfce.descriptive_flex_context_code =
+                         'HOT_USER_ORG_ATTRIBUTES'
+                  AND efdfce.attr_group_id = emsieb.attr_group_id
+                  AND efdfce.application_id = edlb.application_id
+                  -- AND eoaa.data_level = 'ITEM_LEVEL'
+                  AND edlb.attr_group_type = 'EGO_ITEMMGMT_GROUP'
+                  AND eoaa.attr_group_id = emsieb.attr_group_id
+                  AND emsieb.inventory_item_id = msi2.inventory_item_id
+                  AND emsieb.organization_id = msi2.organization_id
+                  AND emsieb.extension_id =
+                         (SELECT MAX (extension_id)
+                            FROM apps.ego_mtl_sy_items_ext_b ems2
+                           WHERE     ems2.inventory_item_id =
+                                        emsieb.inventory_item_id
+                                 AND emsieb.organization_id =
+                                        ems2.organization_id
+                                 AND emsieb.attr_group_id =
+                                        ems2.attr_group_id)
+                  --                  AND msi2.organization_id = 82
+                  AND micgb.item_catalog_group_id =
+                         emsieb.item_catalog_group_id) HUAS
+             ON     msi.inventory_item_id = HUAS.inventory_item_id
+                AND msi.organization_id = HUAS.organization_id
+          LEFT OUTER JOIN
+          (SELECT msi2.inventory_item_id,
+                  msi2.organization_id,
+                  emsieb.c_ext_attr1 MEDICAL_DEVICE,
+                  emsieb.c_ext_attr2 HOT_510K_NUMBER,
+                  emsieb.c_ext_attr3 DEVICE_LISTING_NUMBER_HOT,
+                  emsieb.c_ext_attr4 DEVICE_LISTING_NUMBER_SUPPLIER,
+                  emsieb.c_ext_attr5 ESTABLISHMENT_REGULATION_NUM,
+                  emsieb.c_ext_attr6 ESTABLISHMENT_REG_SUPP,
+                  emsieb.c_ext_attr7 LEGAL_MANUFACTURER,
+                  emsieb.c_ext_attr8 HOT_LOT_CONTROL_BBD,
+                  emsieb.c_ext_attr9 CANADIAN_LICENSE_NUMBER,
+                  emsieb.c_ext_attr10 EU_ANNEX_CERTIFICATE_NUMBER,
+                  emsieb.c_ext_attr11 ISO_13485_CERTIFICATE_NUMBER,
+                  emsieb.c_ext_attr12 ENVIRO_REPORTING_COMP_TYPE,
+                  emsieb.c_ext_attr13 OWNER_OPERATOR_NUMBER,
+                  emsieb.c_ext_attr14 EU_HAZARDOUS_CHEMICALS,
+                  emsieb.c_ext_attr15 EU_CB_CE_APPROVAL_DATE,
+                  emsieb.c_ext_attr16 DEVICE_LISTING_NUM_SUPPLIER_3,
+                  emsieb.c_ext_attr17 HOT_510K_NUMBER_2,
+                  emsieb.c_ext_attr18 HOT_510K_NUMBER_3,
+                  emsieb.c_ext_attr19 LEGAL_MANUFACTURER_3,
+                  emsieb.c_ext_attr20 LEGAL_MANUFACTURER_2,
+                  emsieb.c_ext_attr21 DEVICE_LISTING_NUM_SUPPLIER_2,
+                  emsieb.d_ext_attr1 EU_CB_CE_APPROVAL_DATES,
+                  emsieb.c_ext_attr22 ACCESSION_NUM_1,
+                  emsieb.c_ext_attr23 ACCESSION_NUM_2,
+                  emsieb.c_ext_attr24 PRODUCT_CODE,
+		  emsieb.c_ext_attr30 UDI_CODE,
+		  emsieb.c_ext_attr31 FDA_PROGRAM_CODE,
+		  emsieb.c_ext_attr32 FDA_CATEGORY_CODE,
+		  emsieb.c_ext_attr33 INTENDED_USE_CODE,
+		  emsieb.c_ext_attr34 BRAND_NAME,
+		  emsieb.c_ext_attr35 DRUG_LISTING_NUMBER,
+		  emsieb.c_ext_attr36 MAN_FOOD_FAC_REG,
+		  emsieb.c_ext_attr37 DEV_IMP_KIT,
+		  emsieb.c_ext_attr38 ACTIVE_INGREDIENT_NAME,
+		  emsieb.c_ext_attr39 ACTIVE_INGREDIENT_AMOUNT,
+		  emsieb.c_ext_attr40 ACTIVE_INGREDIENT_UOM
+             FROM apps.ego_data_level_b edlb,
+                  apps.ego_obj_ag_assocs_b eoaa,
+                  apps.ego_mtl_sy_items_ext_b emsieb,
+                  apps.mtl_item_catalog_groups_b micgb,
+                  apps.mtl_system_items_b msi2,
+                  apps.ego_fnd_dsc_flx_ctx_ext efdfce
+            WHERE     edlb.application_id IN (SELECT DISTINCT application_id
+                                                FROM apps.fnd_descr_flex_column_usages
+                                               WHERE descriptive_flexfield_name =
+                                                        'EGO_ITEMMGMT_GROUP')
+                  AND eoaa.data_level_id = edlb.data_level_id
+                  AND efdfce.descriptive_flex_context_code =
+                         'HOT_FDA_ATTRIBUTES'
+                  AND efdfce.attr_group_id = emsieb.attr_group_id
+                  AND efdfce.application_id = edlb.application_id
+                  -- AND eoaa.data_level = 'ITEM_LEVEL'
+                  AND edlb.attr_group_type = 'EGO_ITEMMGMT_GROUP'
+                  AND eoaa.attr_group_id = emsieb.attr_group_id
+                  AND emsieb.inventory_item_id = msi2.inventory_item_id
+                  AND emsieb.organization_id = msi2.organization_id
+                  AND emsieb.extension_id =
+                         (SELECT MAX (extension_id)
+                            FROM apps.ego_mtl_sy_items_ext_b ems2
+                           WHERE     ems2.inventory_item_id =
+                                        emsieb.inventory_item_id
+                                 AND emsieb.organization_id =
+                                        ems2.organization_id
+                                 AND emsieb.attr_group_id =
+                                        ems2.attr_group_id)
+                  AND micgb.item_catalog_group_id =
+                         emsieb.item_catalog_group_id) HFA
+             ON     msi.inventory_item_id = HFA.inventory_item_id
+                AND (   msi.organization_id = HFA.organization_id
+                     OR HFA.organization_id = 82)
+          LEFT OUTER JOIN
+          (SELECT msi2.inventory_item_id,
+                  msi2.organization_id,
+                  emsieb.c_ext_attr1 EPA_ITEM,
+                  emsieb.c_ext_attr2 ESTABLISHMENT_NUM1,
+		  emsieb.c_ext_attr3 PESTICIDE_ITEM,
+                  emsieb.c_ext_attr4 ESTABLISHMENT_NUM2,
+                  emsieb.c_ext_attr6 ESTABLISHMENT_NUM3,
+                  emsieb.c_ext_attr5 REGISTRATION_NUMBER,
+                  emsieb.c_ext_attr7 HOT_SUPPLIER_NAME
+             FROM apps.ego_data_level_b edlb,
+                  apps.ego_obj_ag_assocs_b eoaa,
+                  apps.ego_mtl_sy_items_ext_b emsieb,
+                  apps.mtl_item_catalog_groups_b micgb,
+                  apps.mtl_system_items_b msi2,
+                  apps.ego_fnd_dsc_flx_ctx_ext efdfce
+            WHERE     edlb.application_id IN (SELECT DISTINCT application_id
+                                                FROM apps.fnd_descr_flex_column_usages
+                                               WHERE descriptive_flexfield_name =
+                                                        'EGO_ITEMMGMT_GROUP')
+                  AND eoaa.data_level_id = edlb.data_level_id
+                  AND efdfce.descriptive_flex_context_code =
+                         'HOT_EPA_ATTRIBUTES'
+                  AND efdfce.attr_group_id = emsieb.attr_group_id
+                  AND efdfce.application_id = edlb.application_id
+                  -- AND eoaa.data_level = 'ITEM_LEVEL'
+                  AND edlb.attr_group_type = 'EGO_ITEMMGMT_GROUP'
+                  AND eoaa.attr_group_id = emsieb.attr_group_id
+                  AND emsieb.inventory_item_id = msi2.inventory_item_id
+                  AND emsieb.organization_id = msi2.organization_id
+                  AND emsieb.extension_id =
+                         (SELECT MAX (extension_id)
+                            FROM apps.ego_mtl_sy_items_ext_b ems2
+                           WHERE     ems2.inventory_item_id =
+                                        emsieb.inventory_item_id
+                                 AND emsieb.organization_id =
+                                        ems2.organization_id
+                                 AND emsieb.attr_group_id =
+                                        ems2.attr_group_id)
+                  AND micgb.item_catalog_group_id =
+                         emsieb.item_catalog_group_id) HEA
+             ON     msi.inventory_item_id = HEA.inventory_item_id
+                AND (   msi.organization_id = HEA.organization_id
+                     OR HEA.organization_id = 82)
+          LEFT OUTER JOIN
+          (SELECT msi2.inventory_item_id,
+                  msi2.organization_id,
+		  emsieb.c_ext_attr1 HECM_1,
+                  emsieb.n_ext_attr1 HOT_IP_WEIGHT,
+                  emsieb.n_ext_attr2 HOT_IP_VOLUME,
+                  emsieb.n_ext_attr3 HOT_IP_HEIGHT,
+                  emsieb.n_ext_attr4 HOT_IP_WIDTH,
+                  emsieb.n_ext_attr5 HOT_IP_LENGTH,
+                  emsieb.n_ext_attr6 HOT_CASE_WEIGHT,
+                  emsieb.n_ext_attr7 HOT_CASE_VOLUME,
+                  emsieb.n_ext_attr8 HOT_CASE_HEIGHT,
+                  emsieb.n_ext_attr9 HOT_CASE_WIDTH,
+                  emsieb.n_ext_attr10 HOT_CASE_LENGTH,
+                  emsieb.n_ext_attr11 HOT_PALLET_QTY,
+                  emsieb.n_ext_attr12 HOT_TIER_QTY,
+                  emsieb.n_ext_attr13 HOT_TIE_QTY
+             FROM apps.ego_data_level_b edlb,
+                  apps.ego_obj_ag_assocs_b eoaa,
+                  apps.ego_mtl_sy_items_ext_b emsieb,
+                  apps.mtl_item_catalog_groups_b micgb,
+                  apps.mtl_system_items_b msi2,
+                  apps.ego_fnd_dsc_flx_ctx_ext efdfce
+            WHERE     edlb.application_id IN (SELECT DISTINCT application_id
+                                                FROM apps.fnd_descr_flex_column_usages
+                                               WHERE descriptive_flexfield_name =
+                                                        'EGO_ITEMMGMT_GROUP')
+                  AND eoaa.data_level_id = edlb.data_level_id
+                  AND efdfce.descriptive_flex_context_code =
+                         'HOT_EST_COSTING_MACAU2'
+                  AND efdfce.attr_group_id = emsieb.attr_group_id
+                  AND efdfce.application_id = edlb.application_id
+                  -- AND eoaa.data_level = 'ITEM_LEVEL'
+                  AND edlb.attr_group_type = 'EGO_ITEMMGMT_GROUP'
+                  AND eoaa.attr_group_id = emsieb.attr_group_id
+                  AND emsieb.inventory_item_id = msi2.inventory_item_id
+                  AND emsieb.organization_id = msi2.organization_id
+                  AND emsieb.extension_id =
+                         (SELECT MAX (extension_id)
+                            FROM apps.ego_mtl_sy_items_ext_b ems2
+                           WHERE     ems2.inventory_item_id =
+                                        emsieb.inventory_item_id
+                                 AND emsieb.organization_id =
+                                        ems2.organization_id
+                                 AND emsieb.attr_group_id =
+                                        ems2.attr_group_id)
+                  AND micgb.item_catalog_group_id =
+                         emsieb.item_catalog_group_id) HECM
+             ON     msi.inventory_item_id = HECM.inventory_item_id
+                And Msi.Organization_Id = Hecm.Organization_Id
+LEFT OUTER JOIN
+          (SELECT msi2.inventory_item_id,
+                  msi2.organization_id,
+                  emsieb.c_ext_attr1 NET_CONTENT_UOM_EA,
+                  emsieb.c_ext_attr2 NET_CONTENT_UOM_IP,
+                  emsieb.c_ext_attr3 NET_CONTENT_UOM_CA,
+                  emsieb.c_ext_attr4 HOT_BASE_UNIT_IND_EA,
+                  emsieb.c_ext_attr5 HOT_BASE_UNIT_IND_IP,
+                  emsieb.c_ext_attr6 HOT_BASE_UNIT_IND_CA,
+                  emsieb.c_ext_attr7 HOT_CONSUMER_UNIT_INDICATOR_EA,
+                  emsieb.c_ext_attr8 HOT_CONSUMER_UNIT_INDICATOR_IP,
+                  emsieb.c_ext_attr9 HOT_CONSUMER_UNIT_INDICATOR_CA,
+                  emsieb.c_ext_attr10 HOT_PRICING_ON_PRODUCT,
+                  emsieb.c_ext_attr11 HOT_PRICING_ON_PRODUCT_IP,
+                  emsieb.c_ext_attr12 HOT_PRICING_ON_PRODUCT_CA,
+                  emsieb.c_ext_attr13 HOT_ORDER_UNIT_IND_EA,
+                  emsieb.c_ext_attr14 HOT_ORDER_UNIT_IND_IP,
+                  emsieb.c_ext_attr15 HOT_ORDER_UNIT_IND_CA,
+                  emsieb.c_ext_attr16 HOT_VAR_WEIGHT_ITEM_EA,
+                  emsieb.c_ext_attr17 HOT_VAR_WEIGHT_ITEM_IP,
+                  emsieb.c_ext_attr18 HOT_VAR_WEIGHT_ITEM_CA,
+                  emsieb.c_ext_attr19 HOT_PRIVATE_INDICATOR_EA,
+                  emsieb.c_ext_attr20 HOT_PRIVATE_INDICATOR_IP,
+                  emsieb.c_ext_attr21 HOT_PRIVATE_INDICATOR_CA,
+                  emsieb.c_ext_attr22 HOT_DISPATCH_INDICATOR_EA,
+                  emsieb.c_ext_attr23 HOT_DISPATCH_INDICATOR_IP,
+                  emsieb.c_ext_attr24 HOT_DISPATCH_INDICATOR_CA,
+                  emsieb.c_ext_attr25 HOT_INVOICE_INDICATOR_EA,
+                  emsieb.c_ext_attr26 HOT_INVOICE_INDICATOR_IP,
+                  emsieb.c_ext_attr27 HOT_INVOICE_INDICATOR_CA,
+                  emsieb.c_ext_attr28 Net_Content_UOM_PL,
+                  emsieb.c_ext_attr29 Base_Unit_Indicator_PL,
+                  emsieb.c_ext_attr30 Consumer_Unit_Indicator_PL,
+                  emsieb.c_ext_attr31 Pricing_Unit_Indicator_PL,
+                  emsieb.c_ext_attr32 Order_Unit_Indicator_PL,
+                  emsieb.c_ext_attr33 Variable_Weight_Indicator_PL,
+                  emsieb.c_ext_attr34 Private_Item_Indicator_PL,
+                  emsieb.c_ext_attr35 Dispatch_Unit_Indicator_PL,
+                  emsieb.c_ext_attr36 Invoice_Unit_Indicator_PL
+             FROM apps.ego_data_level_b edlb,
+                  apps.ego_obj_ag_assocs_b eoaa,
+                  apps.ego_mtl_sy_items_ext_b emsieb,
+                  apps.mtl_item_catalog_groups_b micgb,
+                  apps.mtl_system_items_b msi2,
+                  apps.ego_fnd_dsc_flx_ctx_ext efdfce
+            WHERE     edlb.application_id IN (SELECT DISTINCT application_id
+                                                FROM apps.fnd_descr_flex_column_usages
+                                               WHERE descriptive_flexfield_name =
+                                                        'EGO_ITEMMGMT_GROUP')
+                  AND eoaa.data_level_id = edlb.data_level_id
+                  AND efdfce.descriptive_flex_context_code =
+                         'HOT_GDSN_UOM_SPECIFIC_N'
+                  AND efdfce.attr_group_id = emsieb.attr_group_id
+                  AND efdfce.application_id = edlb.application_id
+                  -- AND eoaa.data_level = 'ITEM_LEVEL'
+                  AND edlb.attr_group_type = 'EGO_ITEMMGMT_GROUP'
+                  AND eoaa.attr_group_id = emsieb.attr_group_id
+                  AND emsieb.inventory_item_id = msi2.inventory_item_id
+                  AND emsieb.organization_id = msi2.organization_id
+                  AND emsieb.extension_id =
+                         (SELECT MAX (extension_id)
+                            FROM apps.ego_mtl_sy_items_ext_b ems2
+                           WHERE     ems2.inventory_item_id =
+                                        emsieb.inventory_item_id
+                                 AND emsieb.organization_id =
+                                        ems2.organization_id
+                                  AND emsieb.attr_group_id =
+                                        ems2.attr_group_id)
+                  AND micgb.item_catalog_group_id =
+                         emsieb.item_catalog_group_id) HGUSN
+             ON     msi.inventory_item_id = HGUSN.inventory_item_id
+                AND msi.organization_id = HGUSN.organization_id
+          LEFT OUTER JOIN
+          (SELECT msi2.inventory_item_id,
+                  msi2.organization_id,
+                  emsieb.n_ext_attr1 marketing_ip_weight,
+                  emsieb.n_ext_attr2 marketing_ip_volume,
+                  emsieb.n_ext_attr3 marketing_ip_height,
+                  emsieb.n_ext_attr4 marketing_ip_width,
+                  emsieb.n_ext_attr5 marketing_ip_length,
+                  emsieb.n_ext_attr6 marketing_casepack_weight,
+                  emsieb.n_ext_attr7 marketing_casepack_volume,
+                  emsieb.n_ext_attr8 marketing_casepack_height,
+                  emsieb.n_ext_attr9 marketing_casepack_width,
+                  emsieb.n_ext_attr10 marketing_casepack_length,
+                  emsieb.n_ext_attr10 marketing_pallet_qty,
+                  emsieb.n_ext_attr12 marketing_tier_qty,
+                  emsieb.n_ext_attr13 marketing_tie_qty,
+                  emsieb.n_ext_attr14 marketing_unit_weight,
+                  emsieb.n_ext_attr15 marketing_unit_volume,
+                  emsieb.n_ext_attr16 marketing_unit_height,
+                  emsieb.n_ext_attr17 marketing_unit_width,
+                  emsieb.n_ext_attr18 marketing_unit_length,
+                  emsieb.d_ext_attr1 date_estimates_entered,
+                  emsieb.d_ext_attr2 date_fai_entered
+             FROM apps.ego_data_level_b edlb,
+                  apps.ego_obj_ag_assocs_b eoaa,
+                  apps.ego_mtl_sy_items_ext_b emsieb,
+                  apps.mtl_item_catalog_groups_b micgb,
+                  apps.mtl_system_items_b msi2,
+                  apps.ego_fnd_dsc_flx_ctx_ext efdfce
+            WHERE     edlb.application_id IN (SELECT DISTINCT application_id
+                                                FROM apps.fnd_descr_flex_column_usages
+                                               WHERE descriptive_flexfield_name =
+                                                        'EGO_ITEMMGMT_GROUP')
+                  AND eoaa.data_level_id = edlb.data_level_id
+                  AND efdfce.descriptive_flex_context_code =
+                         'HOT_ITEM_PHYSICAL_PROPERTIES'
+                  AND efdfce.attr_group_id = emsieb.attr_group_id
+                  AND efdfce.application_id = edlb.application_id
+                  -- AND eoaa.data_level = 'ITEM_LEVEL'
+                  AND edlb.attr_group_type = 'EGO_ITEMMGMT_GROUP'
+                  AND eoaa.attr_group_id = emsieb.attr_group_id
+                  AND emsieb.inventory_item_id = msi2.inventory_item_id
+                  AND emsieb.organization_id = msi2.organization_id
+                  AND emsieb.extension_id =
+                         (SELECT MAX (extension_id)
+                            FROM apps.ego_mtl_sy_items_ext_b ems2
+                           WHERE     ems2.inventory_item_id =
+                                        emsieb.inventory_item_id
+                                 AND emsieb.organization_id =
+                                        ems2.organization_id
+                                  AND emsieb.attr_group_id =
+                                        ems2.attr_group_id)
+                  AND micgb.item_catalog_group_id =
+                         emsieb.item_catalog_group_id) HIPP
+             ON     msi.inventory_item_id = HIPP.inventory_item_id
+                AND msi.organization_id = HIPP.organization_id
+          LEFT OUTER JOIN
+          (SELECT msi2.inventory_item_id,
+                  msi2.organization_id,
+                  emsieb.c_ext_attr1 IS_TRADE_ITEM_REORDERABLE,
+                  emsieb.c_ext_attr2 ORDER_SIZING_FACTOR_UOM,
+                  emsieb.c_ext_attr4 GDSN_REGISTRY_STATUS,
+                  emsieb.d_ext_attr1 LAST_ORDER_DATE,
+                  emsieb.d_ext_attr2 FIRST_ORDER_DATE,
+                  emsieb.d_ext_attr3 FIRST_DELIVERY_DATE_TIME,
+                  emsieb.d_ext_attr4 FIRST_ARRIVAL_DATE,
+                  emsieb.d_ext_attr5 LAST_ARRIVAL_DATE,
+                  emsieb.d_ext_attr6 GDSN_REGISTRATION_DATE,
+                  emsieb.d_ext_attr7 LAST_MODIFIED_DATE,
+                  emsieb.n_ext_attr1 ORDER_QTY_MULTIPLE,
+                  emsieb.n_ext_attr2 ORDER_QTY_MIN,
+                  emsieb.n_ext_attr3 ORDER_QTY_MAX,
+                  emsieb.n_ext_attr4 ORDER_SIZING_FACTOR,
+                  emsieb.n_ext_attr5 ORDERING_LEAD_TIME
+             FROM apps.ego_data_level_b edlb,
+                  apps.ego_obj_ag_assocs_b eoaa,
+                  apps.ego_mtl_sy_items_ext_b emsieb,
+                  apps.mtl_item_catalog_groups_b micgb,
+                  apps.mtl_system_items_b msi2,
+                  apps.ego_fnd_dsc_flx_ctx_ext efdfce
+            WHERE     edlb.application_id IN (SELECT DISTINCT application_id
+                                                FROM apps.fnd_descr_flex_column_usages
+                                               WHERE descriptive_flexfield_name =
+                                                        'EGO_ITEMMGMT_GROUP')
+                  AND eoaa.data_level_id = edlb.data_level_id
+                  AND efdfce.descriptive_flex_context_code =
+                         'HOT_ORDER_INFORMATION'
+                  AND efdfce.attr_group_id = emsieb.attr_group_id
+                  AND efdfce.application_id = edlb.application_id
+                  -- AND eoaa.data_level = 'ITEM_LEVEL'
+                  AND edlb.attr_group_type = 'EGO_ITEMMGMT_GROUP'
+                  AND eoaa.attr_group_id = emsieb.attr_group_id
+                  AND emsieb.inventory_item_id = msi2.inventory_item_id
+                  AND emsieb.organization_id = msi2.organization_id
+                  AND emsieb.extension_id =
+                         (SELECT MAX (extension_id)
+                            FROM apps.ego_mtl_sy_items_ext_b ems2
+                           WHERE     ems2.inventory_item_id =
+                                        emsieb.inventory_item_id
+                                 AND emsieb.organization_id =
+                                        ems2.organization_id
+                                  AND emsieb.attr_group_id =
+                                        ems2.attr_group_id)
+                  AND micgb.item_catalog_group_id =
+                         emsieb.item_catalog_group_id) HOI
+             ON     msi.inventory_item_id = HOI.inventory_item_id
+                AND msi.organization_id = HOI.organization_id
+          LEFT OUTER JOIN
+          (SELECT msi2.inventory_item_id,
+                  msi2.organization_id,
+                  emsieb.c_ext_attr1 TRADE_ITEM_MARKED_RECYCLABLE,
+                  emsieb.c_ext_attr2 NON_SOLD_ITEM_RETURNABLE,
+                  emsieb.c_ext_attr3 HAS_BATCH_NUMBER,
+                  emsieb.c_ext_attr4 NET_CONTENT_DECLARED,
+                  emsieb.c_ext_attr5 PKG_MARKED_WITH_INGREDIENTS,
+                  emsieb.c_ext_attr6 PKG_MARKED_WITH_GREEN_DOT,
+                  emsieb.c_ext_attr7 PKG_MARKED_WITH_EXPIRATION,
+                  emsieb.c_ext_attr8 PKG_MARKED_AS_RETURNABLE,
+                  emsieb.c_ext_attr9 PKG_MARKED_RECYCLABLE_SCHEME,
+                  emsieb.c_ext_attr10 PRICING_ON_PRODUCT,
+                  emsieb.c_ext_attr11 OFFER_ON_PACK
+             FROM apps.ego_data_level_b edlb,
+                  apps.ego_obj_ag_assocs_b eoaa,
+                  apps.ego_mtl_sy_items_ext_b emsieb,
+                  apps.mtl_item_catalog_groups_b micgb,
+                  apps.mtl_system_items_b msi2,
+                  apps.ego_fnd_dsc_flx_ctx_ext efdfce
+            WHERE     edlb.application_id IN (SELECT DISTINCT application_id
+                                                FROM apps.fnd_descr_flex_column_usages
+                                               WHERE descriptive_flexfield_name =
+                                                        'EGO_ITEMMGMT_GROUP')
+                  AND eoaa.data_level_id = edlb.data_level_id
+                  AND efdfce.descriptive_flex_context_code =
+                         'HOT_TRADE_ITEM_PACKAGING'
+                  AND efdfce.attr_group_id = emsieb.attr_group_id
+                  AND efdfce.application_id = edlb.application_id
+                  -- AND eoaa.data_level = 'ITEM_LEVEL'
+                  AND edlb.attr_group_type = 'EGO_ITEMMGMT_GROUP'
+                  AND eoaa.attr_group_id = emsieb.attr_group_id
+                  AND emsieb.inventory_item_id = msi2.inventory_item_id
+                  AND emsieb.organization_id = msi2.organization_id
+                  AND emsieb.extension_id =
+                         (SELECT MAX (extension_id)
+                            FROM apps.ego_mtl_sy_items_ext_b ems2
+                           WHERE     ems2.inventory_item_id =
+                                        emsieb.inventory_item_id
+                                 AND emsieb.organization_id =
+                                        ems2.organization_id
+                                         AND emsieb.attr_group_id =
+                                        ems2.attr_group_id)
+                  AND micgb.item_catalog_group_id =
+                         emsieb.item_catalog_group_id) HTIP
+             ON     msi.inventory_item_id = HTIP.inventory_item_id
+                AND msi.organization_id = HTIP.organization_id
+          LEFT OUTER JOIN
+          (SELECT msi2.inventory_item_id,
+                  msi2.organization_id,
+                  emsieb.c_ext_attr1 HOT_DISPLAY_UNIT,
+                  emsieb.c_ext_attr2 HOT_BCA_FG_Pack
+             FROM apps.ego_data_level_b edlb,
+                  apps.ego_obj_ag_assocs_b eoaa,
+                  apps.ego_mtl_sy_items_ext_b emsieb,
+                  apps.mtl_item_catalog_groups_b micgb,
+                  apps.mtl_system_items_b msi2,
+                  apps.ego_fnd_dsc_flx_ctx_ext efdfce
+            WHERE     edlb.application_id IN (SELECT DISTINCT application_id
+                                                FROM apps.fnd_descr_flex_column_usages
+                                               WHERE descriptive_flexfield_name =
+                                                        'EGO_ITEMMGMT_GROUP')
+                  AND eoaa.data_level_id = edlb.data_level_id
+                  AND efdfce.descriptive_flex_context_code =
+                         'HOT_UNIT_INDICATORS'
+                  AND efdfce.attr_group_id = emsieb.attr_group_id
+                  AND efdfce.application_id = edlb.application_id
+                  -- AND eoaa.data_level = 'ITEM_LEVEL'
+                  AND edlb.attr_group_type = 'EGO_ITEMMGMT_GROUP'
+                  AND eoaa.attr_group_id = emsieb.attr_group_id
+                  AND emsieb.inventory_item_id = msi2.inventory_item_id
+                  AND emsieb.organization_id = msi2.organization_id
+                  AND emsieb.extension_id =
+                         (SELECT MAX (extension_id)
+                            FROM apps.ego_mtl_sy_items_ext_b ems2
+                           WHERE     ems2.inventory_item_id =
+                                        emsieb.inventory_item_id
+                                 AND emsieb.organization_id =
+                                        ems2.organization_id
+                                         AND emsieb.attr_group_id =
+                                        ems2.attr_group_id)
+                  AND micgb.item_catalog_group_id =
+                         emsieb.item_catalog_group_id) HUI
+             ON     msi.inventory_item_id = HUI.inventory_item_id
+                AND msi.organization_id = HUI.organization_id
+          LEFT OUTER JOIN
+          (SELECT msi2.inventory_item_id,
+                  msi2.organization_id,
+                  emsieb.c_ext_attr1 HOT_POS_DESCRIPTION,
+                  emsieb.c_ext_attr2 HOT_FUNCTIONAL_NAME,
+                  emsieb.c_ext_attr3 OXO_PRODUCT_LAUNCH,
+                  emsieb.c_ext_attr4 HOT_OXO_PRODUCT_LAUNCH_DATE
+             FROM apps.ego_data_level_b edlb,
+                  apps.ego_obj_ag_assocs_b eoaa,
+                  apps.ego_mtl_sy_items_ext_b emsieb,
+                  apps.mtl_item_catalog_groups_b micgb,
+                  apps.mtl_system_items_b msi2,
+                  apps.ego_fnd_dsc_flx_ctx_ext efdfce
+            WHERE     edlb.application_id IN (SELECT DISTINCT application_id
+                                                FROM apps.fnd_descr_flex_column_usages
+                                               WHERE descriptive_flexfield_name =
+                                                        'EGO_ITEMMGMT_GROUP')
+                  AND eoaa.data_level_id = edlb.data_level_id
+                  AND efdfce.descriptive_flex_context_code = 'HOT_DATA_SYNC'
+                  AND efdfce.attr_group_id = emsieb.attr_group_id
+                  AND efdfce.application_id = edlb.application_id
+                  -- AND eoaa.data_level = 'ITEM_LEVEL'
+                  AND edlb.attr_group_type = 'EGO_ITEMMGMT_GROUP'
+                  AND eoaa.attr_group_id = emsieb.attr_group_id
+                  AND emsieb.inventory_item_id = msi2.inventory_item_id
+                  AND emsieb.organization_id = msi2.organization_id
+                  AND emsieb.extension_id =
+                         (SELECT MAX (extension_id)
+                            FROM apps.ego_mtl_sy_items_ext_b ems2
+                           WHERE     ems2.inventory_item_id =
+                                        emsieb.inventory_item_id
+                                 AND emsieb.organization_id =
+                                        ems2.organization_id
+                                  AND emsieb.attr_group_id =
+                                        ems2.attr_group_id)
+                  AND micgb.item_catalog_group_id =
+                         emsieb.item_catalog_group_id) HDS
+             ON     msi.inventory_item_id = HDS.inventory_item_id
+                AND msi.organization_id = HDS.organization_id
+          LEFT OUTER JOIN
+          (SELECT msi2.inventory_item_id,
+                  msi2.organization_id,
+                  emsieb.c_ext_attr1 HOT_BRAND,
+                  emsieb.c_ext_attr2 HOT_GLN_NUM,
+                  emsieb.c_ext_attr3 HOT_GLN_Name
+             FROM apps.ego_data_level_b edlb,
+                  apps.ego_obj_ag_assocs_b eoaa,
+                  apps.ego_mtl_sy_items_ext_b emsieb,
+                  apps.mtl_item_catalog_groups_b micgb,
+                  apps.mtl_system_items_b msi2,
+                  apps.ego_fnd_dsc_flx_ctx_ext efdfce
+            WHERE     edlb.application_id IN (SELECT DISTINCT application_id
+                                                FROM apps.fnd_descr_flex_column_usages
+                                               WHERE descriptive_flexfield_name =
+                                                        'EGO_ITEMMGMT_GROUP')
+                  AND eoaa.data_level_id = edlb.data_level_id
+                  AND efdfce.descriptive_flex_context_code =
+                         'HOT_GDSN_TRADE_INFO'
+                  AND efdfce.attr_group_id = emsieb.attr_group_id
+                  AND efdfce.application_id = edlb.application_id
+                  -- AND eoaa.data_level = 'ITEM_LEVEL'
+                  AND edlb.attr_group_type = 'EGO_ITEMMGMT_GROUP'
+                  AND eoaa.attr_group_id = emsieb.attr_group_id
+                  AND emsieb.inventory_item_id = msi2.inventory_item_id
+                  AND emsieb.organization_id = msi2.organization_id
+                  AND emsieb.extension_id =
+                         (SELECT MAX (extension_id)
+                            FROM apps.ego_mtl_sy_items_ext_b ems2
+                           WHERE     ems2.inventory_item_id =
+                                        emsieb.inventory_item_id
+                                 AND emsieb.organization_id =
+                                        ems2.organization_id
+                                  AND emsieb.attr_group_id =
+                                        ems2.attr_group_id)
+                  AND micgb.item_catalog_group_id =
+                         emsieb.item_catalog_group_id) HGTI
+             ON     msi.inventory_item_id = HGTI.inventory_item_id
+                AND msi.organization_id = HGTI.organization_id
+          LEFT OUTER JOIN
+          (SELECT msi2.inventory_item_id,
+                  msi2.organization_id,
+                  emsieb.c_ext_attr1 HOT_GPC,
+                  emsieb.c_ext_attr2 HOT_UDEX
+             FROM apps.ego_data_level_b edlb,
+                  apps.ego_obj_ag_assocs_b eoaa,
+                  apps.ego_mtl_sy_items_ext_b emsieb,
+                  apps.mtl_item_catalog_groups_b micgb,
+                  apps.mtl_system_items_b msi2,
+                  apps.ego_fnd_dsc_flx_ctx_ext efdfce
+            WHERE     edlb.application_id IN (SELECT DISTINCT application_id
+                                                FROM apps.fnd_descr_flex_column_usages
+                                               WHERE descriptive_flexfield_name =
+                                                        'EGO_ITEMMGMT_GROUP')
+                  AND eoaa.data_level_id = edlb.data_level_id
+                  AND efdfce.descriptive_flex_context_code = 'HOT_GPC'
+                  AND efdfce.attr_group_id = emsieb.attr_group_id
+                  AND efdfce.application_id = edlb.application_id
+                  -- AND eoaa.data_level = 'ITEM_LEVEL'
+                  AND edlb.attr_group_type = 'EGO_ITEMMGMT_GROUP'
+                  AND eoaa.attr_group_id = emsieb.attr_group_id
+                  AND emsieb.inventory_item_id = msi2.inventory_item_id
+                  AND emsieb.organization_id = msi2.organization_id
+                  AND emsieb.extension_id =
+                         (SELECT MAX (extension_id)
+                            FROM apps.ego_mtl_sy_items_ext_b ems2
+                           WHERE     ems2.inventory_item_id =
+                                        emsieb.inventory_item_id
+                                 AND emsieb.organization_id =
+                                        ems2.organization_id
+                                  AND emsieb.attr_group_id =
+                                        ems2.attr_group_id)
+                  AND micgb.item_catalog_group_id =
+                         emsieb.item_catalog_group_id) HG
+             ON     msi.inventory_item_id = HG.inventory_item_id
+                AND msi.organization_id = HG.organization_id
+          LEFT OUTER JOIN
+          (SELECT msi2.inventory_item_id,
+                  msi2.organization_id,
+                  emsieb.c_ext_attr1 HOT_ITEM_PUBLISHED,
+                  emsieb.d_ext_attr1 HOT_ITEM_PUBLISHED_DATE,
+                  emsieb.d_ext_attr2 HOT_ITEM_DATE_MODIFIED
+             FROM apps.ego_data_level_b edlb,
+                  apps.ego_obj_ag_assocs_b eoaa,
+                  apps.ego_mtl_sy_items_ext_b emsieb,
+                  apps.mtl_item_catalog_groups_b micgb,
+                  apps.mtl_system_items_b msi2,
+                  apps.ego_fnd_dsc_flx_ctx_ext efdfce
+            WHERE     edlb.application_id IN (SELECT DISTINCT application_id
+                                                FROM apps.fnd_descr_flex_column_usages
+                                               WHERE descriptive_flexfield_name =
+                                                        'EGO_ITEMMGMT_GROUP')
+                  AND eoaa.data_level_id = edlb.data_level_id
+                  AND efdfce.descriptive_flex_context_code =
+                         'HOT_PUBLICATION_REGISTRY'
+                  AND efdfce.attr_group_id = emsieb.attr_group_id
+                  AND efdfce.application_id = edlb.application_id
+                  -- AND eoaa.data_level = 'ITEM_LEVEL'
+                  AND edlb.attr_group_type = 'EGO_ITEMMGMT_GROUP'
+                  AND eoaa.attr_group_id = emsieb.attr_group_id
+                  AND emsieb.inventory_item_id = msi2.inventory_item_id
+                  AND emsieb.organization_id = msi2.organization_id
+                  AND emsieb.extension_id =
+                         (SELECT MAX (extension_id)
+                            FROM apps.ego_mtl_sy_items_ext_b ems2
+                           WHERE     ems2.inventory_item_id =
+                                        emsieb.inventory_item_id
+                                 AND emsieb.organization_id =
+                                        ems2.organization_id
+                                  AND emsieb.attr_group_id =
+                                        ems2.attr_group_id)
+                  AND micgb.item_catalog_group_id =
+                         emsieb.item_catalog_group_id) HPR
+             ON     msi.inventory_item_id = HPR.inventory_item_id
+                AND msi.organization_id = HPR.organization_id
+          LEFT OUTER JOIN
+          (SELECT msi2.inventory_item_id,
+                  msi2.organization_id,
+                  emsieb.C_EXT_ATTR1 TOOLING_ID_1,
+                  emsieb.C_EXT_ATTR2 TOOLING_ID_2,
+                  emsieb.C_EXT_ATTR3 TOOLING_ID_3,
+                  emsieb.C_EXT_ATTR4 TOOLING_ID_4,
+                  emsieb.C_EXT_ATTR5 TOOLING_ID_5,
+                  emsieb.C_EXT_ATTR6 TOOLING_ID_6,
+                  emsieb.C_EXT_ATTR7 TOOLING_ID_7,
+                  emsieb.C_EXT_ATTR8 TOOLING_ID_8,
+                  emsieb.C_EXT_ATTR9 TOOLING_ID_9,
+                  emsieb.C_EXT_ATTR10 TOOLING_ID_10,
+                  emsieb.C_EXT_ATTR11 TOOLING_ID_11,
+                  emsieb.C_EXT_ATTR12 TOOLING_ID_12
+             FROM apps.ego_data_level_b edlb,
+                  apps.ego_obj_ag_assocs_b eoaa,
+                  apps.ego_mtl_sy_items_ext_b emsieb,
+                  apps.mtl_item_catalog_groups_b micgb,
+                  apps.mtl_system_items_b msi2,
+                  apps.ego_fnd_dsc_flx_ctx_ext efdfce
+            WHERE     edlb.application_id IN (SELECT DISTINCT application_id
+                                                FROM apps.fnd_descr_flex_column_usages
+                                               WHERE descriptive_flexfield_name =
+                                                        'EGO_ITEMMGMT_GROUP')
+                  AND eoaa.data_level_id = edlb.data_level_id
+                  AND efdfce.descriptive_flex_context_code =
+                         'HOT_TOOLING_DATA'
+                  AND efdfce.attr_group_id = emsieb.attr_group_id
+                  AND efdfce.application_id = edlb.application_id
+                  -- AND eoaa.data_level = 'ITEM_LEVEL'
+                  AND edlb.attr_group_type = 'EGO_ITEMMGMT_GROUP'
+                  AND eoaa.attr_group_id = emsieb.attr_group_id
+                  AND emsieb.inventory_item_id = msi2.inventory_item_id
+                  AND emsieb.organization_id = msi2.organization_id
+                  AND emsieb.extension_id =
+                         (SELECT MAX (extension_id)
+                            FROM apps.ego_mtl_sy_items_ext_b ems2
+                           WHERE     ems2.inventory_item_id =
+                                        emsieb.inventory_item_id
+                                 AND emsieb.organization_id =
+                                        ems2.organization_id
+                                         AND emsieb.attr_group_id =
+                                        ems2.attr_group_id)
+                  AND micgb.item_catalog_group_id =
+                         emsieb.item_catalog_group_id) HTD
+             ON     msi.inventory_item_id = HTD.inventory_item_id
+                AND MSI.ORGANIZATION_ID = HTD.ORGANIZATION_ID
+
+	;
+

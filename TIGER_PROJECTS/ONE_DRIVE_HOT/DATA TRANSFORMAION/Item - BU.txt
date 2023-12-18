@@ -1,0 +1,21 @@
+
+  CREATE OR REPLACE FORCE VIEW "HOTDW"."WC_ITEM_BU_D" ("INVENTORY_ITEM_ID", "ITEM_NUMBER", "BU", "REFERENCE1", "REFERENCE2") AS 
+  SELECT b.inventory_item_id,
+            b.segment1 item_number,
+            DECODE (f.parent_flex_value,
+                    'ZHW', 'HW',
+                    'ZBT', 'Beauty',
+                    'ZHH', 'HH',
+                    NULL)
+               bu,
+            g.segment8 reference1,
+            f.description reference2
+       FROM apps.mtl_system_items_b b,
+            apps.gl_code_combinations g,
+            apps.fnd_flex_value_children_v f
+      WHERE     b.organization_id = 82
+            AND b.cost_of_sales_account = g.code_combination_id
+            AND g.segment8 = f.flex_value(+)
+            AND f.flex_value_set_id(+) = 1010828 -- it refers to the flex_value_set_name of 'HOT Product Line NEW'
+            AND f.parent_flex_value(+) IN ('ZHW', 'ZBT', 'ZHH')
+  ORDER BY b.segment1;

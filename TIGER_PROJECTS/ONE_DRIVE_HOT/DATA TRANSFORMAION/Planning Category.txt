@@ -1,0 +1,11 @@
+
+  CREATE OR REPLACE FORCE VIEW "HOTDW"."WC_ITEM_PLANNING_CATEGORY_D" ("INVENTORY_ITEM_ID", "ORGANIZATION_ID", "PLANNING_CATEGORY_PLANNER", "PLANNING_CATEGORY_FUTURE_USE") AS 
+  SELECT mic_inv.inventory_item_id, 
+              mic_inv.organization_id,
+              inv_cat.segment1    planning_category_planner,
+              inv_cat.segment2    planning_category_future_use
+        FROM      apps.mtl_categories inv_cat,
+                  apps.mtl_item_categories mic_inv
+        WHERE     inv_cat.category_id = mic_inv.category_id
+                  AND inv_cat.structure_id =50255
+                  AND mic_inv.category_set_id = 1100000005;

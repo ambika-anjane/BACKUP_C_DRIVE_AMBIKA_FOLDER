@@ -1,0 +1,497 @@
+ SELECT                            --/*+ index(msi MTL_SYSTEM_ITEMS_B_U1) */
+         msi.inventory_item_id,
+          msi.organization_id,
+          msi.segment1 item_number,
+          msi.description,
+	  msi.default_shipping_org dft_shipping_org,
+          TRUNC (msi.creation_date) creation_date,
+          TRUNC (msi.last_update_date) last_updated_date,
+          msi.inventory_item_status_code item_status,
+	(SELECT msb.long_description
+             FROM apps.mtl_system_items_tl msb
+            WHERE     msb.inventory_item_id = msi.inventory_item_id
+                  AND msb.organization_id = msi.organization_id)
+             long_description,
+          msi.item_type,
+          msi.primary_uom_code uom,
+          DECODE (msi.lot_control_code,
+                  1, 'No Control',
+                  2, 'Full Control',
+                  lot_control_code)
+             lot_control,
+          list_price_per_unit list_price,
+          DECODE (msi.un_number_id,
+                  1, 'UN1170',
+                  2, 'UN2037',
+                  3, 'UN2038',
+                  4, 'UN2040',
+                  msi.un_number_id)
+             un_number,
+          DECODE (msi.hazard_class_id,
+                  1, 'Flammable Gas',
+                  2, 'Flammable Liquid',
+                  4, 'Other Regulated Materials - Domestic',
+                  3, 'Aerosols',
+                  msi.hazard_class_id)
+             hazard_class,
+          msi.unit_volume,
+          msi.volume_uom_code,
+          msi.unit_weight,
+          msi.weight_uom_code,
+          msi.unit_length,
+          msi.unit_width,
+          msi.unit_height,
+          msi.dimension_uom_code,
+	  msi.Fixed_Lead_Time FIXED_LEAD_TIME
+          DECODE (msi.planning_make_buy_code,
+                  1, 'Make',
+                  2, 'Buy',
+                  msi.planning_make_buy_code)
+             make_or_buy,
+          msi.planner_code,
+          msi.minimum_order_quantity,
+          msi.max_minmax_quantity,
+          msi.min_minmax_quantity,
+          msi.fixed_lot_multiplier,
+          msi.preprocessing_lead_time,
+          msi.full_lead_time processing_time,
+          msi.postprocessing_lead_time,
+          msi.ato_forecast_control,
+          msi.mrp_planning_code,
+          msi.attribute1 country_of_origin,
+          --          msi.attribute2 ip_quantity,
+          --          msi.attribute3 case_pack_quantity,
+          (SELECT conversion_rate
+             FROM apps.mtl_uom_conversions
+            WHERE     uom_code = 'CAS'
+                  AND inventory_item_id = msi.inventory_item_id)
+             case_pack_quantity,
+          (SELECT conversion_rate
+             FROM apps.mtl_uom_conversions
+            WHERE     uom_code = 'IP'
+                  AND inventory_item_id = msi.inventory_item_id)
+             ip_quantity,
+          msi.attribute4 ip_weight,
+          msi.attribute5 ip_volume,
+          msi.attribute6 case_pack_weight,
+          msi.attribute7 case_pack_volume,
+          msi.attribute8 case_pack_height,
+          msi.attribute9 case_pack_width,
+          msi.attribute10 case_pack_length,
+          msi.attribute11 nmf_num,
+          msi.attribute12 sub,
+          msi.attribute13 nmf_class,
+          msi.attribute14 royalty,
+          msi.attribute15 inventor,
+          msi.web_status,
+          msi.orderable_on_web_flag,
+          msi.back_orderable_flag,
+          msi.minimum_license_quantity,
+          msi.bom_enabled_flag bill_of_mtl_flag,
+          msi.build_in_wip_flag build_wip_flag,
+          msi.customer_order_enabled_flag customer_orderable_flag,
+          msi.internal_order_enabled_flag int_ord_flag,
+          msi.invoice_enabled_flag invoicable_flag,
+          msi.purchasing_enabled_flag purchase_flag,
+          msi.stock_enabled_flag stockable_flag,
+          msi.mtl_transactions_enabled_flag transactable_flag,
+          msr.attribute1 item_creation_date,
+              msr.attribute2 first_shipped_date,
+              msr.attribute3 first_received_date,
+              msr.attribute4 german_description,
+              msr.attribute5 french_description,
+              msr.attribute6 ip_height,
+              msr.attribute7 ip_width,
+              msr.attribute8 ip_length,
+              msr.attribute9 bulk_item,
+              msr.attribute10 pal_qty,
+              msr.attribute11 meaning_of_suffix,
+              msr.attribute12 tier_qty,
+              msr.attribute13 tie_qty,
+              msr.attribute14 cpheight_factory,
+              msr.attribute15 ip_quantity_factory,
+          --     (SELECT cross_reference
+          --       FROM apps.mtl_cross_references
+          --      WHERE     cross_reference_type = 'UPC'
+          --            AND inventory_item_id = msi.inventory_item_id
+          --           AND ROWNUM < 2)
+          --      upc,
+          --  cas.conversion_rate case_qty,
+          --  ip.conversion_rate ip_qty,
+          cic.material_cost,
+          cic.resource_cost,
+          cic.material_overhead_cost,
+          cic.outside_processing_cost,
+          cic.item_cost,
+          (SELECT cross_reference
+             FROM apps.mtl_cross_references_v
+            WHERE     cross_reference_type = 'ODP Cross Ref'
+                  AND inventory_item_id = msi.inventory_item_id
+                  AND organization_id = msi.organization_id
+                  AND ROWNUM = 1)
+             root,
+          /*   (SELECT SUM (safety_stock_quantity)
+                FROM apps.mtl_safety_stocks mss
+               WHERE     safety_stock_quantity > 0
+                     AND TRUNC (effectivity_date) =
+                            (SELECT MAX (TRUNC (effectivity_date))
+                               FROM apps.mtl_safety_stocks
+                              WHERE     inventory_item_id =
+                                           mss.inventory_item_id
+                                    AND organization_id = mss.organization_id
+                                    AND TRUNC (effectivity_date) <=
+                                           TRUNC (SYSDATE))
+                     AND inventory_item_id = msi.inventory_item_id
+                     AND organization_id = msi.organization_id)
+                safety_stock_quantity,
+             (SELECT MAX (TRUNC (effectivity_date))
+                FROM apps.mtl_safety_stocks
+               WHERE     inventory_item_id = msi.inventory_item_id
+                     AND organization_id = msi.organization_id
+                     AND TRUNC (effectivity_date) <= TRUNC (SYSDATE))
+                safety_stock_effectivity_date,
+            */
+          msi.fixed_order_quantity,
+          msi.fixed_days_supply,
+          msi.create_supply_flag,
+          --  flv.meaning mrp_planning_method,
+          /* (SELECT meaning
+              FROM apps.fnd_lookup_values
+             WHERE     lookup_type = 'MRP_ATO_FORECAST_CONTROL'
+                   AND lookup_code = msi.ato_forecast_control
+                   AND ROWNUM = 1)
+              forecast_control,
+           */
+          msi.inventory_item_flag,
+          msi.eng_item_flag,
+          msi.qty_rcv_exception_code action,
+          msi.qty_rcv_tolerance receipt_tolerance,
+          DECODE (msi.receiving_routing_id,
+                  3, 'Direct',
+                  2, 'Inspection',
+                  1, 'Standard',
+                  NULL)
+             receipt_routing,
+          msi.returnable_flag,
+          msi.replenish_to_order_flag ato_flag,
+          DECODE (msi.return_inspection_requirement,
+                  1, 'Insepection Required',
+                  2, 'Inspection Not Required',
+                  NULL)
+             return_inspection_flag,
+          lot_divisible_flag,
+          lot_split_enabled,
+          DECODE (msi.planning_time_fence_code,
+                  1, 'Cumulative Total Lead Time',
+                  2, 'Cumulative Mfg. Lead Time',
+                  3, 'Total Lead Time',
+                  4, 'User-Defined')
+             planning_time_fence_method,
+          msi.planning_time_fence_days,
+          DECODE (substitution_window_code,
+                  1, 'Cumulative Total Lead Time',
+                  2, 'Cumulative Mfg. Lead Time',
+                  3, 'Total Lead Time',
+                  4, 'User-Defined')
+             substitution_window_method,
+          msi.substitution_window_days,
+          DECODE (msi.atp_components_flag,
+                  'N', 'None',
+                  'Y', 'Material Only',
+                  'R', 'Resource Only',
+                  'C', 'Material and Resource')
+             atp_components_flag,
+          DECODE (msi.atp_flag,
+                  'N', 'None1',
+                  'Y', 'Material Only',
+                  'R', 'Resource Only',
+                  'C', 'Material and Resource')
+             check_atp,
+          DECODE (drp_planned_flag, 1, 'Y', 'N') distribution_planned,
+          --   flvs.meaning mrp_safety_stock_method,
+          msi.mrp_safety_stock_percent,
+          msi.safety_stock_bucket_days,
+          msi.cycle_count_enabled_flag,
+          msi.START_AUTO_LOT_NUMBER,
+          msi.AUTO_LOT_ALPHA_PREFIX,
+          msi.lot_substitution_enabled,
+          msi.lot_merge_enabled,
+	 micg.segment1 Item_catalog_group,
+          TO_CHAR (msi.inventory_item_id) inventory_item_id_c,
+          TO_CHAR (MSI.ORGANIZATION_ID) ORGANIZATION_ID_C,
+          -- 04/01/19 DS new fields added
+          atp.rule_name,
+          (SELECT usage_rate_or_amount
+             FROM apps.cst_item_cost_details cic,
+                  apps.cst_cost_types cct,
+                  apps.bom_resources br
+            WHERE     cic.cost_type_id = cct.cost_type_id
+                  AND cic.organization_id = cct.organization_id
+                  AND cct.cost_type = 'AvgRates'
+                  AND br.resource_id = cic.resource_id
+                  AND br.default_basis_type =
+                         DECODE (
+                            msi.organization_id,
+                            439, DECODE (cic.basis_type,
+                                         1, 5,
+                                         cic.basis_type),
+                            440, DECODE (cic.basis_type,
+                                         1, 5,
+                                         cic.basis_type),
+                            441, DECODE (cic.basis_type,
+                                         1, 5,
+                                         cic.basis_type),
+                            278, DECODE (cic.basis_type,
+                                         1, 5,
+                                         cic.basis_type),
+                            cic.basis_type)
+                  AND UPPER (resource_code) = 'BROKER FEE'
+                  AND cic.inventory_item_id = msi.inventory_item_id
+                  AND cic.organization_id = msi.organization_id
+                  AND ROWNUM = 1)
+             broker_fee,
+          (SELECT usage_rate_or_amount
+             FROM apps.cst_item_cost_details cic,
+                  apps.cst_cost_types cct,
+                  apps.bom_resources br
+            WHERE     cic.cost_type_id = cct.cost_type_id
+                  AND cic.organization_id = cct.organization_id
+                  AND cct.cost_type = 'AvgRates'
+                  AND br.resource_id = cic.resource_id
+                  AND br.default_basis_type = cic.basis_type
+                  AND UPPER (resource_code) = 'CARGO INS'
+                  AND cic.inventory_item_id = msi.inventory_item_id
+                  AND cic.organization_id = msi.organization_id
+                  AND ROWNUM = 1)
+             cargo_ins,
+	  gl.segment3 cogs_channel,
+	  gl.segment4 cogs_location,
+	  gl.segment5 cogs_department,
+          gl.segment2 cogs_company,
+          gl.segment6 cogs_account,
+          gl.segment7 cogs_brand,
+          gl.segment8 cogs_product_line,
+          gl.segment9 cogs_intercompany,
+          inv_cat.segment2 cost_category_duty_rate,
+          inv_cat.segment1 cost_category_tarrif_code,
+          ccg.cost_group cost_group,
+          (SELECT user_name
+             FROM apps.fnd_user
+            WHERE user_id = msi.created_by)
+             created_by,
+          (SELECT usage_rate_or_amount
+             FROM apps.cst_item_cost_details cic,
+                  apps.cst_cost_types cct,
+                  apps.bom_resources br
+            WHERE     cic.cost_type_id = cct.cost_type_id
+                  AND cic.organization_id = cct.organization_id
+                  AND cct.cost_type = 'AvgRates'
+                  AND br.resource_id = cic.resource_id
+                  AND br.default_basis_type = cic.basis_type
+                  AND UPPER (resource_code) = 'DUTY'
+                  AND cic.inventory_item_id = msi.inventory_item_id
+                  AND cic.organization_id = msi.organization_id
+                  AND ROWNUM = 1)
+             duty,
+          (SELECT meaning
+             FROM apps.fnd_lookup_values
+            WHERE     lookup_type = 'MRP_ATO_FORECAST_CONTROL'
+                  AND lookup_code = msi.ato_forecast_control
+                  AND ROWNUM = 1)
+             forecast_control,
+          (SELECT usage_rate_or_amount
+             FROM apps.cst_item_cost_details cic,
+                  apps.cst_cost_types cct,
+                  apps.bom_resources br
+            WHERE     cic.cost_type_id = cct.cost_type_id
+                  AND cic.organization_id = cct.organization_id
+                  AND cct.cost_type = 'AvgRates'
+                  AND br.resource_id = cic.resource_id
+                  AND br.default_basis_type = cic.basis_type
+                  AND UPPER (resource_code) = 'FREIGHT'
+                  AND cic.inventory_item_id = msi.inventory_item_id
+                  AND cic.organization_id = msi.organization_id
+                  AND ROWNUM = 1)
+             freight,
+          (SELECT emsieb.c_ext_attr4
+             FROM apps.ego_data_level_b edlb,
+                  apps.ego_obj_ag_assocs_b eoaa,
+                  apps.ego_mtl_sy_items_ext_b emsieb,
+                  apps.mtl_item_catalog_groups_b micgb,
+                  apps.mtl_system_items_b msi2,
+                  apps.ego_fnd_dsc_flx_ctx_ext efdfce
+            WHERE     edlb.application_id IN (SELECT application_id
+                                                FROM apps.fnd_descr_flex_column_usages
+                                               WHERE     descriptive_flex_context_code =
+                                                            'HOT_ITEM_PHYSICAL_PROPERTIES'
+                                                     AND descriptive_flexfield_name =
+                                                            'EGO_ITEMMGMT_GROUP')
+                  AND eoaa.data_level_id = edlb.data_level_id
+                  AND efdfce.descriptive_flex_context_code = 'HOT_DATA_SYNC'
+                  AND efdfce.attr_group_id = emsieb.attr_group_id
+                  AND efdfce.application_id = edlb.application_id
+                  -- AND eoaa.data_level = 'ITEM_LEVEL'
+                  AND edlb.attr_group_type = 'EGO_ITEMMGMT_GROUP'
+                  AND eoaa.attr_group_id = emsieb.attr_group_id
+                  AND emsieb.inventory_item_id = msi2.inventory_item_id
+                  AND msi2.segment1 = msi.segment1
+                  AND msi2.organization_id = 82
+                  AND emsieb.organization_id = msi2.organization_id
+                  AND micgb.item_catalog_group_id =
+                         emsieb.item_catalog_group_id)
+             launch_date,
+          '' hot_depreciation,
+          (SELECT inv_cat.segment1
+             FROM apps.mtl_categories_B inv_cat,
+                  apps.mtl_item_categories mic_inv
+            WHERE     inv_cat.category_id = mic_inv.category_id
+                  AND inv_cat.structure_id = 50411
+                  AND mic_inv.category_set_id = 1100000112
+                  AND mic_inv.inventory_item_id = msi.inventory_item_id
+                  AND mic_inv.organization_id = 82)
+             intrastat_cat_code,
+          msr.attribute6 ip_height,
+          msr.attribute7 ip_width,
+          msr.attribute8 ip_length,
+          msr.attribute11 meaning_of_suffix,
+          flv.meaning mrp_planning_method,
+          flvs.meaning mrp_safety_stock_method,
+          (SELECT usage_rate_or_amount
+             FROM apps.cst_item_cost_details cic,
+                  apps.cst_cost_types cct,
+                  apps.bom_resources br
+            WHERE     cic.cost_type_id = cct.cost_type_id
+                  AND cic.organization_id = cct.organization_id
+                  AND cct.cost_type = 'AvgRates'
+                  AND br.resource_id = cic.resource_id
+                  AND br.default_basis_type = cic.basis_type
+                  AND UPPER (resource_code) = 'OTHER'
+                  AND cic.inventory_item_id = msi.inventory_item_id
+                  AND cic.organization_id = msi.organization_id
+                  AND ROWNUM = 1)
+             other,
+          (SELECT usage_rate_or_amount
+             FROM apps.cst_item_cost_details cic,
+                  apps.cst_cost_types cct,
+                  apps.bom_resources br
+            WHERE     cic.cost_type_id = cct.cost_type_id
+                  AND cic.organization_id = cct.organization_id
+                  AND cct.cost_type = 'AvgRates'
+                  AND br.resource_id = cic.resource_id
+                  AND br.default_basis_type = cic.basis_type
+                  AND UPPER (resource_code) = 'OVERHEAD'
+                  AND cic.inventory_item_id = msi.inventory_item_id
+                  AND cic.organization_id = msi.organization_id
+                  AND ROWNUM = 1)
+             overhead,
+          msr.attribute10 pallet_qty,
+          gl1.segment6 sales_account,
+	  gl1.segment7 sales_brand,
+	  gl1.segment8 sales_product_line,
+	  gl1.segment9 sales_intercompany,
+          (SELECT item_cost
+             FROM apps.cst_item_cost_details cic,
+                  apps.cst_cost_types cct,
+                  apps.bom_resources br
+            WHERE     cic.cost_type_id = cct.cost_type_id
+                  AND cic.organization_id = cct.organization_id
+                  AND cct.cost_type = 'AvgRates'
+                  AND br.resource_id = cic.resource_id
+                  AND br.default_basis_type = cic.basis_type
+                  AND UPPER (resource_code) = 'TOOLING_AM'
+                  AND cic.inventory_item_id = msi.inventory_item_id
+                  AND cic.organization_id = msi.organization_id
+                  AND ROWNUM = 1)
+             tooling_rate,
+          /*   (SELECT SUM (transaction_quantity)
+                FROM apps.mtl_onhand_quantities moq
+               WHERE     moq.inventory_item_id = msi.inventory_item_id
+                     AND moq.organization_id = msi.organization_id
+                     AND subinventory_code <> 'JJHT'
+                     AND subinventory_code NOT IN (SELECT secondary_inventory_name
+                                                     FROM apps.mtl_secondary_inventories
+                                                    WHERE description LIKE
+                                                             '%Scrap%')) */
+          0 total_onhand,
+	(SELECT inv_cat.segment1
+             FROM apps.mtl_categories inv_cat,
+                  apps.mtl_item_categories mic_inv
+            WHERE     inv_cat.category_id = mic_inv.category_id
+                  AND inv_cat.structure_id = 50411
+                  AND mic_inv.category_set_id = 1100000112
+                  AND mic_inv.inventory_item_id = msi.inventory_item_id
+                  AND mic_inv.organization_id = 82)
+             Intrastat_cat_code,
+          (SELECT cross_reference
+             FROM apps.mtl_cross_references
+            WHERE     cross_reference_type = 'UPC'
+                  AND inventory_item_id = msi.inventory_item_id
+                  AND ROWNUM < 2)
+             upc,
+          msr.attribute12 tier_qty,
+          msr.attribute13 tie_qty,
+          CASE WHEN msi.retest_interval = 1 THEN 'Yes' ELSE 'No' END
+             noncon_flag,
+          DECODE (msi.release_time_fence_code,
+                  1, 'Cumulative total lead time',
+                  2, 'Cumulative manufacturing lead time',
+                  3, 'Item total lead time',
+                  4, 'User-defined time fence')
+             release_time_fence_method,
+          msi.release_time_fence_days,
+          MPS.ORGANIZATION_CODE,
+          msi.outside_operation_flag AS outside_processing_item,
+		  (SELECT usage_rate_or_amount
+             FROM apps.cst_item_cost_details cic,
+                  apps.cst_cost_types cct,
+                  apps.bom_resources br
+            WHERE     cic.cost_type_id = cct.cost_type_id
+                  AND cic.organization_id = cct.organization_id
+                 AND cct.cost_type = 'AvgRates'
+                  AND br.resource_id = cic.resource_id
+                  AND br.default_basis_type = cic.basis_type
+                  AND UPPER (resource_code) = 'TARIFF'
+                  AND cic.inventory_item_id = msi.inventory_item_id
+                  AND cic.organization_id = msi.organization_id
+                  AND ROWNUM = 1) tariff,
+        (SELECT UNIT_OF_MEASURE_TL FROM APPS.MTL_UNITS_OF_MEASURE WHERE  BASE_UOM_FLAG='Y' AND UOM_CLASS='Quantity') case_ip_uom,
+            DECODE (msi.shelf_life_code,
+                  2, 'Item Shelf Life Days',
+                  msi.shelf_life_code)
+            lot_expiration_control,
+            msi.shelf_life_days            
+     FROM inv.mtl_system_items_b msi,
+          apps.mtl_item_revisions_b msr,
+          --apps.org_organization_definitions org,
+          apps.gl_code_combinations gl,
+          gl.gl_code_combinations gl1,
+          apps.fnd_lookup_values flv,
+          apps.fnd_lookup_values flvs,
+          apps.cst_item_costs cic,
+          apps.mtl_atp_rules atp,
+          apps.mtl_categories_B inv_cat,
+          apps.mtl_item_categories mic_inv,
+          apps.mtl_parameters mps,
+          apps.cst_cost_groups ccg
+    WHERE     msr.inventory_item_id(+) = msi.inventory_item_id
+          AND msr.organization_id(+) = msi.organization_id
+          AND msr.revision(+) = '0'
+          --and msi.organization_id = org.organization_id
+          AND gl.code_combination_id = msi.cost_of_sales_account
+          AND gl1.code_combination_id = msi.sales_account
+          AND msi.mrp_planning_code = flv.lookup_code
+          AND flv.lookup_type = 'MRP_PLANNING_CODE'
+          AND flvs.lookup_type = 'MTL_SAFETY_STOCK_TYPE'
+          AND flvs.lookup_code(+) = msi.mrp_safety_stock_code
+          AND cic.cost_type_id(+) = 2
+          AND cic.organization_id(+) = msi.organization_id
+          AND cic.inventory_item_id(+) = msi.inventory_item_id
+          AND atp.rule_id(+) = msi.atp_rule_id
+          AND inv_cat.category_id(+) = mic_inv.category_id
+          AND inv_cat.structure_id(+) = 50252
+          AND mic_inv.category_set_id(+) = 1100000001
+          AND mic_inv.inventory_item_id(+) = msi.inventory_item_id
+          AND mic_inv.organization_id(+) = msi.organization_id
+          AND mps.default_cost_group_id = ccg.cost_group_id(+)
+          AND mps.organization_id(+) = msi.organization_id;
+

@@ -1,0 +1,11 @@
+
+  CREATE OR REPLACE FORCE VIEW "HOTDW"."WC_ITEM_SUPPLIER_D" ("INVENTORY_ITEM_ID", "ORGANIZATION_ID", "SUPPLIER") AS 
+  select   inventory_item_id, organization_id,nvl(asl.vendor_name, a.vendor_name) supplier
+  from wc_sourcing_rules_d a , (select item_id, ship_from_org_id, max(vendor_name) vendor_name from wc_asl_lead_times_d group by item_id, ship_from_org_id) asl
+  where a.rank = (select min(rank) from wc_sourcing_rules_d b
+            where b.inventory_item_id = a.inventory_item_id and b.organization_id = a.organization_id 
+            and status = 'ACTIVE' and assignment_set_name = 'Global Holistic Assignment Set' )
+              and status = 'ACTIVE' and assignment_set_name = 'Global Holistic Assignment Set'
+              and a.vendor_name is not null
+              and a.inventory_item_id = asl.item_id(+)
+              and a.organization_id = asl.ship_from_org_id(+);

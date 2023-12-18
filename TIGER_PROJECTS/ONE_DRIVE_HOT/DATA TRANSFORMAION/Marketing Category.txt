@@ -1,0 +1,16 @@
+
+  CREATE OR REPLACE FORCE VIEW "HOTDW"."WC_ITEM_MARKETING_CATEGORY_D" ("INVENTORY_ITEM_ID", "ORGANIZATION_ID", "MARKETING_CTG_PRIMARY_FEATURE", "MARKETING_CTG_SEC_FEATURE", "MARKETING_CTG_FINISH_SERIES", "MARKETING_CATEGORY_SIZE", "MARKETING_CTG_SUB_SUB_TYPE", "MARKETING_CTG_TEAM_NAME", "MARKETING_CATEGORY_FUTURE3") AS 
+  SELECT mic_inv.inventory_item_id, 
+              mic_inv.organization_id,
+              inv_cat.segment1    marketing_ctg_primary_feature,
+              inv_cat.segment2    marketing_ctg_sec_feature,
+              inv_cat.segment3    marketing_ctg_finish_series,
+              inv_cat.segment4    marketing_category_size,
+              inv_cat.segment5    marketing_ctg_sub_sub_type,
+              inv_cat.segment6    marketing_ctg_team_name,
+              inv_cat.segment7    marketing_category_future3
+        FROM      apps.mtl_categories inv_cat,
+                  apps.mtl_item_categories mic_inv
+        WHERE     inv_cat.category_id = mic_inv.category_id
+                  AND inv_cat.structure_id =50254
+                  AND mic_inv.category_set_id = 1100000003;

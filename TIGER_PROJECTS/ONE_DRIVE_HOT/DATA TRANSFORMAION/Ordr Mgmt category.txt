@@ -1,0 +1,9 @@
+SELECT mic_inv.inventory_item_id,
+	inv_cat.segment1 order_mgmt_category_category,
+	inv_cat.segment2 order_mgmt_category_brand
+             FROM apps.mtl_categories inv_cat,
+                  apps.mtl_item_categories mic_inv
+            WHERE     inv_cat.category_id = mic_inv.category_id
+                  AND inv_cat.structure_id = 50253
+                  AND mic_inv.category_set_id = 1100000021
+                  AND mic_inv.organization_id = 82)

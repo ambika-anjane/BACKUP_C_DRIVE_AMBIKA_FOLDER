@@ -1,0 +1,8 @@
+
+  CREATE OR REPLACE FORCE VIEW "HOTDW"."WC_ITEM_FAMILY_D" ("INVENTORY_ITEM_ID", "ORGANIZATION_ID", "ITEM_FAMILY") AS 
+  select  msi.inventory_item_id, msi.organization_id, f.E1_ITEM_CAT_10 item_family from hotdem.t_ep_item a
+                  , hotdem.T_EP_E1_ITEM_CAT_10  f
+                  ,apps.mtl_system_items_b msi
+                  where a.T_EP_E1_ITEM_CAT_10_ep_id = f.T_EP_E1_ITEM_CAT_10_ep_id
+                  and msi.segment1=a.item;
+

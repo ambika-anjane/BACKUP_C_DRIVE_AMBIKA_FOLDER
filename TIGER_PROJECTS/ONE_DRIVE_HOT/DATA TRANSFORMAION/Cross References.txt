@@ -1,0 +1,10 @@
+
+(SELECT max(case when CROSS_REFERENCE_TYPE = 'GTIN' and UOM_Code = 'IP' then CROSS_REFERENCE end) IP_GTIN
+             FROM apps.mtl_cross_references
+             
+            WHERE     inventory_item_id = msi.inventory_item_id),
+
+				  
+(SELECT max(case when CROSS_REFERENCE_TYPE = 'GTIN' and UOM_Code = 'CAS' then CROSS_REFERENCE end) CASE_GTIN
+             FROM apps.mtl_cross_references
+            WHERE     inventory_item_id = msi.inventory_item_id),
