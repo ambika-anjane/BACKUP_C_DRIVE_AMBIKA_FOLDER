@@ -1,0 +1,21 @@
+-- sales_proj_vol coming in stage also (but with diff cols)
+ -- removed c106 it is repeated from 105
+
+- Base_forecast(C12) IN STAGE
+-- C16_SALES_PROJ_VALUE IN STAGE
+-- C17_VOLUME_BASE_FUTURE (SAMES AS C_12 BASE_FORECAST) IN STAGE
+-- C_18_volume_base_feature_value (STAGE) DERIVED FROM C17 IN STAGE
+-- C19 FINAL FORECAST IN STAGE
+-- c20 CENSUS IN STAGE
+-- C21,c22,C23,c24,c25,c26,c27,c28,c30,c34,c35,c39,c40,c41,c42...c95,c99..
+-- c111 in
+-- load
+-- c29,c31,c32,c33,c36,c37,c38,c43,c96,c97,c98,c99,c106 removed for duplication
+-- removed baseline_forecst repeated 28,29 (kept only 28)
+-- c31 repeated vook_quantity_book_date
+-- c32 history getting repeated
+-- c33 final forecast getting repeat
+-- c36 consenun forecast removed repeat from c20
+-- c37 adjusted history removed repeat c26
+-- c38 base forecast removed repeat c12
+-- c43 removed repeat hot_future_orders

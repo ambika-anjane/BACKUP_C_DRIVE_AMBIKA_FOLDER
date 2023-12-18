@@ -1,0 +1,337 @@
+with
+    s as (
+        select *
+        from {{ ref("stg_oracle__sales_data") }}
+        where
+            sales_date >= dateadd('year', -2, date_trunc('year', current_date()))
+            and (
+                hot_targ_fcst_5_lag > 0
+                or hot_targ_fcst_6_lag > 0
+                or hot_targ_fcst_7_lag > 0
+                or hot_targ_fcst_8_lag > 0
+                or hot_targ_fcst_9_lag > 0
+                or hot_targ_fcst_10_lag > 0
+                or hot_targ_fcst_11_lag > 0
+                or hot_targ_fcst_12_lag > 0
+                or bat_fcst_1_lag > 0
+                or bat_fcst_2_lag > 0
+                or bat_fcst_3_lag > 0
+                or bat_fcst_4_lag > 0
+                or week4_lag_fcst > 0
+                or week_8_lag_fcst > 0
+                or targ_fcst_3_lag > 0
+                or targ_fcst_4_lag > 0
+                or hot_future_orders > 0
+                or sales_override > 0
+                or hot_wtd_ship > 0
+                -- or v_f.v_fore > 0
+                or enter_fore > 0
+                or hot_sales_base_over > 0
+                or manual_stat > 0
+                or actual_quantity > 0
+                or col_for_over > 0
+                or sim_val_1 > 0
+                or fixed_prom > 0
+                or rule_coll > 0
+                or int_cost > 0
+                or ff > 0
+            )
+    ),
+
+    cal as (select * from {{ ref("stg_oracle__inputs") }}),
+    lp as (select * from {{ ref("stg_oracle__hot_list_price") }}),
+    mop as (select * from {{ ref("stg_oracle__msc_trading_partners") }}),
+    ac as (select * from {{ ref("stg_oracle__hot_abc_class") }}),
+    msi as (select * from {{ ref("stg_oracle__mtl_system_items") }}),
+    fl as (select * from {{ ref("stg_oracle__fnd_lookup_values") }}),
+    sob as (select * from {{ ref("stg_oracle__gl_sets_of_books") }}),
+    mp as (select * from {{ ref("stg_oracle__mdp_matrix") }}),
+    hca as (select * from {{ ref("stg_oracle__customer_accounts") }}),
+    hca1 as (select * from {{ ref("stg_oracle__customer_accounts") }}),
+    ea as (
+        select
+            *,
+            right(
+                ebs_account, position(':' in reverse(ebs_account)) - 1
+            ) as ebs_account_number
+        from {{ ref("stg_oracle__t_ep_ebs_account") }}
+    ),
+    hp as (select * from {{ ref("stg_oracle__parties") }}),
+    cc as (select * from {{ ref("stg_oracle__t_ep_e1_cust_cat_2") }}),
+    ti as (select * from {{ ref("stg_oracle__t_ep_item") }}),
+    teo as (select * from {{ ref("stg_oracle__t_ep_organization") }}),
+    td as (select * from {{ ref("stg_oracle__t_ep_ebs_demand_class") }}),
+    ord as (select * from {{ ref("stg_oracle__organization_definitions") }}),
+    customer_acc as (select * from {{ ref("stg_oracle__customer_group_and_lob") }}),
+    forecast_his as (select * from {{ ref("stg_oracle__forecast_history") }}),
+    hp as (select * from {{ ref("stg_oracle__parties") }}),
+    ep as (select * from {{ ref("stg_oracle__engine_profile") }}),
+    prom as (select * from {{ ref("stg_oracle__promotion_data") }}), -- ignore
+
+
+
+
+v_f as (
+select
+fore_column_name as v_fore
+{% for res in results_list %}
+sum(case when res = '{{ res }}' then value end) as {{ res }}_value
+{% endfor %}
+from forecast_his
+where
+            engine_profiles_id = 1
+            and time_sig
+            = (select max(time_sig) from forecast_his where engine_profiles_id = 1)
+group by 1),
+
+
+    mx_dt as (
+        select trunc(time_sig, 'mm') as v_max_date
+        {% for res in results_list %}
+        sum(case when res = '{{ res }}' then value end) as {{ res }}_value
+        {% endfor %}
+        from forecast_his
+where
+            engine_profiles_id = 1
+            and time_sig
+            = (select max(time_sig) from forecast_his where engine_profiles_id = 1)
+group by 1),
+    
+
+    max_period_num as (
+        select c.t, mx_dt.v_max_date as v_max_period_num
+        from cal c, mx_dt
+        where c.datet = mx_dt.v_max_date
+    ),
+    
+    e_p as (
+        select min(engine_profiles_id) as v_uplift
+        from "DEV_ODS"."ORACLE_SCP"."ENGINE_PROFILES"
+        where profile_type_id = 1
+    )
+
+
+select
+ 
+    
+    s.item_id s_item_id,
+    s.location_id s_location_id,
+    s.sales_date s_sales_date,
+    s.demand_ly s_demand_ly,
+    s.actual_quantity s_actual_quantity,
+    s.actuals_ttl_dol s_actuals_ttl_dol,
+    null cogs_sd,
+    null sales_base_override,
+    s.budget s_budget,
+    null invoice_price_sd,
+    null incremental_forecast,
+    null total_forecast,
+    s.last_update_date s_last_update_date,
+    s.manual_stat s_manual_stat,
+    null fore_0_calc,
+    null max_date_diff,
+    v_f.v_fore,
+    s.enter_fore s_enter_fore,
+    s.col_for_over s_col_for_over,
+    s.sim_val_1 s_sim_val_1,
+    s.trg_cannizn_perc s_trg_cannizn_perc,
+    s.src_cannizn_perc s_src_cannizn_perc,
+    s.manual_fact s_manual_fact,
+    s.fixed_prom s_fixed_prom,
+    s.rule_coll s_rule_coll,
+    s.int_cost s_int_cost,
+    s.ff s_ff,
+    s.pseudo_sale s_pseudo_sale,
+    s.ebs_bh_book_qty_bd s_ebs_bh_book_qty_bd,
+    s.demand s_demand,
+    s.demand_fact s_demand_fact,
+    s.wcp_override s_wcp_override,
+    s.pct_final_weight s_pct_final_weight,
+    s.sales_override s_sales_override,
+    s.sales_baseline s_sales_baseline,
+    s.sales_pct_change s_sales_pct_change,
+    s.pct_sales_weight s_pct_sales_weight,
+    s.mktg_override s_mktg_override,
+    s.mktg_baseline s_mktg_baseline,
+    s.mktg_pct_change s_mktg_pct_change,
+    s.pct_mktg_weight s_pct_mktg_weight,
+    mp.do_fore mp_do_fore,
+    s.hot_future_orders s_hot_future_orders,
+    null hot_budget_review_1,
+    null hot_budget_review_2,
+    s.hot_wtd_ship s_hot_wtd_ship,
+    null one_month_lag_fcst,
+    null two_month_lag_fcst,
+    null three_month_lag_fcst,
+    null four_month_lag_fcst,
+    s.hot_hyperion_budget s_hot_hyperion_budget,
+    s.hot_hyperion_units s_hot_hyperion_unit,
+    null hot_budget_review_3,
+    s.hot_hyperion_units_rev1 s_hot_hyperion_units_rev1,
+    s.hot_hyperion_units_rev2 s_hot_hyperion_units_rev2,
+    s.hot_hyperion_units_rev3 s_hot_hyperion_units_rev3,
+    s.hot_hyperion_budget_rev1 s_hot_hyperion_budget_rev1,
+    s.hot_hyperion_budget_rev2 s_hot_hyperion_budget_rev2,
+    s.hot_hyperion_budget_rev3 s_hot_hyperion_budget_rev3,
+    s.hot_hyperion_cogs_rev1 s_hot_hyperion_cogs_rev1,
+    s.hot_hyperion_cogs_rev2 s_hot_hyperion_cogs_rev2,
+    s.hot_hyperion_cogs_rev3 s_hot_hyperion_cogs_rev3,
+    s.hot_est_list_price s_hot_est_list_price,
+    s.hot_targ_fcst_5_lag s_hot_targ_fcst_5_lag,
+    s.hot_targ_fcst_6_lag s_hot_targ_fcst_6_lag,
+    s.hot_targ_fcst_7_lag s_hot_targ_fcst_7_lag,
+    s.hot_targ_fcst_8_lag s_hot_targ_fcst_8_lag,
+    s.hot_targ_fcst_9_lag s_hot_targ_fcst_9_lag,
+    s.hot_targ_fcst_10_lag s_hot_targ_fcst_10_lag,
+    s.hot_targ_fcst_11_lag s_hot_targ_fcst_11_lag,
+    s.hot_targ_fcst_12_lag s_hot_targ_fcst_12_lag,
+    s.bat_fcst_1_lag s_bat_fcst_1_lag,
+    s.bat_fcst_2_lag s_bat_fcst_2_lag,
+    s.bat_fcst_3_lag s_bat_fcst_3_lag,
+    s.bat_fcst_4_lag s_bat_fcst_4_lag,
+    ac.abc_code ac_abc_code,
+    mp.hot_abc_flag mp_hot_abc_flag,
+    null max_sales_date,
+    null period_diff,
+     case
+        when nvl(s.hot_invoice_price_over, 0) = 0
+        then coalesce(lp1.group_currency, lp1.cust_currency, fl.tag, sob.currency_code)
+        else coalesce(fl.tag, lp1.group_currency, lp1.cust_currency, sob.currency_code)
+    end currency_code,
+    to_date(mx_dt.v_max_date) max_date,
+    max_period_num.v_max_period_num max_period_num,
+    s.hot_invoice_price_over s_hot_invoice_price_over,
+    mp.hot_do_fore_over mp_hot_do_fore_over,
+    nvl(
+        to_char(
+            nvl(
+                hca.customer_account_id,
+                (
+                    select max(hca1.customer_account_id)
+                    from hca1, hp
+                    where
+                        hp.party_id = hca1.party_id
+                        and hca1.active_flag = 'a'
+                        and hp.status = 'a'
+                        and upper(
+                            trim(
+                                substr(
+                                    ea.ebs_account,
+                                    1,
+                                    regexp_instr(ea.ebs_account, ':', -1) - 1
+                                )
+                            )
+                        )
+                        = upper(hp.party_name)
+                )
+            )
+        ),
+        cc.e1_cust_cat_2
+    ) customer_acct_id,
+    msi.inventory_item_id msi_inventory_item_id,
+    mop.sr_tp_id org_id,
+    prom1.uplift_future,
+    -- here one sales_proj_vol
+   -- nvl(s.hot_sales_base_over, try_to_number(v_f.v_fore))
+    --+ nvl(prom1.uplift_future, 0) sales_proj_vol,
+    td.ebs_demand_class td_ebs_demand_class,
+    msi.sales_account msi_sales_account,
+    s.hot_1_lag_fcst_dol s_hot_1_lag_fcst_dol,
+    s.hot_unconstrained_demand s_hot_unconstrained_demand,
+    nvl(
+        to_char(
+            nvl(
+                hca.customer_account_id,
+                (
+                    select max(hca1.customer_account_id)
+                    from hca1, hp
+                    where
+                        hp.party_id = hca1.party_id
+                        and hca1.active_flag = 'a'
+                        and hp.status = 'a'
+                        and upper(
+                            trim(
+                                substr(
+                                    ea.ebs_account,
+                                    1,
+                                    regexp_instr(ea.ebs_account, ':', -1) - 1
+                                )
+                            )
+                        )
+                        = upper(hp.party_name)
+                )
+            )
+        ),
+        cc.e1_cust_cat_2
+    ) customer_acct_id_n,
+    msi.inventory_item_id msi_inventory_item_id_n,
+    mop.sr_tp_id mop_org_id_n,
+    s.sdata7 s_sdata7,
+    s.hot_sales_base_over,
+    s.sdata8,
+    s.sdata5,
+    s.sdata6,
+    s.ttl_fcst,
+    s.ebspricelist102,
+    s.hot_budget_value_review_1,
+    s.hot_budget_value_review_2,
+    s.week4_lag_fcst,
+    s.week_8_lag_fcst,
+    s.targ_fcst_3_lag,
+    s.targ_fcst_4_lag,
+    mp.item_id mp_item_id,
+    mp.location_id mp_location_id,
+    s._batch_update_date,
+    cal.datet cal_datet,
+    s._source_id as source_id
+
+
+
+from s
+inner join mp on mp_item_id = s_item_id and mp_location_id = s_location_id
+inner join cal on cal.datet = s.sales_date
+inner join ac on ac.t_ep_hot_abc_class_ep_id = mp.t_ep_hot_abc_class_ep_id
+left outer join
+    (
+        select
+            item_id lp1_item_id,
+            location_id lp1_location_id,
+            max(case when lp.cg_flag = 1 then currency_code end) group_currency,
+            max(case when lp.cg_flag = 0 then currency_code end) cust_currency
+        from lp
+        group by lp1_item_id, lp1_location_id
+    ) lp1 -- customer_group_currency (rename lp1 as c_g_c)
+    on s.item_id = lp1_item_id
+    and s.location_id = lp1_location_id
+left outer join ti on mp.t_ep_item_ep_id = ti.t_ep_item_ep_id
+left outer join msi on ti.item = msi.segment1 and msi.organization_id = 82
+inner join teo on mp.t_ep_organization_ep_id = teo.t_ep_organization_ep_id
+left outer join mop on nvl(teo.organization, 'NA') = mop.organization_code
+inner join td on mp.t_ep_ebs_demand_class_ep_id = td.t_ep_ebs_demand_class_ep_id
+left outer join
+    (
+        select
+            location_id,
+            item_id,
+            sales_date,
+            sum(nvl(event_lift_override, e_p.v_uplift)) uplift_future
+        from prom, e_p
+        where sales_date >= trunc(current_date(), 'MM') and (event_lift_override > 0)
+        group by location_id, item_id, sales_date
+    ) prom1
+    on s.location_id = prom1.location_id
+    and s.item_id = prom1.item_id
+    and s.sales_date = prom1.sales_date
+left outer join ord on mop.sr_tp_id = ord.organization_id
+left outer join sob on ord.set_of_books_id = sob.set_of_books_id
+inner join cc on mp.t_ep_e1_cust_cat_2_ep_id = cc.t_ep_e1_cust_cat_2_ep_id
+inner join ea on mp.t_ep_ebs_account_ep_id = ea.t_ep_ebs_account_ep_id
+left outer join hca on hca.customer_account_number = ea.ebs_account_number
+left outer join
+    fl
+    on fl.lookup_type = 'HOT_OVERRIDE_PRICE_TAG'
+    and ea.ebs_account_number = fl.lookup_code,
+    v_f,
+    mx_dt,
+    max_period_num
+    

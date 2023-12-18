@@ -1,0 +1,18 @@
+1. change the dm,cm in sales_invoice_lines_alL (with expanDED form)
+2. add else line_type (sales_lines/types)
+3. OP -OPEN, CL-CLOSED,VD- VALIDATED (IN CUST_TRX.STATUS_TRX) COLUMN (UPDATE THIS IN STAGING VIEW)
+4. 'SALES_ORDER_INVOICE_PROCESS' || '~' || ra_cust_trx.status_trx invoice_status_id,
+REPLACE WITH CASE STATEMENT (INVOICE_STATUS) -- UPDATE THIS EXPANSION OPTIONS IN CUST_TRX_ALL (BASE VIEW)
+-- drop sales_invoice_lines_f 
+
+-- dm_forecast 
+1. remove the result set for max_dt
+2. keepv_ma_periods_num (only for T)
+3. derive period_diff (for T and T)
+4. derive max_date_diff in select sttement
+5. remove commented cols
+6. finalize staging view of ssles_data
+7. hot_ptp_sales (view)
+8. final_load
+9. full refresh and incremental
+

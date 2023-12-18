@@ -1,0 +1,319 @@
+case
+            when p.period_diff = -1
+            then p.one_month_lag_fcst
+            else
+                (
+                    case
+                        when p.period_diff >= 0
+                        then p.two_month_lag_fcst
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_2,
+    (
+        case
+            when p.period_diff = -2
+            then p.one_month_lag_fcst
+            when p.period_diff = -1
+            then p.two_month_lag_fcst
+            else
+                (
+                    case
+                        when p.period_diff >= 0
+                        then p.three_month_lag_fcst
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_3,
+    (
+        case
+            when p.period_diff = -3
+            then p.one_month_lag_fcst
+            when p.period_diff = -2
+            then p.two_month_lag_fcst
+            when p.period_diff = -1
+            then p.three_month_lag_fcst
+            else
+                (
+                    case
+                        when p.period_diff >= 0
+                        then p.four_month_lag_fcst
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_4,
+    (
+        case
+            when p.period_diff = -4
+            then p.one_month_lag_fcst
+            when p.period_diff = -3
+            then p.two_month_lag_fcst
+            when p.period_diff = -2
+            then p.three_month_lag_fcst
+            when p.period_diff = -1
+            then p.four_month_lag_fcst
+            else
+                (
+                    case
+                        when p.period_diff >= 0
+                        then p.s_hot_targ_fcst_5_lag
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_5,
+
+    (
+        case
+            when p.period_diff = -5
+            then p.one_month_lag_fcst
+            when p.period_diff = -4
+            then p.two_month_lag_fcst
+            when p.period_diff = -3
+            then p.three_month_lag_fcst
+            when p.period_diff = -2
+            then p.four_month_lag_fcst
+            when p.period_diff = -1
+            then p.s_hot_targ_fcst_5_lag
+            else
+                (
+                    case
+                        when p.period_diff >= 0
+                        then p.s_hot_targ_fcst_6_lag
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_6,
+    (
+        case
+            when p.period_diff = -6
+            then p.one_month_lag_fcst
+            when p.period_diff = -5
+            then p.two_month_lag_fcst
+            when p.period_diff = -4
+            then p.three_month_lag_fcst
+            when p.period_diff = -3
+            then p.four_month_lag_fcst
+            when p.period_diff = -2
+            then p.s_hot_targ_fcst_5_lag
+            when p.period_diff = -1
+            then p.s_hot_targ_fcst_6_lag
+            else
+                (
+                    case
+                        when p.period_diff >= 0
+                        then p.s_hot_targ_fcst_7_lag
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_7,
+
+    (
+        case
+            when p.period_diff = -7
+            then p.one_month_lag_fcst
+            when p.period_diff = -6
+            then p.two_month_lag_fcst
+            when p.period_diff = -5
+            then p.three_month_lag_fcst
+            when p.period_diff = -4
+            then p.four_month_lag_fcst
+            when p.period_diff = -3
+            then p.s_hot_targ_fcst_5_lag
+            when p.period_diff = -2
+            then p.s_hot_targ_fcst_6_lag
+            when p.period_diff = -1
+            then p.s_hot_targ_fcst_7_lag
+            else
+                (
+                    case
+                        when p.period_diff >= 0
+                        then p.s_hot_targ_fcst_8_lag
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_8,
+
+    (
+        case
+            when p.period_diff = -8
+            then p.one_month_lag_fcst
+            when p.period_diff = -7
+            then p.two_month_lag_fcst
+            when p.period_diff = -6
+            then p.three_month_lag_fcst
+            when p.period_diff = -5
+            then p.four_month_lag_fcst
+            when p.period_diff = -4
+            then p.s_hot_targ_fcst_5_lag
+            when p.period_diff = -3
+            then p.s_hot_targ_fcst_6_lag
+            when p.period_diff = -2
+            then p.s_hot_targ_fcst_7_lag
+            when p.period_diff = -1
+            then p.s_hot_targ_fcst_8_lag
+            else
+                (
+                    case
+                        when p.period_diff >= 0
+                        then p.s_hot_targ_fcst_9_lag
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_9,
+    (
+        case
+            when p.period_diff = -9
+            then p.one_month_lag_fcst
+            when p.period_diff = -8
+            then p.two_month_lag_fcst
+            when p.period_diff = -7
+            then p.three_month_lag_fcst
+            when p.period_diff = -6
+            then p.four_month_lag_fcst
+            when p.period_diff = -5
+            then p.s_hot_targ_fcst_5_lag
+            when p.period_diff = -4
+            then p.s_hot_targ_fcst_6_lag
+            when p.period_diff = -3
+            then p.s_hot_targ_fcst_7_lag
+            when p.period_diff = -2
+            then p.s_hot_targ_fcst_8_lag
+            when p.period_diff = -1
+            then p.s_hot_targ_fcst_9_lag
+            else
+                (
+                    case
+                        when p.period_diff >= 0
+                        then p.s_hot_targ_fcst_10_lag
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_10,
+    (
+        case
+            when p.period_diff = -10
+            then p.one_month_lag_fcst
+            when p.period_diff = -9
+            then p.two_month_lag_fcst
+            when p.period_diff = -8
+            then p.three_month_lag_fcst
+            when p.period_diff = -7
+            then p.four_month_lag_fcst
+            when p.period_diff = -6
+            then p.s_hot_targ_fcst_5_lag
+            when p.period_diff = -5
+            then p.s_hot_targ_fcst_6_lag
+            when p.period_diff = -4
+            then p.s_hot_targ_fcst_7_lag
+            when p.period_diff = -3
+            then p.s_hot_targ_fcst_8_lag
+            when p.period_diff = -2
+            then p.s_hot_targ_fcst_9_lag
+            when p.period_diff = -1
+            then p.s_hot_targ_fcst_10_lag
+            else
+                (
+                    case
+                        when p.period_diff >= 0
+                        then p.s_hot_targ_fcst_11_lag
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_11,
+    (
+        case
+            when p.period_diff = -11
+            then p.one_month_lag_fcst
+            when p.period_diff = -10
+            then p.two_month_lag_fcst
+            when p.period_diff = -9
+            then p.three_month_lag_fcst
+            when p.period_diff = -8
+            then p.four_month_lag_fcst
+            when p.period_diff = -7
+            then p.s_hot_targ_fcst_5_lag
+            when p.period_diff = -6
+            then p.s_hot_targ_fcst_6_lag
+            when p.period_diff = -5
+            then p.s_hot_targ_fcst_7_lag
+            when p.period_diff = -4
+            then p.s_hot_targ_fcst_8_lag
+            when p.period_diff = -3
+            then p.s_hot_targ_fcst_9_lag
+            when p.period_diff = -2
+            then p.s_hot_targ_fcst_10_lag
+            when p.period_diff = -1
+            then p.s_hot_targ_fcst_11_lag
+            when p.period_diff = 0
+            then p.s_hot_targ_fcst_12_lag
+            else
+                (
+                    case
+                        when p.period_diff < -11
+                        then p.one_month_lag_fcst
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_12,
+    p.period_diff period_diff,
+    p.currency_code currency_code,
+    (
+        case
+            when p.mp_hot_do_fore_over = 0
+            then 'DO NOT FORECAST'
+            when p.mp_hot_do_fore_over = 1
+            then 'DO FORECAST'
+            when p.mp_hot_do_fore_over = 2
+            then 'DO ZERO FORECAST'
+            else null
+        end
+    ) forecast_flag_override,
+    one_month_lag_fcst * coalesce(
+        p.s_hot_invoice_price_over, p.invoice_price_sd, 0
+    ) one_month_lag_fcst__,
+    two_month_lag_fcst * coalesce(
+        p.s_hot_invoice_price_over, p.invoice_price_sd, 0
+    ) two_month_lag_fcst__,
+    three_month_lag_fcst * coalesce(
+        p.s_hot_invoice_price_over, p.invoice_price_sd, 0
+    ) three_month_lag_fcst__,
+    four_month_lag_fcst * coalesce(
+        p.s_hot_invoice_price_over, p.invoice_price_sd, 0
+    ) four_month_lag_fcst__,
+    demand_class,
+    uplift_future,
+    one_month_lag_fcst_dol,
+    hot_unconstrained_demand,
+    hot_unconstrained_demand * coalesce(
+        p.s_hot_invoice_price_over, p.invoice_price_sd, 0
+    ) hot_unconstrained_demand_,
+    invoice_price_override,
+    sales_account,
+    _batch_update_date,
+    source_id as datasource_num_id
+-- $batch_start_time w_insert_dt,
+-- $batch_start_time w_update_dt,
+   --{{ env_var("DBT_ETL_PROC_ID") }} etl_proc_id
+from p_load l,p p
+
+
+
+where
+    (1 = 1)
+    {% if is_incremental() %}
+    and p_load._batch_update_date >= $batch_start_time
+    and p_load._batch_update_date <= $batch_end_time
+    {% endif %}
+
+

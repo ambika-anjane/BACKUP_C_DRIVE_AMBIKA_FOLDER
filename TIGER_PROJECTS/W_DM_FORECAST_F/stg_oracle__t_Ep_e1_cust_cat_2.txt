@@ -1,0 +1,22 @@
+with
+    source as (select * from {{ source("oracle_scp", "t_ep_e1_cust_cat_2") }}),
+
+    renamed as (
+        select
+            t_ep_e1_cust_cat_2_ep_id
+            ,is_fictive
+            ,last_update_date
+            ,e1_cust_cat_2
+            ,e1_cust_cat_2_desc
+            ,fictive_child
+            ,method_status
+            ,t_ep_lob_id
+            ,_batch_run_id
+            ,_batch_insert_date
+            ,_batch_update_date
+            ,_source_id
+
+        from source
+    )
+select *
+from renamed

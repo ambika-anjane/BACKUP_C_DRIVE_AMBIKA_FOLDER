@@ -1,0 +1,20 @@
+{% snapshot sales_forecast_flag %}
+
+    {{
+        config(
+            target_database="DEV_EDW",
+            target_schema="DEV_SNAP",
+            unique_key="integration_id",
+            strategy="TIMESTAMP",
+            updated_at =  'w_update_dt'
+        )
+    }}
+
+    select *
+    from w_sales_forecast_f
+
+{% endsnapshot %}
+
+
+--snapshots:
+ -- transient: true  (shoud i update this in dbt+project.yml??)

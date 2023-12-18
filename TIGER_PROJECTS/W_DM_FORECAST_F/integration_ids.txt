@@ -1,0 +1,18 @@
+-- 132039~511889~20231101
+-- 420315~511447~20230201
+-- and  s.item_id = '132039' and s.location_id = '511889' and  year(s.sales_date::date) = '2023'
+-- and year(s.sales_date::date) =  '2023' and s.item_id = '420315' and s.location_id = '511447'
+-- and year(cal.datet::date) =  '2023' and s.item_id = '132039' and s.location_id = '511889'
+and  mp.item_id = '1836439' and mp.location_id = '502065' and  year(cal.datet::date) = '2023'
+
+
+stg__Sales_forecast
+
+-511889~20231101'
+-- 420315~511447~20230201
+-- where year(sales_data.sales_date) =  '2023' and sales_data.item_id = '420315' and customer_group_account.location_id = '511447'
+
+ where year(sales_data.sales_date) =  '2023' and sales_data.item_id = '1836439' and customer_group_account.location_id = '502065'
+ -- 1836439~502065~20231001
+
+

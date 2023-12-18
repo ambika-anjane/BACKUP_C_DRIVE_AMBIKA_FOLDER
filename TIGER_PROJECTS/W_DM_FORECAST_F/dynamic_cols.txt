@@ -1,0 +1,101 @@
+name
+MIN_RETURN
+LEAD
+LAST_DATE
+START_DATE(v_start_time)
+TIME_SIG (v_max_date)
+STATUS
+ENGINE
+TABLE_NAME
+ENGINE_VERSION
+FORECAST_DESCRIPTION
+LAST_FORECAST_DATE
+FORE_COLUMN_NAME (v_fore)
+TOTAL_RUN_TIME (v_max_period_num)
+START_FORECAST_DATE
+WITH_OPTIMIZATION
+ENGINE_PROFILES_ID
+INIT_PARAMS_TABLE_NAME
+_BATCH_RUN_ID
+_BATCH_INSERT_DATE
+_BATCH_UPDATE_DATE
+_SOURCE_ID
+
+
+ -- second join
+            (
+                select item, t_ep_item_ep_id
+                from ti
+                right outer join msi on ti.item = msi.segment1
+            ) ti1,
+
+            -- third jion
+            -- (select organization from teo right outer join mop 
+            -- on  nvl(teo.organization, 'na') = mop.organization_code)
+            -- fourh join
+            -- (select item_id,location_id from prom right outer join s
+            -- on s_location_id = prom.location_id
+            -- and s_item_id = prom.item_id
+            -- and s_sales_date = prom.sales_date)
+            -- fifth jon
+            (
+                select organization_id
+                from ord
+                right outer join mop on mop.sr_tp_id = ord.organization_id
+            )
+
+        -- -- sixth join
+        -- (select set_of_books_id from sob right outer join ord
+        -- on ord.set_of_books_id = sob.set_of_books_id)
+
+
+
+
+
+
+
+
+    -- dynamic columns
+    v_f as (
+        select fore_column_name as v_fore
+        from forecast_his
+        where
+            engine_profiles_id = 1
+            and time_sig
+            = (select max(time_sig) from forecast_his where engine_profiles_id = 1)
+    ),
+
+    mx_dt as (
+        select trunc(time_sig, 'mm') as v_max_date
+        from forecast_his
+        where
+            engine_profiles_id = 1
+            and time_sig = (
+                select max(time_sig)
+                from forecast_his
+                where engine_profiles_id = 1
+            )
+    ),
+
+    start_time as (
+        select start_date as v_start_time
+        from forecast_his
+        where
+            engine_profiles_id = 1
+            and time_sig = (
+                select max(time_sig)
+                from forecast_his
+                where engine_profiles_id = 1
+            )
+    ),
+
+
+    max_period_num as (
+        select total_run_time as v_max_period_num
+        from forecast_his
+        where
+            engine_profiles_id = 1
+            and time_sig
+            = (select max(time_sig) from forecast_his where engine_profiles_id = 1)
+
+    ),

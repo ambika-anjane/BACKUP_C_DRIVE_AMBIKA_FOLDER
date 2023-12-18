@@ -1,0 +1,603 @@
+
+
+
+/*
+
+*/
+
+with source as (
+
+    select * from dev_ods.oracle_scp.sales_data
+     where
+         --   sales_date >= dateadd('year', -2, date_trunc('year', current_date()))
+        item_id = '523' and  location_id ='6526'  and  year(sales_date) = '2023' 
+
+            and (
+                hot_targ_fcst_6_lag > 0
+                or hot_targ_fcst_7_lag > 0
+                or hot_targ_fcst_8_lag > 0
+                or hot_targ_fcst_9_lag > 0
+                or hot_targ_fcst_10_lag > 0
+                or hot_targ_fcst_11_lag > 0
+                or hot_targ_fcst_12_lag > 0
+                or bat_fcst_1_lag > 0
+                or bat_fcst_2_lag > 0
+                or bat_fcst_3_lag > 0
+                or bat_fcst_4_lag > 0
+                or week4_lag_fcst > 0
+                or week_8_lag_fcst > 0
+                or targ_fcst_3_lag > 0
+                or targ_fcst_4_lag > 0
+                or hot_future_orders > 0
+                or sales_override > 0
+                or hot_wtd_ship > 0
+                or fore_2 > 0
+                or enter_fore > 0
+                or hot_sales_base_over > 0
+                or manual_stat > 0
+                or actual_quantity > 0
+                or col_for_over > 0
+                or sim_val_1 > 0
+                or fixed_prom > 0
+                or rule_coll > 0
+                or int_cost > 0
+                or ff > 0
+            ) 
+            ),
+    forecast_his as (select * from dev_ods.oracle_scp.forecast_history ),
+    cal as (select * from dev_ods.oracle_scp.inputs ),
+    ep as (select * from dev_discover.SUPPLY_CHAIN.stg_oracle__engine_profile ),
+    mp as (select * from dev_ods.oracle_scp.mdp_matrix ),
+
+mx_dt as (
+         select
+             trunc(time_sig, 'mm') as v_max_date
+         from forecast_his
+         where
+             engine_profiles_id = 1
+             and time_sig = (select max(time_sig) from forecast_his where engine_profiles_id = 1)
+        ),
+
+
+max_period_num as (
+        select c.t as v_max_period_num
+        from cal c ,mx_dt
+        where c.datet = mx_dt.v_max_date
+    ),
+    
+
+        
+sales as (
+select 
+s.item_id,
+s.location_id,
+s.sales_date::date sales_date,
+mp.hot_do_fore_over mp_hot_do_fore_over,
+mp.do_fore mp_do_fore,
+mp.t_ep_hot_abc_class_ep_id,
+mp.t_ep_item_ep_id,
+mp.t_ep_organization_ep_id,
+mp.t_ep_ebs_demand_class_ep_id,
+mp.t_ep_e1_cust_cat_2_ep_id,
+mp.t_ep_ebs_account_ep_id,
+is_promotion,
+--s.last_update_date,
+mde,
+cf_approved,
+syncro_sig,
+to_date(mx_dt.v_max_date) max_sales_date,
+max_period_num.v_max_period_num v_max_period_num,
+
+    
+        FORE_4
+    
+ as fore_0_calc,   /* do not move this column down as the alias is used in derived measures */
+pseudo_sale,
+sdata8 invoice_price,
+hot_1_lag_fcst_dol one_month_lag_forecast_dol,
+sdata7 item_cost,
+sig_sqr,
+regime_change,
+DATEDIFF(month, s.sales_date::DATE, mx_dt.v_max_date::DATE) as max_date_diff, 
+cal.T - v_max_period_num period_diff,
+hot_est_list_price,
+hot_hyp_9_3_dol_arch,
+hot_hyp_6_6_dol_arch,
+hot_hyp_3_9_dol_arch,
+hot_hyp_9_3_arch,
+hot_hyp_6_6_arch,
+hot_2_lag_fcst_dol,
+hot_3_lag_fcst_dol,
+hot_4_lag_fcst_dol,
+hot_hyp_dol_arch,
+volume_base_ttl,
+hot_hyp_3_9_arch,
+bat_fcst_err_4_lag,
+abs_bat_fcst_err_4_lag,
+bat_fcst_err_3_lag,
+abs_bat_fcst_err_3_lag,
+fcst_err_4_lag,
+abs_fcst_err_4_lag,
+fcst_err_3_lag,
+abs_fcst_err_3_lag,
+fore_2_outlier,
+hot_hyp_units_arch,
+fore_0_outlier,
+fore_3_outlier,
+fore_4_outlier,
+fore_1_outlier,
+fore_24,
+fore_24_outlier,
+fore_4,
+fore_0,
+fore_16,
+fore_16_outlier,
+fore_15,
+fore_15_outlier,
+fore_17,
+fore_17_outlier,
+fore_1,
+fore_18,
+fore_18_outlier,
+fore_3,
+fore_22,
+fore_22_outlier,
+fore_19,
+fore_19_outlier,
+fore_23,
+fore_23_outlier,
+fore_20,
+fore_20_outlier,
+fore_21,
+fore_21_outlier,
+actual_quantity,
+load_sig,
+hot_sales_base_over sales_base_override,
+ttl_fcst total_forecast,
+manual_stat base_overridde,
+hot_invoice_price_over invoice_price_override,
+(CASE WHEN MAX_DATE_DIFF IN (-1,0)
+THEN 0
+ELSE
+(CASE WHEN sales_base_override IS NULL
+THEN
+(CASE WHEN fore_0_calc IS NULL
+THEN 0
+ELSE  fore_0_calc
+END)
+ELSE
+sales_base_override
+END)
+END) BASE_FORECAST,
+CASE WHEN actual_quantity =0 OR actual_quantity IS NULL
+THEN
+(CASE WHEN total_forecast IS NULL THEN 0 ELSE total_forecast END)
+ELSE
+actual_quantity
+END	   SALES_PROJECTED_VOLUME,
+    (CASE WHEN actual_quantity=0 OR actual_quantity IS NULL
+THEN
+(CASE WHEN total_forecast IS NULL THEN 0 ELSE total_forecast END)
+ELSE
+actual_quantity
+END)*(CASE WHEN invoice_price IS NULL
+THEN (CASE WHEN hot_est_list_price IS NULL 
+THEN 0 ELSE hot_est_list_price END)
+ELSE invoice_price
+END) SALES_PROJected_VALUE,
+(CASE WHEN max_date_diff in (-1,0) THEN 0
+ELSE
+(CASE WHEN sales_base_override IS NULL THEN
+(CASE WHEN fore_0_calc IS NULL THEN 0 ELSE fore_0_calc END)
+ELSE
+sales_base_override
+END)
+END) volume_base_feature,
+  (CASE WHEN max_date_diff in (-1,0) THEN 0
+ELSE
+(CASE WHEN sales_base_override IS NULL THEN
+(CASE WHEN fore_0_calc IS NULL THEN 0 ELSE fore_0_calc END)
+ELSE
+sales_base_override
+END)END)*
+(CASE WHEN invoice_price IS NULL
+THEN (CASE WHEN hot_est_list_price IS NULL 
+THEN 0 ELSE hot_est_list_price END)
+ELSE invoice_price
+END)  volume_base_future_value,
+        (
+        case
+            when
+                (
+                    case
+                        when enter_fore is null
+                        then
+                            (
+                                case
+                                    when col_for_over is null
+                                    then
+                                        (
+                                            case
+                                                when manual_stat is null
+                                                then
+                                                    (
+                                                        case
+                                                            when
+                                                                sim_val_1
+                                                                is null
+                                                            then fore_0_calc
+                                                            else sim_val_1
+                                                        end
+                                                    )
+                                                else manual_stat
+                                            end
+                                        ) * (
+                                            1.00 - (
+                                                case
+                                                    when trg_cannizn_perc = 1
+                                                    then trg_cannizn_perc
+                                                    else 0
+                                                end
+                                            )
+                                        )
+                                        * (
+                                            1.00 - (
+                                                case
+                                                    when
+                                                        src_cannizn_perc
+                                                        is null
+                                                    then 0
+                                                    else src_cannizn_perc
+                                                end
+                                            )
+                                        )
+                                        * (
+                                            1.00 + (
+                                                case
+                                                    when manual_fact is null
+                                                    then 0
+                                                    else manual_fact
+                                                end
+                                            )
+                                        )
+                                        + (
+                                            case
+                                                when fixed_prom is null
+                                                then 0
+                                                else fixed_prom
+                                            end
+                                        )
+                                        * (
+                                            1.00 - (
+                                                case
+                                                    when rule_coll is null
+                                                    then 0
+                                                    else rule_coll
+                                                end
+                                            )
+                                        )
+                                        + (
+                                            case
+                                                when int_cost is null
+                                                then 0
+                                                else int_cost
+                                            end
+                                        )
+                                        * (
+                                            case
+                                                when rule_coll is null
+                                                then 0
+                                                else rule_coll
+                                            end
+                                        )
+                                    else col_for_over
+                                end
+                            )
+                        else ff
+                    end
+                )
+                is null
+            then 0
+            else
+                (
+                    case
+                        when enter_fore is null
+                        then
+                            (
+                                case
+                                    when col_for_over is null
+                                    then
+                                        (
+                                            case
+                                                when manual_stat is null
+                                                then
+                                                    (
+                                                        case
+                                                            when
+                                                                sim_val_1
+                                                                is null
+                                                            then fore_0_calc
+                                                            else sim_val_1
+                                                        end
+                                                    )
+                                                else manual_stat
+                                            end
+                                        ) * (
+                                            1.00 - (
+                                                case
+                                                    when trg_cannizn_perc = 1
+                                                    then trg_cannizn_perc
+                                                    else 0
+                                                end
+                                            )
+                                        )
+                                        * (
+                                            1.00 - (
+                                                case
+                                                    when
+                                                        src_cannizn_perc
+                                                        is null
+                                                    then 0
+                                                    else src_cannizn_perc
+                                                end
+                                            )
+                                        )
+                                        * (
+                                            1.00 + (
+                                                case
+                                                    when manual_fact is null
+                                                    then 0
+                                                    else manual_fact
+                                                end
+                                            )
+                                        )
+                                        + (
+                                            case
+                                                when fixed_prom is null
+                                                then 0
+                                                else fixed_prom
+                                            end
+                                        )
+                                        * (
+                                            1.00 - (
+                                                case
+                                                    when rule_coll is null
+                                                    then 0
+                                                    else rule_coll
+                                                end
+                                            )
+                                        )
+                                        + (
+                                            case
+                                                when int_cost is null
+                                                then 0
+                                                else int_cost
+                                            end
+                                        )
+                                        * (
+                                            case
+                                                when rule_coll is null
+                                                then 0
+                                                else rule_coll
+                                            end
+                                        )
+                                    else col_for_over
+                                end
+                            )
+                        else ff
+                    end
+                )
+        end
+    )
+    * 1 final_forecast,
+    (
+        case
+            when wcp_override is null
+            then
+                (
+                    (
+                        (
+                            case
+                                when manual_stat is null
+                                then
+                                    (
+                                        case
+                                            when sim_val_1 is null
+                                            then fore_0_calc
+                                            else sim_val_1
+                                        end
+                                    )
+                                else manual_stat
+                            end
+                        ) * (
+                            1.00 + (
+                                case
+                                    when manual_fact is null
+                                    then 0
+                                    else manual_fact
+                                end
+                            )
+                        )
+                        * (
+                            case
+                                when pct_final_weight is null
+                                then 1
+                                else pct_final_weight
+                            end
+                        )
+                        + (
+                            case
+                                when sales_override is null
+                                then
+                                    (
+                                        case
+                                            when sales_baseline is null
+                                            then 0
+                                            else sales_baseline
+                                        end
+                                    )
+                                else sales_override
+                            end
+                        )
+                        * (
+                            1.00 + (
+                                case
+                                    when sales_pct_change is null
+                                    then 0
+                                    else sales_pct_change
+                                end
+                            )
+                        )
+                        * (
+                            case
+                                when pct_sales_weight is null
+                                then 0
+                                else pct_sales_weight
+                            end
+                        )
+                        + (
+                            case
+                                when mktg_override is null
+                                then
+                                    (
+                                        case
+                                            when mktg_baseline is null
+                                            then 0
+                                            else mktg_baseline
+                                        end
+                                    )
+                                else mktg_override
+                            end
+                        )
+                        * (
+                            1.00 + (
+                                case
+                                    when mktg_pct_change is null
+                                    then 0
+                                    else mktg_pct_change
+                                end
+                            )
+                        )
+                        * (
+                            case
+                                when pct_mktg_weight is null
+                                then 0
+                                else pct_mktg_weight
+                            end
+                        )
+                    ) / (
+                        (
+                            case
+                                when pct_final_weight is null
+                                then 1
+                                else pct_final_weight
+                            end
+                        ) + (
+                            case
+                                when pct_sales_weight is null
+                                then 0
+                                else pct_sales_weight
+                            end
+                        )
+                        + (
+                            case
+                                when pct_mktg_weight is null
+                                then 0
+                                else pct_mktg_weight
+                            end
+                        )
+                    )
+                )
+            else wcp_override
+        end
+    )
+    * hot_est_list_price consensus_forecast_value,
+    s.last_update_date,
+(CASE WHEN actual_quantity IS NULL
+THEN 0
+ELSE actual_quantity END)
+*
+coalesce(
+        invoice_price_override, invoice_price, 0.0
+    )  ACTUAL_TTL_VALUE,
+
+(CASE WHEN ebs_bh_book_qty_bd IS NULL
+THEN 0
+ELSE
+ebs_bh_book_qty_bd
+END) BOOK_QUANTITY_BOOK_DATE,
+(
+        case
+            when demand is null
+            then
+                (
+                    case
+                        when pseudo_sale is null
+                        then actual_quantity
+                        else pseudo_sale
+                    end
+                ) * (
+                    1.00 + (
+                        case
+                            when demand_fact is null
+                            then 0
+                            else demand_fact
+                        end
+                    )
+                )
+            else
+                (
+                    demand * (
+                        1.00 + (
+                            case
+                                when demand_fact is null
+                                then 0
+                                else demand_fact
+                            end
+                        )
+                    )
+                )   
+        end
+    ) adjusted_history,
+    (CASE WHEN sim_val_1 IS NULL or sim_val_1 = 0
+THEN 
+fore_0_calc
+ELSE
+sim_val_1
+END)
+*
+coalesce(
+        invoice_price_override, invoice_price, 0.0
+    ) 
+ BASELINE_FORECAST_AMOUNT,
+(CASE WHEN sim_val_1 IS NULL
+THEN 
+fore_0_calc
+ELSE
+sim_val_1
+END)
+BASELINE_FORECAST,
+(CASE WHEN ebs_bh_book_qty_bd IS NULL
+THEN 0
+ELSE
+ebs_bh_book_qty_bd
+END)
+*
+coalesce(
+        invoice_price_override, invoice_price, 0.0
+    )  BOOK_QUANTITY_BOOK_DATE_AMOUNT,
+actual_quantity *
+coalesce(
+        invoice_price_override, invoice_price, 0.0
+    ) 
+ HISTORY_AMOUNT,
+final_forecast * coalesce(
+        invoice_price_override, invoice_price, 0.0
+    ) final_forecast_amount
+
+
+ from source s inner JOIN mp on ((mp.item_id = s.item_id) and (mp.location_id = s.location_id))
+  inner join cal on cal.datet::date = s.sales_date
+  ,mx_dt,max_period_num
+ )
+select * from sales  

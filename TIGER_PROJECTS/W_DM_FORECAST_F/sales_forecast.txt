@@ -1,0 +1,66 @@
+with
+    s as (select * from {{ ref("stg_oracle__sales_data") }}
+  /*  where
+            sales_date >= dateadd('year', -2, date_trunc('year', current_date()))
+
+            and (
+                six_month_lag_forecast > 0
+                or seven_month_lag_forecast > 0
+                or eight_month_lag_forecast > 0
+                or nine_month_lag_forecast > 0
+                or ten_month_lag_forecast > 0
+                or eleven_month_lag_forecast > 0
+                or twelve_month_lag_forecast > 0
+                or one_month_lag_bat_forecast > 0
+                or two_month_lag_bat_forecast > 0
+                or three_month_lag_bat_forecast > 0
+                or four_month_lag_bat_forecast > 0
+                or one_month_lag_forecast > 0
+                or two_month_lag_forecast > 0
+                or three_month_lag_forecast > 0
+                or four_month_lag_forecast > 0
+                or hot_future_orders > 0
+                or sales_override > 0
+                or hot_wtd_ship > 0
+                or fore_0_calc > 0
+                or enter_fore > 0
+                or sales_base_override > 0
+                or manual_stat > 0
+                or actual_quantity > 0
+                or col_for_over > 0
+                or sim_val_1 > 0
+                or fixed_prom > 0
+                or rule_coll > 0
+                or int_cost > 0
+                or ff > 0
+            ) */
+            
+            ),
+    mp as (select * from {{ ref("stg_oracle__mdp_matrix") }}),
+
+    final as (
+        select
+            s.item_id,
+            s.location_id,
+            to_char(s.sales_date, 'yyyymmdd') sales_date,
+            mp.item_id mp_item_id,
+            mp.location_id mp_location_id,
+            mp.hot_do_fore_over mp_hot_do_fore_over,
+            mp.do_fore mp_do_fore,
+            mp.t_ep_hot_abc_class_ep_id,
+            mp.t_ep_item_ep_id,
+            mp.t_ep_organization_ep_id,
+            mp.t_ep_ebs_demand_class_ep_id,
+            mp.t_ep_e1_cust_cat_2_ep_id,
+            mp.t_ep_ebs_account_ep_id
+            
+
+    
+        from s 
+
+
+
+        inner join mp on ((mp_item_id = s.item_id) and (mp_location_id = s.location_id))
+             )
+select *
+from final

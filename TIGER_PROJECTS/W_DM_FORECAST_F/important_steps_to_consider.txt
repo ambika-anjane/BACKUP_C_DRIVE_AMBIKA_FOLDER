@@ -1,0 +1,23 @@
+dbt run  --exclude stg_oracle__sales_promotions(dbt exclude command)
+
+steps in handling facts table 
+1. get the staging in the same order as sde
+2. first check the joins and where , and
+3. first take the inner joins (where and ) then come to the left outer join
+4. vice versa
+5. complete the staging or final (whatever the sde it is )
+6. sometimes we need to derive load from staging having mutilple sources
+7. check joins , and's from primary table
+8. frst do integration (uniqueness test) and then go for updation and insertion incremntal test
+9. for uniqeness (first check uniqueness sql with integration id in target, three cols considered 
+for integrtion from source grou by it ) and find any duplication
+
+10 if so,take  first row with primary key value and check whether it is appearing more than once)
+11. if ure not able to understand the diffrence in rows 
+12. then go for distinct * from the source query
+13. then u will get the diffrence in the columb value among those duplicate rows
+14. remove the column that is creating duplication and repeat unique test
+15. once the unique test goes good ..it wil be good for u (update and insert) test
+
+
+Important steps for (fact table)

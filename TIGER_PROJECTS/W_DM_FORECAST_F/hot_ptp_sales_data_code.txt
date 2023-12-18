@@ -1,0 +1,687 @@
+{{ config(materialized="ephemeral") }}
+
+with hot_ptp as (select * from {{ ref("stg_oracle__hot_ptp_sales") }})
+
+
+select
+    nvl(hot_ptp.s_item_id || '~' || hot_ptp.source_id, '0')::varchar(200) item_id,
+    nvl(hot_ptp.s_location_id || '~' || hot_ptp.source_id, '0')::varchar(
+        200
+    ) location_id,
+    hot_ptp.msi_inventory_item_id
+    || '~'
+    || hot_ptp.org_id
+    || '~'
+    || hot_ptp.source_id item_org_id,
+    hot_ptp.s_item_id
+    || '~'
+    || hot_ptp.s_location_id
+    || '~'
+    || to_char(hot_ptp.s_sales_date, 'yyyymmdd')
+    || '~'
+    || hot_ptp.source_id integration_id,
+    nvl(hot_ptp.sales_base_override || '~' || hot_ptp.source_id, '0')::varchar(
+        200
+    ) sales_base_overrid,
+    nvl(hot_ptp.org_id || '~' || hot_ptp.source_id, '0')::varchar(200) org_id,
+    nvl(hot_ptp.customer_acct_id || '~' || hot_ptp.source_id, '0')::varchar(
+        200
+    ) customer_account_id,
+    nvl(hot_ptp.msi_inventory_item_id || '~' || hot_ptp.source_id, '0')::varchar(
+        200
+    ) inventory_item_id,
+    hot_ptp.s_sales_date sales_date,
+    hot_ptp.s_demand_ly last_year_sales,
+    hot_ptp.s_actual_quantity actual_quantity,
+    hot_ptp.s_actuals_ttl_dol actuals_total_value,
+    hot_ptp.cogs_sd cogs_sd,
+    -- hot_ptp.sales_base_override sales_base_overrid,
+    hot_ptp.s_budget budget_value,
+    hot_ptp.invoice_price_sd invoice_price_sd,
+    coalesce(hot_ptp.s_demand_ly * invoice_price_sd, 0) last_year_sales_dlr, -- SALES_STAGE
+    -- chk this base_forecast syntax with volume_base_feature (WITH BALA)
+    --  move from 43 
+   
+    coalesce(hot_ptp.s_ebs_bh_book_qty_bd, 0) book_quantity_book_date,
+    hot_ptp.s_actual_quantity history,
+    hot_ptp.s_pseudo_sale history_override,
+    (
+        case
+            when hot_ptp.s_demand is null
+            then
+                (
+                    case
+                        when hot_ptp.s_pseudo_sale is null
+                        then hot_ptp.s_actual_quantity
+                        else hot_ptp.s_pseudo_sale
+                    end
+                ) * (
+                    1.00 + (
+                        case
+                            when hot_ptp.s_demand_fact is null
+                            then 0
+                            else hot_ptp.s_demand_fact
+                        end
+                    )
+                )
+            else
+                (
+                    hot_ptp.s_demand * (
+                        1.00 + (
+                            case
+                                when hot_ptp.s_demand_fact is null
+                                then 0
+                                else hot_ptp.s_demand_fact
+                            end
+                        )
+                    )
+                )
+        end
+    ) adjusted_history,
+    hot_ptp.s_sim_val_1 simulation,
+    coalesce(hot_ptp.s_sim_val_1, hot_ptp.fore_0_calc, 0) * coalesce(
+        hot_ptp.s_hot_invoice_price_over, hot_ptp.invoice_price_sd, 0
+    ) baseline_forecast__,
+    (coalesce(hot_ptp.s_sim_val_1, hot_ptp.fore_0_calc, 0))
+    baseline_forecast,
+    hot_ptp.s_manual_stat base_overridde,
+    coalesce(hot_ptp.s_ebs_bh_book_qty_bd, 0) * coalesce(
+        hot_ptp.s_hot_invoice_price_over, hot_ptp.invoice_price_sd, 0
+    ) book_quantity_book_date__,
+    hot_ptp.s_actual_quantity * (
+        coalesce(hot_ptp.s_hot_invoice_price_over, hot_ptp.invoice_price_sd, 0)
+    ) history__,
+    final_forecast * coalesce(
+        hot_ptp.s_hot_invoice_price_over, hot_ptp.invoice_price_sd, 0
+    ) final_forecast__,
+    (coalesce(hot_ptp.s_manual_stat, hot_ptp.fore_0_calc, 0))
+    * coalesce(hot_ptp.s_manual_stat, 0) change_to_base,
+    hot_ptp.s_manual_stat manual_stat,
+
+    (
+        case
+            when hot_ptp.s_wcp_override is null
+            then
+                (
+                    (
+                        (
+                            case
+                                when hot_ptp.s_manual_stat is null
+                                then
+                                    (
+                                        case
+                                            when hot_ptp.s_sim_val_1 is null
+                                            then hot_ptp.fore_0_calc
+                                            else hot_ptp.s_sim_val_1
+                                        end
+                                    )
+                                else hot_ptp.s_manual_stat
+                            end
+                        ) * (
+                            1.00 - (
+                                case
+                                    when hot_ptp_sales_data_stg.trg_cannizn_perc = 1
+                                    then hot_ptp_sales_data_stg.trg_cannizn_perc
+                                    else 0
+                                end
+                            )
+                        )
+                        * (
+                            1.00 - (
+                                case
+                                    when hot_ptp_sales_data_stg.src_cannizn_perc is null
+                                    then 0
+                                    else hot_ptp_sales_data_stg.src_cannizn_perc
+                                end
+                            )
+                        )
+                        * (
+                            1.00 + (
+                                case
+                                    when hot_ptp_sales_data_stg.manual_fact is null
+                                    then 0
+                                    else hot_ptp_sales_data_stg.manual_fact
+                                end
+                            )
+                        )
+                        * (
+                            case
+                                when hot_ptp.s_pct_final_weight is null
+                                then 1
+                                else hot_ptp.s_pct_final_weight
+                            end
+                        )
+                        + (
+                            case
+                                when hot_ptp.s_sales_override is null
+                                then
+                                    (
+                                        case
+                                            when hot_ptp.s_sales_baseline is null
+                                            then 0
+                                            else hot_ptp.s_sales_baseline
+                                        end
+                                    )
+                                else hot_ptp.s_sales_override
+                            end
+                        )
+                        * (
+                            1.00 + (
+                                case
+                                    when hot_ptp.s_sales_pct_change is null
+                                    then 0
+                                    else hot_ptp.s_sales_pct_change
+                                end
+                            )
+                        )
+                        * (
+                            case
+                                when hot_ptp.s_pct_sales_weight is null
+                                then 0
+                                else hot_ptp.s_pct_sales_weight
+                            end
+                        )
+                        + (
+                            case
+                                when hot_ptp.s_mktg_override is null
+                                then
+                                    (
+                                        case
+                                            when hot_ptp.s_mktg_baseline is null
+                                            then 0
+                                            else hot_ptp.s_mktg_baseline
+                                        end
+                                    )
+                                else hot_ptp.s_mktg_override
+                            end
+                        )
+                        * (
+                            1.00 + (
+                                case
+                                    when hot_ptp.s_mktg_pct_change is null
+                                    then 0
+                                    else hot_ptp.s_mktg_pct_change
+                                end
+                            )
+                        )
+                        * (
+                            case
+                                when hot_ptp.s_pct_mktg_weight is null
+                                then 0
+                                else hot_ptp.s_pct_mktg_weight
+                            end
+                        )
+                    ) / (
+                        (
+                            case
+                                when hot_ptp.s_pct_final_weight is null
+                                then 1
+                                else hot_ptp.s_pct_final_weight
+                            end
+                        ) + (
+                            case
+                                when hot_ptp.s_pct_sales_weight is null
+                                then 0
+                                else hot_ptp.s_pct_sales_weight
+                            end
+                        )
+                        + (
+                            case
+                                when hot_ptp.s_pct_mktg_weight is null
+                                then 0
+                                else hot_ptp.s_pct_mktg_weight
+                            end
+                        )
+                    )
+                )
+            else hot_ptp.s_wcp_override
+        end
+    ) consensus_forecast,
+    adjusted_history * coalesce(
+        hot_ptp.s_hot_invoice_price_over, hot_ptp.invoice_price_sd, 0
+    ) adjusted_history_amount,
+    base_forecast * coalesce(
+        hot_ptp.s_hot_invoice_price_over, hot_ptp.invoice_price_sd, 0
+    ) base_forecast__,
+    case
+        when hot_ptp.mp_do_fore = 0
+        then 'DO NOT FORECAST'
+        when hot_ptp.mp_do_fore = 1
+        then 'DO FORECAST'
+        when hot_ptp.mp_do_fore = 2
+        then 'DO ZERO FORECAST'
+        else null
+    end forecast_flag,
+    hot_ptp.hot_budget_review_1 hot_budget_value_review_1,
+    hot_ptp.hot_budget_review_2 hot_budget_value_review_2,
+    (
+        case
+            when hot_ptp.s_hot_future_orders is null
+            then 0
+            else hot_ptp.s_hot_future_orders
+        end
+    ) hot_future_orders,
+    hot_future_orders * coalesce(
+        hot_ptp.s_hot_invoice_price_over, hot_ptp.invoice_price_sd, 0
+    ) hot_future_orders__,
+    hot_ptp.s_hot_wtd_ship hot_wtd_ship,
+    hot_ptp.one_month_lag_fcst one_month_lag_fcst,
+    hot_ptp.two_month_lag_fcst two_month_lag_fcst,
+    hot_ptp.three_month_lag_fcst three_month_lag_fcst,
+    hot_ptp.four_month_lag_fcst four_month_lag_fcst,
+    hot_ptp.s_hot_hyperion_unit hot_hyperion_units,
+    hot_ptp.s_hot_hyperion_budget hot_hyperion_budget,
+    hot_ptp.hot_budget_review_3 hot_budget_value_review_3,
+    hot_ptp.s_hot_hyperion_units_rev1 hot_hyperion_units_rev1,
+    hot_ptp.s_hot_hyperion_units_rev2 hot_hyperion_units_rev2,
+    hot_ptp.s_hot_hyperion_units_rev3 hot_hyperion_units_rev3,
+    hot_ptp.s_hot_hyperion_budget_rev1 hot_hyperion_budget_rev1,
+    hot_ptp.s_hot_hyperion_budget_rev2 hot_hyperion_budget_rev2,
+    hot_ptp.s_hot_hyperion_budget_rev3 hot_hyperion_budget_rev3,
+    hot_ptp.s_hot_hyperion_cogs_rev1 hot_hyperion_cogs_rev1,
+    hot_ptp.s_hot_hyperion_cogs_rev2 hot_hyperion_cogs_rev2,
+    hot_ptp.s_hot_hyperion_cogs_rev3 hot_hyperion_cogs_rev3,
+    hot_ptp.s_hot_targ_fcst_5_lag five_month_lag_forecast, -- 
+    hot_ptp.s_hot_targ_fcst_6_lag six_month_lag_forecast,
+    hot_ptp.s_hot_targ_fcst_7_lag seven_month_lag_forecast,
+    hot_ptp.s_hot_targ_fcst_8_lag eight_month_lag_forecast,
+    hot_ptp.s_hot_targ_fcst_9_lag nine_month_lag_forecast,
+    hot_ptp.s_hot_targ_fcst_10_lag ten_month_lag_forecast,
+    hot_ptp.s_hot_targ_fcst_11_lag eleven_month_lag_forecast,
+    hot_ptp.s_hot_targ_fcst_12_lag twelve_month_lag_forecast,
+    hot_ptp.mp_hot_abc_flag hot_abc_flag,
+    hot_ptp.max_sales_date max_sales_date,
+    hot_ptp.s_bat_fcst_1_lag one_month_lag_bat_forecast,
+    hot_ptp.s_bat_fcst_2_lag two_month_lag_bat_forecast,
+    hot_ptp.s_bat_fcst_3_lag three_month_lag_bat_forecast,
+    hot_ptp.s_bat_fcst_4_lag four_month_lag_bat_forecast,
+    (
+        case
+            when hot_ptp.max_date_diff = 1
+            then adjusted_history
+            else
+                adjusted_history - (
+                    case
+                        when hot_ptp.s_bat_fcst_3_lag is null
+                        then 0
+                        else hot_ptp.s_bat_fcst_3_lag
+                    end
+                )
+        end
+    ) three_mth_error_lag_fcst, -- mth (month) fsct (make it as forecast)
+    (
+        case
+            when hot_ptp.max_date_diff = 1
+            then adjusted_history
+            else
+                adjusted_history - (
+                    case
+                        when hot_ptp.s_bat_fcst_4_lag is null
+                        then 0
+                        else hot_ptp.s_bat_fcst_4_lag
+                    end
+                )
+        end
+    ) four_mth_error_lag_fcst,
+    (
+        case
+            when hot_ptp.max_date_diff = 1
+            then adjusted_history
+            else
+                adjusted_history - (
+                    case
+                        when hot_ptp.s_bat_fcst_3_lag is null
+                        then 0
+                        else hot_ptp.s_bat_fcst_3_lag
+                    end
+                )
+        end
+    ) three_mth_error_lag_bat_fcst,
+    (
+        case
+            when hot_ptp.max_date_diff = 1
+            then adjusted_history
+            else
+                adjusted_history - (
+                    case
+                        when hot_ptp.s_bat_fcst_4_lag is null
+                        then 0
+                        else hot_ptp.s_bat_fcst_4_lag
+                    end
+                )
+        end
+    ) four_mth_error_lag_bat_fcst,
+    hot_ptp.s_hot_est_list_price hot_est_list_price,
+    (
+        case
+            when hot_ptp.max_date_diff = 1
+            then null
+            else
+                (
+                    (
+                        case
+                            when hot_ptp.s_actual_quantity is null
+                            then 0
+                            else hot_ptp.s_actual_quantity
+                        end
+                    ) - (
+                        case
+                            when hot_ptp.one_month_lag_fcst is null
+                            then 0
+                            else hot_ptp.one_month_lag_fcst
+                        end
+                    )
+                )
+        end
+    ) one_mth_error_lag_fcst,
+    (
+        case when hot_ptp.period_diff >= 0 then hot_ptp.one_month_lag_fcst else null end
+    ) disp_fcst_lag_1,
+    (
+        case
+            when hot_ptp.period_diff = -1
+            then hot_ptp.one_month_lag_fcst
+            else
+                (
+                    case
+                        when hot_ptp.period_diff >= 0
+                        then hot_ptp.two_month_lag_fcst
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_2,
+    (
+        case
+            when hot_ptp.period_diff = -2
+            then hot_ptp.one_month_lag_fcst
+            when hot_ptp.period_diff = -1
+            then hot_ptp.two_month_lag_fcst
+            else
+                (
+                    case
+                        when hot_ptp.period_diff >= 0
+                        then hot_ptp.three_month_lag_fcst
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_3,
+    (
+        case
+            when hot_ptp.period_diff = -3
+            then hot_ptp.one_month_lag_fcst
+            when hot_ptp.period_diff = -2
+            then hot_ptp.two_month_lag_fcst
+            when hot_ptp.period_diff = -1
+            then hot_ptp.three_month_lag_fcst
+            else
+                (
+                    case
+                        when hot_ptp.period_diff >= 0
+                        then hot_ptp.four_month_lag_fcst
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_4,
+    (
+        case
+            when hot_ptp.period_diff = -4
+            then hot_ptp.one_month_lag_fcst
+            when hot_ptp.period_diff = -3
+            then hot_ptp.two_month_lag_fcst
+            when hot_ptp.period_diff = -2
+            then hot_ptp.three_month_lag_fcst
+            when hot_ptp.period_diff = -1
+            then hot_ptp.four_month_lag_fcst
+            else
+                (
+                    case
+                        when hot_ptp.period_diff >= 0
+                        then hot_ptp.s_hot_targ_fcst_5_lag
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_5,
+
+    (
+        case
+            when hot_ptp.period_diff = -5
+            then hot_ptp.one_month_lag_fcst
+            when hot_ptp.period_diff = -4
+            then hot_ptp.two_month_lag_fcst
+            when hot_ptp.period_diff = -3
+            then hot_ptp.three_month_lag_fcst
+            when hot_ptp.period_diff = -2
+            then hot_ptp.four_month_lag_fcst
+            when hot_ptp.period_diff = -1
+            then hot_ptp.s_hot_targ_fcst_5_lag
+            else
+                (
+                    case
+                        when hot_ptp.period_diff >= 0
+                        then hot_ptp.s_hot_targ_fcst_6_lag
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_6,
+    (
+        case
+            when hot_ptp.period_diff = -6
+            then hot_ptp.one_month_lag_fcst
+            when hot_ptp.period_diff = -5
+            then hot_ptp.two_month_lag_fcst
+            when hot_ptp.period_diff = -4
+            then hot_ptp.three_month_lag_fcst
+            when hot_ptp.period_diff = -3
+            then hot_ptp.four_month_lag_fcst
+            when hot_ptp.period_diff = -2
+            then hot_ptp.s_hot_targ_fcst_5_lag
+            when hot_ptp.period_diff = -1
+            then hot_ptp.s_hot_targ_fcst_6_lag
+            else
+                (
+                    case
+                        when hot_ptp.period_diff >= 0
+                        then hot_ptp.s_hot_targ_fcst_7_lag
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_7,
+
+    (
+        case
+            when hot_ptp.period_diff = -7
+            then hot_ptp.one_month_lag_fcst
+            when hot_ptp.period_diff = -6
+            then hot_ptp.two_month_lag_fcst
+            when hot_ptp.period_diff = -5
+            then hot_ptp.three_month_lag_fcst
+            when hot_ptp.period_diff = -4
+            then hot_ptp.four_month_lag_fcst
+            when hot_ptp.period_diff = -3
+            then hot_ptp.s_hot_targ_fcst_5_lag
+            when hot_ptp.period_diff = -2
+            then hot_ptp.s_hot_targ_fcst_6_lag
+            when hot_ptp.period_diff = -1
+            then hot_ptp.s_hot_targ_fcst_7_lag
+            else
+                (
+                    case
+                        when hot_ptp.period_diff >= 0
+                        then hot_ptp.s_hot_targ_fcst_8_lag
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_8,
+
+    (
+        case
+            when hot_ptp.period_diff = -8
+            then hot_ptp.one_month_lag_fcst
+            when hot_ptp.period_diff = -7
+            then hot_ptp.two_month_lag_fcst
+            when hot_ptp.period_diff = -6
+            then hot_ptp.three_month_lag_fcst
+            when hot_ptp.period_diff = -5
+            then hot_ptp.four_month_lag_fcst
+            when hot_ptp.period_diff = -4
+            then hot_ptp.s_hot_targ_fcst_5_lag
+            when hot_ptp.period_diff = -3
+            then hot_ptp.s_hot_targ_fcst_6_lag
+            when hot_ptp.period_diff = -2
+            then hot_ptp.s_hot_targ_fcst_7_lag
+            when hot_ptp.period_diff = -1
+            then hot_ptp.s_hot_targ_fcst_8_lag
+            else
+                (
+                    case
+                        when hot_ptp.period_diff >= 0
+                        then hot_ptp.s_hot_targ_fcst_9_lag
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_9,
+    (
+        case
+            when hot_ptp.period_diff = -9
+            then hot_ptp.one_month_lag_fcst
+            when hot_ptp.period_diff = -8
+            then hot_ptp.two_month_lag_fcst
+            when hot_ptp.period_diff = -7
+            then hot_ptp.three_month_lag_fcst
+            when hot_ptp.period_diff = -6
+            then hot_ptp.four_month_lag_fcst
+            when hot_ptp.period_diff = -5
+            then hot_ptp.s_hot_targ_fcst_5_lag
+            when hot_ptp.period_diff = -4
+            then hot_ptp.s_hot_targ_fcst_6_lag
+            when hot_ptp.period_diff = -3
+            then hot_ptp.s_hot_targ_fcst_7_lag
+            when hot_ptp.period_diff = -2
+            then hot_ptp.s_hot_targ_fcst_8_lag
+            when hot_ptp.period_diff = -1
+            then hot_ptp.s_hot_targ_fcst_9_lag
+            else
+                (
+                    case
+                        when hot_ptp.period_diff >= 0
+                        then hot_ptp.s_hot_targ_fcst_10_lag
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_10,
+    (
+        case
+            when hot_ptp.period_diff = -10
+            then hot_ptp.one_month_lag_fcst
+            when hot_ptp.period_diff = -9
+            then hot_ptp.two_month_lag_fcst
+            when hot_ptp.period_diff = -8
+            then hot_ptp.three_month_lag_fcst
+            when hot_ptp.period_diff = -7
+            then hot_ptp.four_month_lag_fcst
+            when hot_ptp.period_diff = -6
+            then hot_ptp.s_hot_targ_fcst_5_lag
+            when hot_ptp.period_diff = -5
+            then hot_ptp.s_hot_targ_fcst_6_lag
+            when hot_ptp.period_diff = -4
+            then hot_ptp.s_hot_targ_fcst_7_lag
+            when hot_ptp.period_diff = -3
+            then hot_ptp.s_hot_targ_fcst_8_lag
+            when hot_ptp.period_diff = -2
+            then hot_ptp.s_hot_targ_fcst_9_lag
+            when hot_ptp.period_diff = -1
+            then hot_ptp.s_hot_targ_fcst_10_lag
+            else
+                (
+                    case
+                        when hot_ptp.period_diff >= 0
+                        then hot_ptp.s_hot_targ_fcst_11_lag
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_11,
+    (
+        case
+            when hot_ptp.period_diff = -11
+            then hot_ptp.one_month_lag_fcst
+            when hot_ptp.period_diff = -10
+            then hot_ptp.two_month_lag_fcst
+            when hot_ptp.period_diff = -9
+            then hot_ptp.three_month_lag_fcst
+            when hot_ptp.period_diff = -8
+            then hot_ptp.four_month_lag_fcst
+            when hot_ptp.period_diff = -7
+            then hot_ptp.s_hot_targ_fcst_5_lag
+            when hot_ptp.period_diff = -6
+            then hot_ptp.s_hot_targ_fcst_6_lag
+            when hot_ptp.period_diff = -5
+            then hot_ptp.s_hot_targ_fcst_7_lag
+            when hot_ptp.period_diff = -4
+            then hot_ptp.s_hot_targ_fcst_8_lag
+            when hot_ptp.period_diff = -3
+            then hot_ptp.s_hot_targ_fcst_9_lag
+            when hot_ptp.period_diff = -2
+            then hot_ptp.s_hot_targ_fcst_10_lag
+            when hot_ptp.period_diff = -1
+            then hot_ptp.s_hot_targ_fcst_11_lag
+            when hot_ptp.period_diff = 0
+            then hot_ptp.s_hot_targ_fcst_12_lag
+            else
+                (
+                    case
+                        when hot_ptp.period_diff < -11
+                        then hot_ptp.one_month_lag_fcst
+                        else null
+                    end
+                )
+        end
+    ) disp_fcst_lag_12,
+    hot_ptp.period_diff period_diff,
+    hot_ptp.currency_code currency_code,
+    (
+        case
+            when hot_ptp.mp_hot_do_fore_over = 0
+            then 'DO NOT FORECAST'
+            when hot_ptp.mp_hot_do_fore_over = 1
+            then 'DO FORECAST'
+            when hot_ptp.mp_hot_do_fore_over = 2
+            then 'DO ZERO FORECAST'
+            else null
+        end
+    ) forecast_flag_override,
+    -- chk this
+    one_month_lag_fcst * coalesce(
+        hot_ptp.s_hot_invoice_price_over, hot_ptp.invoice_price_sd, 0
+    ) one_month_lag_fcst__,
+    two_month_lag_fcst * coalesce(
+        hot_ptp.s_hot_invoice_price_over, hot_ptp.invoice_price_sd, 0
+    ) two_month_lag_fcst__,
+    three_month_lag_fcst * coalesce(
+        hot_ptp.s_hot_invoice_price_over, hot_ptp.invoice_price_sd, 0
+    ) three_month_lag_fcst__,
+    four_month_lag_fcst * coalesce(
+        hot_ptp.s_hot_invoice_price_over, hot_ptp.invoice_price_sd, 0
+    ) four_month_lag_fcst__,
+    hot_ptp.td_ebs_demand_class demand_class,
+    hot_ptp.uplift_future uplift_future,
+    hot_ptp.s_hot_1_lag_fcst_dol one_month_lag_fcst_dol,
+    hot_ptp.s_hot_unconstrained_demand hot_unconstrained_demand,
+    hot_unconstrained_demand * coalesce(
+        hot_ptp.s_hot_invoice_price_over, hot_ptp.invoice_price_sd, 0
+    ) hot_unconstrained_demand_,
+    hot_ptp.s_hot_invoice_price_over invoice_price_override,
+    hot_ptp.msi_sales_account sales_account,
+    hot_ptp._batch_update_date,
+    hot_ptp.source_id
+
+from hot_ptp

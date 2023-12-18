@@ -1,0 +1,117 @@
+
+coalesce(s_enter_fore,s_col_for_over,s_manual_stat,s_sim_val_1,fore_0_calc, 0)
+    * (1.00 - (case when s_trg_cannizn_perc = 1 then s_trg_cannizn_perc else 0 end))
+     * (1.00 - coalesce(s_src_cannizn_perc, 0))
+     * (1.00 + coalesce(s_manual_fact, 0))
+     + coalesce(s_fixed_prom, 0)
+   * (1.00 - coalesce(s_rule_coll, 0))
+   + (coalesce(s_int_cost, 0))
+   * (coalesce(s_rule_coll, 0))
+   else s_col_for_over
+   end
+    )else s_ff
+    end
+    )is null then 0
+
+   (
+        case
+            when
+                (
+                    case
+                        when s_enter_fore is null
+                        then
+                            (
+                                case
+                                    when s_col_for_over is null
+                                    then
+                                        (
+                                            case
+                                                when s_manual_stat is null
+                                                then
+                                                    (
+                                                        case
+                                                            when s_sim_val_1 is null
+                                                            then fore_0_calc
+                                                            else s_sim_val_1
+                                                        end
+                                                    )
+                                                else s_manual_stat
+                                            end
+                                        ) * (
+                                            1.00 - (
+                                                case
+                                                    when s_trg_cannizn_perc = 1
+                                                    then s_trg_cannizn_perc
+                                                    else 0
+                                                end
+                                            )
+                                        )
+                                        * (
+                                            1.00 - coalesce(s_src_cannizn_perc, 0)
+                                        * (
+                                            1.00 + coalesce(s_manual_fact, 0)
+                                        )
+                                        + coalesce(s_fixed_prom, 0)
+                                        * (
+                                            1.00 - coalesce(s_rule_coll, 0)
+                                        )
+                                        + coalesce(s_int_cost, 0)
+                                        * (
+                                            coalesce(s_rule_coll, 0)
+                                        )
+                                    else s_col_for_over
+                                end
+                            )
+                        else s_ff
+                    end
+                )
+                is null
+            then 0
+    
+
+
+
+
+         (coalesce(s_wcp_override,s_manual_stat,s_sim_val_1,fore_0_calc,s_col_for_over,0))
+ * (
+                            1.00 + (
+                               coalesce(s_manual_fact,0)
+                            )
+                        )
+                        * (
+                            case
+                                when s_pct_final_weight is null
+                                then 1
+                                else s_pct_final_weight
+                            end
+                        )
+                        + (
+                            coalesce(s_sales_baseline,s_sales_override,0)
+                        )
+                        * (
+                            1.00 + coalesce(s_sales_pct_change,0)
+                        )
+                        * (coalesce(s_pct_sales_weight,0))
+                        + (
+                            coalesce(s_mktg_override,s_mktg_baseline,0)
+                        )
+                        * (
+                            1.00 + coalesce(s_mktg_pct_change,0)
+                        )
+                        * coalesce(s_pct_mktg_weight,0)
+                    ) / (
+                        (
+                            case
+                                when s_pct_final_weight is null
+                                then 1
+                                else s_pct_final_weight
+                            end
+                        ) + coalesce(s_pct_sales_weight,0)
+                        + coalesce(s_pct_mktg_weight,0)
+                    )
+                )
+            else s_wcp_override
+        end
+    )
+    * s_hot_est_list_price consensus_forecast_value,
+   

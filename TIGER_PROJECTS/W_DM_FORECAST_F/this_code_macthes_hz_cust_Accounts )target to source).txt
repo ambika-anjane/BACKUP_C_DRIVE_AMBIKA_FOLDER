@@ -1,0 +1,133 @@
+-- working code
+
+
+
+
+
+with
+    s as (select * 
+          from dev_discover.SUPPLY_CHAIN.stg_oracle__sales_data
+          where sales_date >= dateadd('year', -2, date_trunc('year', current_date()))
+            and (hot_targ_fcst_5_lag > 0
+                or hot_targ_fcst_6_lag > 0
+                or hot_targ_fcst_7_lag > 0
+                or hot_targ_fcst_8_lag > 0
+                or hot_targ_fcst_9_lag > 0
+                or hot_targ_fcst_10_lag > 0
+                or hot_targ_fcst_11_lag > 0
+                or hot_targ_fcst_12_lag > 0
+                or bat_fcst_1_lag > 0
+                or bat_fcst_2_lag > 0
+                or bat_fcst_3_lag > 0
+                or bat_fcst_4_lag > 0
+                or Week4_lag_fcst > 0
+                or week_8_lag_fcst > 0
+                or targ_fcst_3_lag > 0
+                or targ_fcst_4_lag > 0
+                or HOT_FUTURE_ORDERS > 0
+                or SALES_OVERRIDE > 0
+                or HOT_WTD_SHIP > 0
+                --or v_f.v_fore > 0
+                or ENTER_FORE > 0
+                or HOT_SALES_BASE_OVER > 0
+                or MANUAL_STAT > 0
+                or ACTUAL_QUANTITY> 0
+                or COL_FOR_OVER > 0
+                or SIM_VAL_1 > 0
+                or FIXED_PROM > 0
+                or RULE_COLL > 0
+                or INT_COST > 0
+                or FF > 0)
+          ),
+          
+ cal as (select * from dev_discover.supply_chain.stg_oracle__inputs),
+    mop as (select * from dev_discover.supply_chain.stg_oracle__msc_trading_partners),
+    lp as (select * from dev_discover.supply_chain.stg_oracle__hot_list_price),
+    ac as (select * from dev_discover.supply_chain.stg_oracle__hot_abc_class),
+    msi as (select * from dev_discover.master_data.stg_oracle__mtl_system_items),
+    fl as (select * from dev_discover.master_data.stg_oracle__fnd_lookup_values),
+    sob as (select * from dev_discover.financials.stg_oracle__gl_sets_of_books),
+    mp as (select * from dev_discover.supply_chain.stg_oracle__mdp_matrix),
+    hca as (select * from dev_discover.master_data.stg_oracle__customer_accounts),
+    hca1 as (select * from dev_discover.master_data.stg_oracle__customer_accounts),
+    ea as (select *, RIGHT(EBS_ACCOUNT, POSITION(':' IN REVERSE(EBS_ACCOUNT)) - 1) as ebs_account_number from dev_discover.SUPPLY_CHAIN.stg_oracle__t_ep_ebs_account),
+    hp as (select * from dev_discover.master_data.stg_oracle__parties),
+    cc as (select * from dev_discover.supply_chain.stg_oracle__t_ep_e1_cust_cat_2),
+    ti as (select * from dev_discover.supply_chain.stg_oracle__t_ep_item),
+    teo as (select * from dev_discover.supply_chain.stg_oracle__t_ep_organization),
+    td as (select * from dev_discover.supply_chain.stg_oracle__t_ep_ebs_demand_class),
+    prom as (select * from dev_discover.supply_chain.stg_oracle__promotion_data),
+    ord as (
+        select * from dev_discover.master_data.stg_oracle__organization_definitions
+    ),
+    -- sales_promo as (select * from
+    -- dev_discover.MASTER_DATA.stg_oracle__sales_promotions),
+    customer_acc as (
+        select * from dev_discover.master_data.stg_oracle__customer_group_and_lob
+    ),
+    forecast_his as (
+        select * from dev_discover.supply_chain.stg_oracle__forecast_history
+    ),
+    hp as (select * from dev_discover.master_data.stg_oracle__parties),
+          
+       staging as (
+        select
+            s.item_id s_item_id,
+            null invoice_price_sd
+         from s
+        right outer join mp
+        on  mp.item_id = s.item_id
+        and mp.location_id = s.location_id
+        right outer join cal
+        on cal.datet = s.sales_date
+        right outer  join ac
+        on ac.t_ep_hot_abc_class_ep_id = mp.t_ep_hot_abc_class_ep_id
+        right outer join (
+                select
+                    item_id lp1_item_id,
+                    location_id lp1_location_id,
+                    max(case when lp.cg_flag = 1 then currency_code end) group_currency,
+                    max(case when lp.cg_flag = 0 then currency_code end) cust_currency
+                from
+                    lp
+                group by
+                    lp1_item_id,
+                    lp1_location_id
+                ) lp1
+                 on s.item_id = lp1_item_id
+                and s.location_id = lp1_location_id
+        right join ti
+        on mp.t_ep_item_ep_id = ti.t_ep_item_ep_id
+        right outer join msi
+        on ti.item = msi.segment1
+        and msi.organization_id = 82
+        right outer join teo
+        on mp.t_ep_organization_ep_id = teo.t_ep_organization_ep_id
+        right outer join mop
+        on nvl(teo.organization,'NA') = mop.organization_code
+        left outer join td
+        on mp.t_ep_ebs_demand_class_ep_id = td.t_ep_ebs_demand_class_ep_id
+        right outer join prom
+        on s.location_id = prom.location_id
+        and s.item_id = prom.item_id
+        and s.sales_date = prom.sales_date
+        right outer join ord
+        on mop.sr_tp_id = ord.organization_id
+        right outer join sob
+        on ord.set_of_books_id = sob.set_of_books_id
+        left outer join cc
+        on mp.t_ep_e1_cust_cat_2_ep_id = cc.t_ep_e1_cust_cat_2_ep_id
+        inner join ea
+        on mp.T_EP_EBS_ACCOUNT_EP_ID = ea.T_EP_EBS_ACCOUNT_EP_ID
+        right outer join hca
+        on hca.CUSTOMER_ACCOUNT_NUMBER = ea.ebs_account_number
+        left outer join fl
+        on fl.lookup_type = 'HOT_OVERRIDE_PRICE_TAG'
+        and ea.ebs_account_number = fl.lookup_code
+
+     )
+select count(*)
+from staging
+
+
+   

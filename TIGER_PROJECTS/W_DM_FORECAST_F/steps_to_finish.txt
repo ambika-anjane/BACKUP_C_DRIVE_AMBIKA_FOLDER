@@ -1,0 +1,16 @@
+-- addd remaining cols (done)
+-- ad dymanic cols -- ( 2 done)
+-- add join conditiond (done)
+-- customer_account_id condition yo check (done)
+-- add incremental (done)
+-- check target columns and source colums
+-- check nvl conditiond in stage _ (not working) to chk with bala 
+-- check  and conditions in final by renaming stage cols (used for and
+-- conditions) - done
+-- two cols missing in target (cust_acct_id and uplife_future) to check with team
+-- - check
+-- last testing
+-- rename cols in test (with renamed cols in stage)
+-- instead of cc and ea replace it with cust_group_lob 
+-- entire sub string replace with joining curtomer_grp_lob
+-- (customer_account_number) remove (195 from substr to 198)*/

@@ -1,0 +1,27 @@
+
+with
+    s as (select * from {{ ref("stg_oracle__sales_data") }}),
+    prom as (select * from {{ ref("stg_oracle__promotion_data") }}),
+
+    sales as (
+        select
+            s.item_id item_id,
+            s.location_id location_id,
+            s.sales_date sales_date from s
+    ),
+
+ promotion as (
+        select
+            prom.item_id item_id,
+            prom.location_id location_id,
+            prom.sales_date sales_date from prom
+    )
+    select * from promotion left outer join sales
+    on sales.item_id = promotion.item_id
+    and sales.location_id = promotion.location_id
+    and sales.sales_date = promotion.sales_date
+    and promotion.sales_date = '2011-06-27T00:00:00'
+    
+    
+    
+
