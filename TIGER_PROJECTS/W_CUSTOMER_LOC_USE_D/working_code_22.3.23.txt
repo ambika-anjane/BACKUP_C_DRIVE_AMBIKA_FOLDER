@@ -1,0 +1,118 @@
+
+with
+    cust_sites_all as (select * from {{ ref("stg_oracle__customer_sites") }}),
+    cust_site_uses as (select * from {{ ref("stg_oracle__customer_site_uses") }}),
+    cust_account as (select * from {{ ref("stg_oracle__customer_accounts") }}),
+    party_sites as (select * from {{ ref("stg_oracle__party_sites") }}),
+    ar_collectors as (select * from {{ ref("stg_oracle__ar_collectors") }}),
+    cust_profile as (select * from {{ ref("stg_oracle__customer_profiles") }}),
+    hz_loc as (select * from {{ ref("stg_oracle__party_locations") }})
+
+select
+    nvl(
+        cust_account.customer_account_id || '~' || cust_account._source_id, '0'
+    ) customer_account_id,
+    nvl(
+        cust_site_uses.cust_acct_site_id || '~' || cust_site_uses._source_id, '0'
+    ) customer_loc_id,
+    nvl(
+        cust_sites_all.customer_account_site_id || '~' || cust_sites_all._source_id, '0'
+    ) acct_site_id,
+    cust_site_uses.location address_num,
+    nvl(
+        cust_site_uses.site_use_id || '~' || cust_site_uses._source_id, '0'
+    ) site_use_id,
+    cust_site_uses.site_use_code site_use_code,
+    nvl(
+        cust_site_uses.territory_id || '~' || cust_site_uses._source_id, '0'
+    ) territory_id,
+    cust_site_uses.status active_flag,
+    nvl(
+        cust_site_uses.created_by_id || '~' || cust_site_uses._source_id, '0'
+    ) created_by_id,
+    nvl(
+        cust_site_uses.changed_by_id || '~' || cust_site_uses._source_id, '0'
+    ) changed_by_id,
+    cust_site_uses.created_on_date created_on_date,
+    cust_site_uses.changed_on_date changed_on_date,
+    cust_sites_all.last_update_date aux1_changed_on_date,
+    party_sites.last_update_date aux2_changed_on_date,
+    hz_loc.last_update_date aux3_changed_on_date,
+    cust_account.changed_on_date aux4_changed_on_date,
+    'N' delete_flg,
+    nvl(
+        cust_site_uses.site_use_id || '~' || cust_site_uses._source_id, '0'
+    ) integration_id,
+    ar_collectors.name collector_name,
+    ar_collectors.description collector_description,
+    cust_site_uses.primary_flag primary_flag,
+    cust_site_uses.gl_id_rev gl_id_rev,
+  --  $batch_start_time w_insert_dt,
+  --  $batch_start_time w_update_dt,
+    cust_site_uses._source_id datasource_num_id,
+    {{ env_var("DBT_ETL_PROC_ID") }} etl_proc_id
+from  ar_collectors right outer join cust_profile
+    on ar_collectors.collector_id = cust_profile.collector_id
+    inner join cust_site_uses
+    on cust_profile.site_use_id = cust_site_uses.site_use_id
+    inner join cust_sites_all
+    on cust_site_uses.cust_acct_site_id = cust_sites_all.customer_account_site_id
+    right outer join cust_account
+    on cust_account.customer_account_id = cust_sites_all.customer_account_site_id
+    inner join party_sites
+    on party_sites.party_site_id = cust_sites_all.party_site_id
+    inner join hz_loc
+    on hz_loc.location_id = party_sites.location_id
+   
+    {% if is_incremental() %}
+    where cust_site_uses.cust_acct_site_id in 
+        (select cust_sites_all.customer_account_site_id
+        from cust_sites_all
+        where
+            (cust_sites_all._batch_update_date >= $batch_start_time
+            and cust_sites_all._batch_update_date <= $batch_end_time)
+        union all
+        select cust_sites_all.customer_account_site_id from cust_sites_all
+        inner join cust_account
+        on cust_sites_all.customer_account_site_id = cust_account.customer_account_id
+        where
+            (cust_account._batch_update_date >= $batch_start_time
+            and cust_account._batch_update_date <= $batch_end_time)
+        union all
+        select cust_sites_all.customer_account_site_id from cust_sites_all
+        inner join cust_site_uses
+        on cust_sites_all.customer_account_site_id = cust_site_uses.cust_acct_site_id
+        where
+            (cust_site_uses._batch_update_date >= $batch_start_time
+            and cust_site_uses._batch_update_date <= $batch_end_time)
+        union all
+        select cust_sites_all.customer_account_site_id from cust_sites_all
+        inner join party_sites 
+        on cust_sites_all.party_site_id = party_sites.party_site_id
+        where
+            (party_sites._batch_update_date >= $batch_start_time
+            and party_sites._batch_update_date <= $batch_end_time)
+        union all
+        select cust_sites_all.customer_account_site_id
+        from (cust_sites_all
+        inner join (party_sites
+        inner join hz_loc
+        on party_sites.location_id = hz_loc.location_id)
+        on cust_sites_all.party_site_id = party_sites.party_site_id)
+        where
+            (hz_loc._batch_update_date >= $batch_start_time
+            and hz_loc._batch_update_date <= $batch_end_time)
+        union all
+        select cust_sites_all.customer_account_site_id
+        from cust_sites_all inner join cust_site_uses
+        on cust_site_uses.cust_acct_site_id = cust_sites_all.customer_account_site_id
+        right outer join cust_profile
+        on cust_profile.site_use_id = cust_site_uses.site_use_id
+        right outer join ar_collectors
+        on  ar_collectors.collector_id = cust_profile.collector_id
+        and 
+            (ar_collectors._batch_update_date >= $batch_start_time
+            and ar_collectors._batch_update_date <= $batch_end_time)
+            or (cust_profile._batch_update_date >= $batch_start_time
+            and cust_profile._batch_update_date <= $batch_end_time))
+    {% endif %}

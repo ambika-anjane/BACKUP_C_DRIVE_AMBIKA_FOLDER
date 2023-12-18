@@ -1,0 +1,19 @@
+from	APPS.AR_COLLECTORS    AR_COLLECTORS RIGHT OUTER JOIN (APPS.HZ_CUSTOMER_PROFILES    HZ_CUSTOMER_PROFILES RIGHT OUTER JOIN (APPS.HZ_CUST_ACCOUNTS    CA INNER JOIN (APPS.HZ_LOCATIONS    L INNER JOIN (APPS.HZ_PARTY_SITES    PS INNER JOIN (APPS.HZ_CUST_SITE_USES_ALL    CSU INNER JOIN APPS.HZ_CUST_ACCT_SITES_ALL    CAS ON CSU.CUST_ACCT_SITE_ID=CAS.CUST_ACCT_SITE_ID) ON PS.PARTY_SITE_ID=CAS.PARTY_SITE_ID) ON L.LOCATION_ID=PS.LOCATION_ID) ON CA.CUST_ACCOUNT_ID=CAS.CUST_ACCOUNT_ID) ON HZ_CUSTOMER_PROFILES.SITE_USE_ID=CSU.SITE_USE_ID) ON AR_COLLECTORS.COLLECTOR_ID=HZ_CUSTOMER_PROFILES.COLLECTOR_ID
+where	(1=1)
+
+
+from ar_collectors
+right outer join cust_profile
+right outer join cust_account
+inner join hz_loc
+inner join party_sites
+inner join cust_site_uses
+inner join 
+    cust_sites_all
+    on cust_site_uses.cust_acct_site_id = cust_sites_all.customer_account_site_id
+    on party_sites.party_site_id = cust_sites_all.party_site_id
+    on hz_loc.location_id = party_sites.location_id
+    on cust_account.customer_account_id = cust_sites_all.customer_account_site_id
+    on cust_profile.site_use_id = cust_site_uses.site_use_id
+    on ar_collectors.collector_id = cust_profile.collector_id
+where
