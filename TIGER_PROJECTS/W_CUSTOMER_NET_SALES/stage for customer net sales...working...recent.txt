@@ -1,0 +1,228 @@
+with
+
+    w_ledger_d as (select * from dev_edw.edw_omni.w_ledger_d),
+    w_gl_segment_d as (select * from dev_edw.edw_omni.w_gl_segment_d),
+    w_sla_xact_f as (select * from dev_edw.edw_omni.w_sla_xact_f),
+    w_xact_source_d as (select * from dev_edw.edw_omni.w_xact_source_d),
+    w_gl_account_d as (select * from dev_edw.edw_omni.w_gl_account_d),
+    w_customer_account_d as (select * from dev_edw.edw_omni.w_customer_account_d),
+    w_freight_terms_d as (select * from dev_edw.edw_omni.w_freight_terms_d),
+    w_gl_segment_dh as (select * from dev_edw.edw_omni.w_gl_segment_dh),
+    w_day_d as (select * from dev_edw.edw_omni.w_day_d),
+    w_forecast_scenarios_d as (
+        select * from "DEV_EDW"."EDW_OMNI"."W_FORECAST_SCENARIOS_D"
+    ),
+    current_period as (
+        select
+            -- ent_period_end_date,
+            calendar_date - 10000000 yago_dt_wid,
+            ent_period_year_ago_end_date yago_period_wid,
+            -- mcal_day_of_period / cal_month_total_days mtd_percent,
+            calendar_date mcal_day_wid,
+            -- floor(ent_period_ago_end_date / 1000) * 1000 prior_period_wid,
+            ent_day_of_period,
+            ent_period_start_date,
+            ent_period_end_date,
+            add_months(ent_period_start_date, -1) prior_period_start_dt,
+            dateadd(day, -1, ent_period_start_date) prior_period_end_dt,
+            to_char(ent_year_start_date, 'YYYYMMDD'),
+            to_char(ent_year_start_date, 'YYYYMMDD') + actuals_month * 100000
+            forecast_actuals_day_wid,
+            to_char(ent_year_start_date, 'YYYYMMDD') + budget_actuals_months * 100000
+            budget_actuals_day_wid,
+            b.scenario fc_scenario,
+            add_months(ent_year_start_date, -12) yago_period_start_dt,
+            add_months(ent_period_end_date, -12) yago_period_end_dt,
+            current_date - 1 last_date,
+            'HOT Calendar' mcal_cal_name,
+            'N' adjustment_period_flg
+        from
+            w_day_d a,
+
+            (
+                select actuals_month, scenario, budget_actuals_months
+                from w_forecast_scenarios_d
+                where active_flag = 'Y'
+            ) b
+        where 1 = 1 and calendar_date = current_date - 1  -- calendar_date
+    -- AND w_current_mcal_period_code = 'Current'
+    -- AND w_current_mcal_day_code = 'Previous'
+    ),
+    -- division by zero exception as ship_Date is null @dayd_d
+    mtd as (
+        select
+            count(distinct case when calendar_date < current_date() then ship_date end)
+            / count(distinct ship_date)
+            mtd_percent
+        from w_day_d
+        where ent_period = to_char(dateadd(day, -1, current_timestamp()), 'Mon-YY')
+    ),
+    -- null values in ship_date
+    ship_cal as (
+        select
+            '1' || to_char(max(year_ago_date), 'YYYYMMDD') || '000'
+            yago_ship_dt_wid,
+            max(year_ago_date) yago_ship_date
+        from w_day_d
+        where
+            ship_date = (
+                select max(ship_date)
+                from w_day_d c
+                where calendar_date < current_date()
+            )
+    ),
+
+    sales_details as (
+        select
+            sq.generic_customer_account_id,
+            sq.customer_account_id,
+            -- sq.acct_period_id,
+            sq.accounting_date,
+            sq.inventory_item_id,
+            sq.inventory_product_id,
+            sq.inventory_org_id,
+            sq.business_unit_segment_id,  -- - alias??
+            sq.company_segment_id,
+            sq.sales_channel_segment_id,
+            sq.location_segment_id,
+            sq.department_segment_id,
+            sq.account_segment_id,
+            sq.gl_account_id,
+            sum(sq.sla_loc_amount) sla_loc_amt,
+            sum(sq.transaction_quantity) xact_quantity,  -- (in that table)
+            sq.event_class_code,
+            sq.product_line_segment_id,
+            sq.brand_segment_id,
+            gl.account_group,
+            gl.account,
+            gl.account_type,
+            gl.business_unit,
+            nvl(
+                rollup_sg.integration_id, sq.product_line_segment_id
+            ) rollup_product_line_segment_id,
+            c.customer_name,
+            c.customer_type,
+            c.customer_group,
+            f.freight_term_code,
+            c.integration_id cust_integration_id,
+            j.source_code,
+            cp.ent_period_end_date,
+            cp.prior_period_end_dt,
+            cp.yago_period_end_dt
+
+        from w_sla_xact_f sq, w_gl_account_d gl
+        left join
+            (
+
+                select
+
+                    b.segment_integration_id
+                    integration_id,
+
+                    min(b.segment_integration_id) over (
+
+                        partition by b.level0_segment_description
+
+                        order by b.segment_integration_id
+
+                    ) gl_product_line_id
+
+                from dev_edw.edw_omni.w_gl_segment_dh b
+
+                where
+
+                    b.level1_segment_description not in (
+
+                        'HH Leadership Categories',
+                        'HH Seasonal Categories',
+
+                        'HH Developing Categories',
+                        'HH All Other Categories'
+
+                    )
+
+            -- and b.LEVEL8_SEGMENT_CODE <>
+            -- b.LEVEL9_SEGMENT_CODE
+            ) rollup_pl left join 
+            w_gl_segment_d rollup_sg,
+            current_period cp,
+            w_ledger_d lg,
+            w_customer_account_d c,
+            w_freight_terms_d f,
+            w_xact_source_d j
+
+        where
+            gl.gl_account_number not in (  -- '9999',
+                -- '9000',
+                -- '9990',
+                '1070',
+                '1071',
+                '1075',
+                '1076',
+                '1077',
+                '1072',
+                '1074',
+                '1073',
+                '1061',
+                '1062',
+                '1063'
+            )
+            and sq.gl_account_id = gl.integration_id
+             and rollup_pl.integration_id = gl.gl_product_line_id
+             and rollup_pl.gl_product_line_id = rollup_sg.integration_id
+            and lg.ledger_id || '~' || 100 = sq.ledger_id
+            and lg.ledger_currency = 'USD'
+            and lg.ledger_name not in (
+                'HOT FASB52 USD FR',
+                'HOT FASB52 USD GB',
+                'HOT FASB52 USD MX',
+                'CONSO HOT LATIN AMERICA LLC'
+            )
+            and sq.accounting_date
+            in (cp.ent_period_end_date, cp.prior_period_end_dt, cp.yago_period_end_dt)
+            and sq.accounting_date > '2019-01-01'
+            and c.integration_id = sq.generic_customer_account_id
+            and f.integration_id = sq.freight_terms_id
+            and sq.journal_source_id = j.integration_id
+            and j.source_code <> 'Conversion'
+            and gl.account_type <> 'R'
+            and sq.journal_source_id = j.integration_id
+            and gl.gl_intercompany_code = '000'
+        group by
+
+            sq.generic_customer_account_id,
+            sq.customer_account_id,
+            sq.acct_period_id,
+            sq.accounting_date,
+            sq.inventory_item_id,
+            sq.inventory_product_id,
+            sq.inventory_org_id,
+            sq.business_unit_segment_id,
+            sq.company_segment_id,
+            sq.location_segment_id,
+            -- sq.natural_account_wid,
+            sq.product_line_segment_id,
+            nvl(rollup_sg.integration_id, sq.product_line_segment_id),
+            sq.brand_segment_id,
+            sq.department_segment_id,
+            sq.gl_account_id,
+            sq.account_segment_id,
+            sq.event_class_code,
+            sq.sales_channel_segment_id,
+            gl.account_group,
+            gl.account,
+            gl.account_type,
+            gl.business_unit,
+            c.customer_name,
+            c.customer_type,
+            c.customer_group,
+            f.freight_term_code,
+            c.integration_id,
+            j.source_code,
+            cp.ent_period_end_date,
+            cp.prior_period_end_dt,
+            cp.yago_period_end_dt
+
+    )
+select *
+from sales_details 

@@ -1,0 +1,83 @@
+/* + added extrenal sales details which are not present in EBS */
+with
+    sales_details as (select * from {{ ref("stg_oracle__customer_net_sales") }}),
+    w_ledger_d as (select * from dev_edw.edw_omni.w_ledger_d),
+    w_gl_segment_d as (select * from dev_edw.edw_omni.w_gl_segment_d),
+    w_xact_source_d as (select * from dev_edw.edw_omni.w_xact_source_d),
+    w_status_d as (select * from dev_edw.edw_omni.w_status_d),
+    wc_sla_xact_day_a as (select * from dev_edw.edw_omni.w_sla_xact_f),
+    current_period as (select * from {{ ref("stg_oracle__current_period") }}),
+    wc_daily_sales_m as (select * from dev_edw.edw_omni.wc_daily_sales_m),
+    w_gl_account_d as ((select * from dev_edw.edw_omni.w_gl_account_d)),
+    w_day_d as (select * from dev_edw.edw_omni.w_day_d),
+    ship_cal as (
+        select
+            '1' || to_char(max(year_ago_date), 'YYYYMMDD') || '000'
+            yago_ship_dt_wid,
+            max(year_ago_date) yago_ship_date
+        from w_day_d
+        where
+            ship_date = (
+                select max(ship_date)
+                from w_day_d c
+                where calendar_date < current_date()
+            )
+    )
+
+
+
+select  /* + parallel(16) */
+    sales.generic_customer_account_id customer_acct_wid,
+    sales.customer_account_id customer_wid,
+    sales.inventory_item_id,
+    sales.inventory_product_d,
+    sales.inventory_org_id,
+    sales.accounting_date,
+    -- ,pr.row_wid product_wid
+    sales.business_unit_segment_id gl_business_unit_id,
+    sales.location_segment_id gl_location_id,
+    na.gl_account_id gl_natural_acct_id,
+    -- 0 gl_natural_acct_wid,
+    sales.product_line_segment_id gl_product_line_id,
+    sales.brand_segment_id gl_brand_id,
+    0 sales_amt,
+    0 sales_mtd,
+    0 sales_wo_manual,
+    case when na.natural_account_val_code = 'S67001' then 1 else -1 end * sum(
+        nvl(-1 * sla_loc_amt, 0) - nvl(
+            xact_quantity * case
+                when cu.x_cust_di_flag = 'Y'
+                then nvl(p.list_price_di, p.list_price)
+                else p.list_price
+            end,
+            0
+        )
+    )
+    list_variance,
+    sales.gl_segment3_wid sales_channel_wid,
+    gl.account_seg1_name bu_segment
+from
+    w_sla_xact_f sales,
+    wc_item_list_price_d p,
+    w_mcal_period_d pd,
+    w_gl_account_d na,
+    w_product_d pr,
+    w_party_d cu,
+    w_gl_account_d gl,
+    current_period cp
+where
+    sales.acct_period_end_dt
+    in (cp.mcal_period_end_dt, cp.prior_period_end_dt, cp.yago_period_end_dt)
+    and p.item_number = pr.part_num
+    and pd.row_wid = sales.acct_period_end_dt_wid
+    and pd.mcal_cal_name = 'HOT Calendar'
+    and xact_quantity > 0
+    and pd.mcal_period_start_dt between p.start_date and p.end_date
+    and na.natural_account_val_code in ('S67001', 'S67002')
+    and na.natural_account_lov_id = '1007682'
+    and sales.inventory_item_wid = pr.row_wid
+    and cu.row_wid = sales.x_generic_customer_wid
+    and sales.gl_account_wid = gl.row_wid
+    and gl.group_account_num = 'GROSS SALES'
+group by
+   all

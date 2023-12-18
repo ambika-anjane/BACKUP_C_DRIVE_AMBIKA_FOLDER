@@ -1,0 +1,45 @@
+with
+    sales_commissions as (select * from {{ ref("int__get_sales_commisions") }}),
+    alloc as (select * from {{ ref("stg_oracle__alloc") }}),
+
+
+sub_31 as (
+select  /* + parallel(16) */
+    -- Matching at BU level
+    s1.customer_Account_id customer_acct_wid,
+    s1.customer_id,
+    s1.inventory_item_id,
+    s1.inventory_product_id,
+    s1.inventory_org_id,
+    alloc.period_id,
+    alloc.gl_business_unit_id,
+    s1.gl_location_id,
+    alloc.gl_natural_acct_id,
+    s1.gl_product_line_id,
+    s1.gl_brand_id,
+    0 sales_amt,
+    0 sales_mtd,
+    0 sales_wo_manual,
+    alloc.allocation_amt * s1.per_bu_sales
+    gl_allocation_amt,
+    s1.sales_channel_id,
+    alloc.bu_segment
+from alloc, sales_commissions s1
+where
+    alloc.period_id = s1.period_id
+    and alloc.gl_business_unit_id = s1.gl_business_unit_id
+    and alloc.segment_val_descr = 'Sales Commissions' -- failing
+    and not exists
+    (
+        select 1
+        from sales_commissions s2
+        where
+            alloc.period_id = s2.period_id
+            and alloc.gl_business_unit_id = s2.gl_business_unit_id
+            and alloc.gl_company_id = s2.gl_company_id
+    )
+)
+
+select * from sub_31
+
+-- return zero rows

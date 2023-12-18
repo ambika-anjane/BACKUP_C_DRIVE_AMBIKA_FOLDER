@@ -1,0 +1,179 @@
+with
+    sales as (select * from {{ ref("int__get_sales_precentage") }}),
+    alloc as (select * from {{ ref("stg_oracle__alloc") }}),
+    sales_amazon as (select * from {{ ref("int__get_sales_amazon") }}),
+    sales_commissions as (select * from {{ ref("int__get_sales_amazon") }}),
+    freight_in as (select * from {{ ref("int__get_sales_frieght_in") }}),
+    freight_out as (select * from {{ ref("int__get_sales_freight_out") }}),
+    sub_1 as (select * from {{ ref("stg_oracle__sub_1") }}),
+    sub_2 as (select * from {{ ref("stg_oracle__sub_2") }}),
+    sub_3 as (select * from {{ ref("stg_oracle__sub_3") }}),
+    sub_4 as (select * from {{ ref("stg_oracle__sub_4") }}),
+    sub_5 as (select * from {{ ref("stg_oracle__sub_5") }}),
+    sub_6 as (select * from {{ ref("stg_oracle__sub_6") }}),
+    sub_7 as (select * from {{ ref("stg_oracle__sub_7") }}),
+    sub_8 as (select * from {{ ref("stg_oracle__sub_8") }}),
+    sub_9 as (select * from {{ ref("stg_oracle__sub_9") }}),
+    sub_10 as (select * from {{ ref("stg_oracle__sub_10") }}),
+    sub_11 as (select * from {{ ref("stg_oracle__sub_11") }}),
+    sub_12 as (select * from {{ ref("stg_oracle__sub_12") }}),
+    sub_13 as (select * from {{ ref("stg_oracle__sub_13") }}),
+    sub_14 as (select * from {{ ref("stg_oracle__sub_14") }}),
+    sub_15 as (select * from {{ ref("stg_oracle__sub_15") }}),
+    sub_16 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_17 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_18 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_19 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_20 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_21 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_22 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_23 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_24 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_25 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_26 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_27 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_28 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_29 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_30 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_31 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sales_details as (select * from {{ ref("stg_oracle__customer_net_sales") }}),
+
+    final as (
+                select  -- /*+ parallel(4) */
+                    all_sales.customer_account_id,
+                    all_sales.customer_id,
+                    all_sales.inventory_item_id,
+                    all_sales.inventory_product_id,
+                    all_sales.inventory_org_id,
+                    all_sales.period_id,
+                    all_sales.gl_business_unit_id,
+                    all_sales.gl_location_id,
+                    -- all_sales.gl_natural_acct_id,
+                    all_sales.gl_product_line_id,
+                    all_sales.gl_brand_id,
+                    -- sum(net_sales) sales,
+                    -- sum(sales_mtd) sales_mtd,
+                    -- sum(sales_wo_manuals) sales_wo_manuals,
+                    -- sum(allocation_amt) allocation_amt,
+                    all_sales.sales_channel_id,
+                    -- all_sales.bu_segment,
+                    'BUDGET' scenario
+
+                from
+                    (
+                        select *
+                        from alloc
+                        select *
+                        from sales
+                        union all
+                        select *
+                        from sales_amazon
+                        union all
+                        select *
+                        from sales_commissions
+                        union all
+                        select *
+                        from freight_in
+                        union all
+                        select *
+                        from freight_out
+                        union all
+                        select *
+                        from sub_1
+                         union all
+                        select *
+                        from sub_2
+                         union all
+                        select *
+                        from sub_3
+                         union all
+                        select *
+                        from sub_4
+                         union all
+                        select *
+                        from sub_5
+                         union all
+                        select *
+                        from sub_6
+                         union all
+                        select *
+                        from sub_7
+                         union all
+                        select *
+                        from sub_8
+                         union all
+                        select *
+                        from sub_9
+                         union all
+                        select *
+                        from sub_10
+                         union all
+                        select *
+                        from sub_11
+                         union all
+                        select *
+                        from sub_12
+                         union all
+                        select *
+                        from sub_13
+                         union all
+                        select *
+                        from sub_14
+                         union all
+                        select *
+                        from sub_15
+                         union all
+                        select *
+                        from sub_16 
+                        union all
+                        select *
+                        from sub_17
+                         union all
+                        select *
+                        from sub_18
+                        union all
+                        select *
+                        from sub_19
+                        union all
+                        select *
+                        from sub_20
+                        union all
+                        select *
+                        from sub_21
+                        union all
+                        select *
+                        from sub_22
+                        union all
+                        select *
+                        from sub_23
+                        union all
+                        select *
+                        from sub_24
+                        union all
+                        select *
+                        from sub_25
+                        union all
+                        select *
+                        from sub_26
+                        union all
+                        select *
+                        from sub_27
+                        union all
+                        select *
+                        from sub_28
+                        union all
+                        select *
+                        from sub_29
+                        union all
+                        select *
+                        from sub_30
+                        union all
+                        select *
+                        from sub_31
+
+                    )
+                    all_sales
+                group by all
+    )
+
+    select * from final

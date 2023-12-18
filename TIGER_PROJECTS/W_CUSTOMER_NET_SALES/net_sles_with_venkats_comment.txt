@@ -1,0 +1,302 @@
+/* -----------------------WC_CUSTOMER_NET_SALES_A-----------------------------------------------*/
+with
+    w_mcal_day_d as (select * from dev_edw.bi11g_dw.w_mcal_day_d),
+    fc_scenario as (select * from dev_edw.edw_omni.wc_forecast_scenarios_d),
+   -- w_sla_xact_fiscal as (select * from dev_edw.biapps.wc_sla_xact_fsclprd_a),
+    w_gl_segment_d_tl as (select * from dev_edw.bi11g_dw.w_gl_segment_d_tl),
+    w_ledger_d as (select * from {{ ref("w_ledger_d") }}),
+    w_gl_segment_d as (select * from {{ ref("w_gl_segment_d") }}),
+    w_sla_xact_f as (select * from {{ ref("w_sla_xact_f") }}),
+    w_xact_source_d as (select * from {{ ref("w_xact_source_d") }}),
+    w_gl_account_d as (select * from {{ ref("w_gl_account_d") }}),
+    w_customer_account_d as (select * from {{ ref("w_customer_account_d") }}),
+    w_freight_terms_d as (select * from {{ ref("w_freight_terms_d") }}),
+    w_gl_segment_dh as (select * from {{ ref("w_gl_segment_dh") }}),
+    w_day_d as (select * from {{ ref("w_day_d") }}),
+    wc_daily_sales_m as (select * from dev_edw.biapps.wc_daily_sales_m), --n  create table omni.wc_Sales_m from biapps view 
+    -- wc_customer_allocation_list pc same as 16 (procedure)
+
+    current_period as (
+        select
+            mcal_period_wid,
+            row_wid - 10000000 yago_dt_wid,
+            mcal_period_ago_wid yago_period_wid,
+            -- mcal_day_of_period / cal_month_total_days mtd_percent,
+            row_wid mcal_day_wid,
+            floor(mcal_prior_period_wid / 1000) * 1000 prior_period_wid,
+            mcal_day_of_period,
+            mcal_period_start_dt,
+            mcal_period_end_dt,
+            add_months(mcal_period_start_dt, -1) prior_period_start_dt,
+            dateadd(day, -1, mcal_period_start_dt) prior_period_end_dt,
+            mcal_year_start_day_wid,
+            mcal_year_start_day_wid + actuals_month * 100000
+            forecast_actuals_day_wid,
+            mcal_year_start_day_wid + budget_actuals_months * 100000
+            budget_actuals_day_wid,
+            b.scenario fc_scenario,
+            add_months(mcal_period_start_dt, -12) yago_period_start_dt,
+            add_months(mcal_period_end_dt, -12) yago_period_end_dt,
+            current_date - 1 last_date
+        from
+            w_mcal_day_d a,
+
+            (
+                select actuals_month, scenario, budget_actuals_months
+                from fc_scenario
+                where active_flag = 'Y'
+            ) b
+        where 1 = 1 and a.mcal_day_dt = current_date - 1
+
+    ),
+    mtd as (
+        select
+            count(distinct case when calendar_date < current_date() then ship_date end)
+            / count(distinct ship_date)
+            mtd_percent
+        from w_day_d
+        where ent_period = to_char(dateadd(day, -1, current_timestamp()), 'Mon-YY')
+    ),
+
+    sales_details as (
+        select
+          sq.generic_customer_account_id,
+            sq.customer_account_id, 
+            {# -- GL_ACCOUNT_ID OR CUSTOMER_aCCOUNT_ID ?? #}
+            sq.acct_period_id,
+            sq.accounting_date,
+            sq.inventory_item_id,
+            sq.inventory_product_id,
+            sq.inventory_org_id,
+            sq.business_unit_segment_id,  -- - alias??
+            sq.company_segment_id,
+            sq.sales_channel_segment_id,
+            sq.location_segment_id,
+            sq.department_segment_id,
+            sq.account_segment_id,
+            sq.gl_account_id,
+            sum(sq.sla_loc_amount) sla_loc_amt,
+            sum(sq.transaction_quantity) xact_quantity,  -- (in that table)
+            sq.event_class_code,
+            sq.product_line_segment_id,
+            sq.brand_segment_id,
+            gl.account_group,
+            gl.account,
+            gl.account_type,
+            gl.business_unit,
+            nvl(
+                rollup_sg.integration_id, sq.product_line_segment_id
+            ) rollup_product_line_segment_id,
+            c.customer_name,
+            c.customer_type,
+            c.customer_group,
+            f.freight_term_code,
+            c.integration_id cust_integration_id,
+            j.source_code
+          --  cp.ent_period_end_date, 
+          --  cp.prior_period_end_dt, 
+          --  cp.yago_period_end_dt
+
+        -- ,inventory_item_wid     
+        from
+            w_sla_xact_f sq,
+            w_ledger_d lg,
+            w_xact_source_d j,
+            w_gl_account_d gl,
+            w_customer_account_d c,
+            w_freight_terms_d f,
+            /* (
+                select
+                    b.level0_integration_id integration_id,
+                    min(b.level0_integration_id) over (
+                        partition by c.segment_val_descr
+                        order by b.level0_integration_id
+                    ) gl_segment8_id
+                from w_gl_segment_d_tl a, w_gl_segment_dh b, w_gl_segment_d_tl c
+                where
+                    a.integration_id = b.level31_integration_id
+                    and b.level30_integration_id = c.integration_id
+                    and a.segment_val_descr in (
+                        'HH Leadership Categories',
+                        'HH Seasonal Categories',
+                        'HH Developing Categories',
+                        'HH All Other Categories'
+                    )
+                    and level28_code <> level29_code
+            ) rollup_pl, */
+            w_gl_segment_d rollup_sg,
+            current_period cp
+        where
+            lg.ledger_id || '~' || 100 = sq.ledger_id
+            and lg.ledger_currency = 'USD'
+            and gl.gl_account_number not in (  -- '9999',
+                -- '9000',
+                -- '9990',
+                '1070',
+                '1071',
+                '1075',
+                '1076',
+                '1077',
+                '1072',
+                '1074',
+                '1073',
+                '1061',
+                '1062',
+                '1063'
+            )
+            and lg.ledger_currency = 'USD'
+            and lg.ledger_name not in (
+                'HOT FASB52 USD FR',
+                'HOT FASB52 USD GB',
+                'HOT FASB52 USD MX',
+                'CONSO HOT LATIN AMERICA LLC'
+            )
+            and sq.journal_source_id = j.integration_id
+            and sq.gl_account_id = gl.integration_id
+            -- and gl.account_seg9_code = '000'
+            and j.source_code in ('Conversion', 'Receivables')
+            and c.customer_group like '%AMAZON%'
+            and sq.accounting_date >= '2022-01-01' 
+            and sq.accounting_date
+            in (cp.mcal_period_end_dt, cp.prior_period_end_dt, cp.yago_period_end_dt)
+            -- AND sq.ACCT_PERIOD_END_DT > '01-JAN-2019'
+            and c.integration_id = sq.generic_customer_account_id
+            and f.integration_id = sq.freight_terms_id
+        -- and rollup_pl.integration_id(+) = gl.account_seg8_integration_id
+        -- and rollup_pl.gl_segment8_id = rollup_sg.integration_id(+)
+        group by
+           sq.generic_customer_account_id,
+            sq.customer_account_id,
+            sq.acct_period_id,
+            sq.accounting_date,
+            sq.inventory_item_id,
+            sq.inventory_product_id,
+            sq.inventory_org_id,
+            sq.business_unit_segment_id,
+            sq.company_segment_id,
+            sq.location_segment_id,
+            -- sq.natural_account_wid,
+            sq.product_line_segment_id,
+            nvl(rollup_sg.integration_id, sq.product_line_segment_id),
+            sq.brand_segment_id,
+            sq.department_segment_id,
+            sq.gl_account_id,
+            sq.account_segment_id,
+            sq.event_class_code,
+            sq.sales_channel_segment_id,
+            gl.account_group,
+            gl.account,
+            gl.account_type,
+            gl.business_unit,
+            c.customer_name,
+            c.customer_type,
+            c.customer_group,
+            f.freight_term_code,
+            c.integration_id,
+            j.source_code
+          --  cp.ent_period_end_date, 
+          --  cp.prior_period_end_dt, 
+          --  cp.yago_period_end_dt
+
+
+    )
+
+    
+
+    /*
+
+    sub_1 as (
+
+       
+            sq.x_generic_cust_account_wid customer_account_wid,
+            sq.x_generic_customer_wid customer_wid,
+            -- product_wid,
+            sq.inventory_item_wid,
+            sq.inventory_product_wid,
+            sq.org_wid,
+            sq.acct_period_end_dt_wid fiscal_period_wid,
+            sq.gl_segment1_wid gl_business_unit_wid,
+            sq.gl_segment4_wid gl_location_wid,
+            sq.natural_account_wid gl_natural_acct_wid,
+            sq.gl_segment8_wid gl_product_line_wid,
+            sq.gl_segment7_wid gl_brand_wid,
+            sum(case when db.acct_period_end_dt_wid is null then -1 * sla_loc_amt end)
+            net_sales,
+            sum(
+                case
+                    when
+                        sq.acct_period_end_dt_wid
+                        not in (cp.mcal_period_wid, cp.yago_period_wid)
+                        and db.acct_period_end_dt_wid is null
+                    then -1 * sla_loc_amt
+                    else 0
+                end
+            )
+            sales_mtd,
+            sum(
+                case
+                    when
+                        (
+                            (
+                                nvl(sq.event_class_code, 'NA') <> 'NA'
+                                and (
+                                    nvl(sq.event_class_code, 'NA') = 'SALES_ORDER'
+                                    or w_source_code not in ('COGS', 'AP', 'FA', 'AR')
+                                    or (
+                                        w_source_code = 'AR'
+                                        and sq.x_generic_cust_account_wid <> 0
+                                    )
+                                    or account_type_code = 'R'
+                                )
+                            )
+                            or account_seg6_name = 'Royalty Income'
+                        )
+                        and db.acct_period_end_dt_wid is null
+                    then -1 * sla_loc_amt
+                end
+            )
+            sales_wo_manuals,
+            0 allocation_amt,
+            sq.gl_segment3_wid sales_channel_wid,
+            account_seg1_name bu_segment
+        from
+            sales_details sq,
+            current_period cp,
+            (
+                select distinct
+                    '1' || to_char(last_day(a.calendar_date), 'YYYYMMDD') || '000'
+                    acct_period_end_dt_wid,
+                    -- gl_business_unit_wid,
+                    -- gl_location_wid,
+                    gl_brand_wid,
+                    -- gl_product_line_wid,
+                    b.integration_id natural_account_wid
+                from wc_daily_sales_m a, w_gl_account_d b
+                where
+                    a.gl_update_flag is null
+                    and a.row_wid is null
+                    and b.account = '401000'
+                    and a.calendar_date < last_day(sysdate())
+            )
+            db
+        where
+            db.acct_period_end_dt_wid(+) = sq.acct_period_end_dt_wid
+            and db.gl_brand_wid(+) = sq.gl_segment7_wid
+            and db.natural_account_wid(+) = sq.natural_account_wid
+        group by
+            sq.x_generic_cust_account_wid,
+            sq.x_generic_customer_wid,
+            sq.inventory_item_wid,
+            sq.inventory_product_wid,
+            sq.org_wid,
+            sq.acct_period_end_dt_wid,
+            sq.gl_segment1_wid,
+            sq.gl_segment4_wid,
+            sq.natural_account_wid,
+            sq.gl_segment8_wid,
+            sq.gl_segment7_wid,
+            sq.gl_segment3_wid
+    ) */
+
+select *
+from sales_details

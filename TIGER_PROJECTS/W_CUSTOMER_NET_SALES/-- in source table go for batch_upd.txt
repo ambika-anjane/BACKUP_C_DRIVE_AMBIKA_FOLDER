@@ -1,0 +1,79 @@
+-- in source table go for batch_updater_date
+-- in load we should find out the new file with batch_update_date 
+-- keep the file in azure and copy command
+-- ods table name : 1.sql (with pre_hook)
+-- alter table batch_update_date in source table
+-- ading thenscenerio column in ods and checking that column name before for loop
+-- full refresh -- pull al the scenerio names 
+-- in incremental -- pull only selected scenerios
+-- we have the error table , post hook on that (check for the mssing entries)
+-- will trigger to fail the job
+-- error table (look at the stagong table) an dcompare the  timestamp > fact table
+-- rerun again it will proces the same file
+-- dbt macro to do the exception
+-- between stage and fact ...error table 
+-- pre-hook , incremental, fr loop , in the for loop 
+-- error table
+-- item number , customer_number both not available and message for that one
+-- select customer_numbe from customer_Account_d from staging into dimension (with
+-- join conditin and customer number is null)
+-- insert into error table
+with
+    stage as (select * from {{ ref("stg_oracle__test") }}),
+
+ unpivot as (
+        select *, 'USD' currency
+        from
+            stage unpivot (
+                sales for month
+                in (jan, feb, mar, apr, may, jun, aug, sep, oct, nov, dec)
+            )
+        order by month
+    )
+
+select *
+from
+    (
+        select
+            gl_business_unit_code,
+            gl_company_code,
+            gl_sales_channel_code,
+            gl_location_code,
+            organization_id,
+            gl_account_code,
+            customer,
+            gl_brand_code,
+            gl_product_line_code,
+            sku,
+            sku_org_id,
+            gl_department_code,
+            customer_level,
+            units_flag,
+            month,
+            sales,
+            currency
+           
+           
+        from unpivot
+    )
+    pivot (sum(sales) for units_flag in ('SALES_UNITS', 'SALES_AMOUNT')) as p
+    (
+        gl_business_unit_code,
+        gl_company_code,
+        gl_sales_channel_code,
+        gl_location_code,
+        organization_id,
+        gl_account_code,
+        customer,
+        gl_brand_code,
+        gl_product_line_code,
+        sku,
+        sku_org_id,
+        gl_department_code,
+        customer_level,
+        month,
+        currency,
+        sales_units,
+        sales_amount
+        
+    )

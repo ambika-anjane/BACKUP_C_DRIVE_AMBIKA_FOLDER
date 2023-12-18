@@ -1,0 +1,91 @@
+with
+    sales_details as (select * from {{ ref("stg_oracle__customer_net_sales") }}), 
+    current_period as (select * from {{ ref("stg_oracle__current_period") }}), 
+    wc_daily_sales_m as (select * from dev_edw.edw_omni.wc_daily_sales_m),
+        w_gl_account_d as (select * from dev_edw.edw_omni.w_gl_account_d),
+
+
+ 
+mtd_sales as (
+        select
+            sq.generic_customer_account_id customer_account_id,
+            sq.customer_account_id customer_id,
+             sq.inventory_item_id,
+            sq.inventory_product_id,
+            sq.inventory_org_id,
+            sq.accounting_date fiscal_period_id,
+            sq.business_unit_segment_id gl_business_unit_id,
+            sq.location_segment_id gl_location_id,
+            sq.gl_account_id gl_natural_acct_id,
+            sq.product_line_segment_id gl_product_line_id,
+            sq.brand_segment_id gl_brand_id,
+            sum(
+                case
+                    when db.acct_period_end_dt_wid is not null then -1 * sla_loc_amt
+                end
+            )
+            net_sales,
+            sum(
+                case
+                    when
+                        sq.accounting_date
+                        not in (cp.ent_period_end_date, cp.yago_period_end_dt)
+                        and db.acct_period_end_dt_wid is not null
+                    then -1 * sla_loc_amt
+                    else 0
+                end
+            )
+            sales_mtd,
+            sum(
+                case
+                    when
+                        (
+                            (
+                                nvl(sq.event_class_code, 'NA') <> 'NA'
+                                and (
+                                    nvl(sq.event_class_code, 'NA') = 'SALES_ORDER'
+                                    or sq.source_code not in ('COGS', 'AP', 'FA', 'AR')
+                                    or (
+                                        sq.source_code = 'AR'
+                                        and sq.generic_customer_account_id <> 0
+                                    )
+                                    or sq.account_type = 'R'
+                                )
+                            )
+                            or sq.account = 'Royalty Income'
+                        )
+                        and db.acct_period_end_dt_wid is not null
+                    then -1 * sla_loc_amt
+                end
+            )
+            sales_wo_manuals,
+            0 allocation_amt,
+            sq.sales_channel_segment_id sales_channel_id,
+            sq.business_unit bu_segment
+        from
+            sales_details sq,
+            current_period cp,
+            (
+                select distinct
+                    -- '1' || to_char(last_day(a.calendar_date::date), 'YYYYMMDD') ||
+                    -- '000' acct_period_end_dt_wid,
+                    a.calendar_date::date acct_period_end_dt_wid,
+                    b.gl_brand_id,
+                    b.gl_account_id
+                from wc_daily_sales_m a, w_gl_account_d b
+                where
+                    a.gl_update_flag is null
+                    and a.row_wid is null
+                    and b.gl_account_number = '401000'
+            -- and acct_period_end_dt_wid < last_day(current_date())  
+            )
+            db
+        where
+            db.acct_period_end_dt_wid = sq.accounting_date
+            and db.gl_brand_id = sq.brand_segment_id
+            and db.gl_account_id = sq.account_segment_id
+        group by
+            all
+
+    )
+    select * from mtd_sales

@@ -1,0 +1,55 @@
+ select *
+        from alloc
+        union all
+        select *
+        from sales
+        union all
+        select *
+        from sales_amazon
+        union all
+        select *
+        from sales_commissions
+        union all
+        select *
+        from freight_in
+        union all
+        select *
+        from freight_out
+        union all
+        select * from bu_location
+        union all 
+        select *
+        from bu_le
+    )
+
+
+
+              /*  select
+
+                    b.segment_integration_id
+                    integration_id,
+
+                    min(b.segment_integration_id) over (
+
+                        partition by b.level0_segment_description
+
+                        order by b.segment_integration_id
+
+                    ) gl_product_line_id
+
+                from dev_edw.edw_omni.w_gl_segment_dh b
+
+                where
+
+                    b.level0_segment_description in (
+
+                        'HH Leadership Categories',
+                        'HH Seasonal Categories',
+
+                        'HH Developing Categories',
+                        'HH All Other Categories'
+
+                    )
+
+                    and b.level3_segment_code <> b.level2_segment_code
+            ) rollup_pl, */ 

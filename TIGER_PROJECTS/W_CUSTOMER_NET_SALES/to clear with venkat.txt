@@ -1,0 +1,56 @@
+condition fails : (done)
+
+   b.level1_segment_description IN (
+
+          'HH Leadership Categories', 'HH Seasonal Categories',
+
+          'HH Developing Categories', 'HH All Other Categories'
+
+        ) and level condition as well
+
+2. check getting 
+0 for inventory and customer id's (connecting gl_account_d.integration_id = sq.gl_Account_id) 
+is that ok??(not done)
+
+3. create table "DEV_EDW"."EDW_OMNI"."WC_CUSTOMER_ALLOCATION_LIST" clone "DEV_EDW"."BIAPPS"."WC_CUSTOMER_ALLOCATION_LIST"
+select * from  "DEV_EDW"."EDW_OMNI"."WC_CUSTOMER_ALLOCATION_LIST"  (done)
+create table "DEV_EDW"."EDW_OMNI"."wc_item_list_price_d" clone "DEV_EDW"."BIAPPS"."WC_ITEM_LIST_PRICE_D"(DONE)
+
+
+4.  upper(sq.freight_term_code) in ('PAID', 'COLLECT')
+            and sq.account_group = 'Gross Sales'
+            and sq.account <> 'Sales - Direct Imports'
+          --  and sq.xact_quantity > 0
+            and sq.sla_loc_amt <> 0
+            and sq.customer_name not in (
+                'CONSUMER RELATIONS GENERAL SALES KAZ US',
+                'BBJ SUD OUEST KAZ CH',
+                'CDISCOUNT SA KAZ CH',
+                'CONSUMER RELATIONS WARRANTY SALES KAZ US'
+            ) -- not done  (no data for paid . colect in stage)
+
+5. intermedaiet for all the percentage code is done and refrence table in biaaps (created in omni)
+
+
+
+
+
+
+
+
+
+
+
+order kept:
+1. stg_oracle__alloc
+2. stg_oracle__bu_location_prodult_line_level
+3. stg_orcle__bu_and_location.sql
+4. stg_oracle__bu_le.sql
+5. stg_oracle__bu_and_product_lien_level
+6. stg_oracle__bu_level
+second time
+1. stg_oracle__bu_loc_prod_line_level.sql (with sales_Amazon)
+2. stg_oracle__bu_pl_level.sql
+3. stg_oracle__bu_loc.sql
+4. stg_oracle__bu_le_amazon.sql
+5.stg_oracle__bu_amazon.sql

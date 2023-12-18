@@ -1,0 +1,32 @@
+select gl.gl_product_line_id from dev_edw.edw_omni.w_gl_account_d gl  left join     (SELECT
+
+        b.SEGMENT_INTEGRATION_ID
+ integration_id,
+
+        min(b.SEGMENT_INTEGRATION_ID) over(
+
+          partition by b.level0_segment_description
+
+          order by
+
+            b.SEGMENT_INTEGRATION_ID
+
+        ) gl_segment8_id
+
+      FROM dev_edw.edw_omni.w_gl_segment_dh b 
+
+--"DEV_EDW"."BIAPPS"."W_GL_SEGMENT_DH"  b
+
+      WHERE
+
+        b.level0_segment_description   IN (
+
+          'HH Leadership Categories', 'HH Seasonal Categories',
+
+          'HH Developing Categories', 'HH All Other Categories'
+
+        )
+
+        and b.LEVEL3_SEGMENT_CODE <>
+  b.LEVEL2_SEGMENT_CODE) rollup_pl 
+      on  gl.GL_PRODUCT_LINE_ID = rollup_pl.gl_segment8_id

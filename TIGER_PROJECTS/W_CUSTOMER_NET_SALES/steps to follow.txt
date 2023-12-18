@@ -1,0 +1,34 @@
+transaction details (from sales details)
+-- find out alloc whch is not related to customer 
+-- take the sales details data set by coonecting with condiions for alloc
+-- 
+
+
+-- firt step to taek all the inputs from sales_detais (to alloc for precentage of sales)
+-- to fin out the trasaction detais of cust based on percentage of sales
+-- first lets calculate the sales percentage and then go by options like gross...
+-- some of the fireght cost exceptions for somecustomers
+-- 
+
+-- net sales, sales_mtd, sales_wo_manuals (net sales ) -- exclude i
+-- calcluate sales for current_period (line no 1020)
+-- sales for year ago period (1094)
+-- union all of external sales which is not in ebs
+ -- adding that amount into sales
+ -- first allocation (list)
+-- 1218 (line), 1214 list variance (profil/loss )-- list variance
+-- exception (amazon, freight,)
+-- distribute these allocations at this level and joining with sales
+--  exceptions
+-- scenario
+-- bring forecast amount from hyperion 
+-- aggregation line starts with sum()
+-- from 305 to 349 ignore those conditions
+-- compare forecast and sales amunt under diff criterias (ignore with past year)
+-- populate sales with different forecast and budget with exceptions
+-- line no.206 net sales
+-- line no.124 w_sla_transacion
+-- for aggrgation....either delete/insert or 
+-- remove the   
+
+

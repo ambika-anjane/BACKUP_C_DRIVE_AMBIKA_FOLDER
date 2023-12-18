@@ -1,0 +1,99 @@
+  /*+ added extrenal sales details which are not present in EBS */
+with
+    sales_details as (select * from {{ ref("stg_oracle__customer_net_sales") }}),
+    w_ledger_d as (select * from dev_edw.edw_omni.w_ledger_d),
+    w_gl_segment_d as (select * from dev_edw.edw_omni.w_gl_segment_d),
+    w_xact_source_d as (select * from dev_edw.edw_omni.w_xact_source_d),
+    w_status_d as (select * from dev_edw.edw_omni.w_status_d),
+    wc_sla_xact_day_a as (select * from dev_edw.edw_omni.w_sla_xact_f),
+    current_period as (select * from {{ ref("stg_oracle__current_period") }}),
+    wc_daily_sales_m as (select * from dev_edw.edw_omni.wc_daily_sales_m),
+    w_gl_account_d as ((select * from dev_edw.edw_omni.w_gl_account_d)),
+    w_day_d as (select * from dev_edw.edw_omni.w_day_d),
+    ship_cal as (
+        select
+            '1' || to_char(max(year_ago_date), 'YYYYMMDD') || '000'
+            yago_ship_dt_wid,
+            max(year_ago_date) yago_ship_date
+        from w_day_d
+        where
+            ship_date = (
+                select max(ship_date)
+                from w_day_d c
+                where calendar_date < current_date()
+            )
+    ),
+
+    sub_4 as (
+        select
+            0 customer_account_id,
+            0 customer_id,
+            0 inventory_item_id,
+            0 inventory_product_id,
+            0 inventory_org_id,
+            -- cast('1' || to_char(last_day(calendar_date), 'YYYYMMDD') || '000' as
+            -- int)
+            calendar_date::date fiscal_period_id,
+            sq.gl_business_unit_wid business_unit_id,
+            sq.gl_location_wid gl_location_id,
+            na.gl_account_id gl_natural_acct_id,
+            sq.gl_product_line_wid gl_product_line_id,
+            sq.gl_brand_wid gl_brand_id,
+            sum(sales) net_sales,
+            sum(
+                case
+                    when
+                       /*  cast(
+                --    '1' || to_char(last_day(calendar_date), 'YYYYMMDD') || '000' as int
+                ) */
+                        calendar_date in (cp.ent_year, cp.yago_period_wid)
+                    then
+                    
+                        case
+                            when
+                                calendar_date
+                                between cp.ent_period_start_date and cp.last_date
+                                or calendar_date
+                                between cp.yago_period_start_dt and sc.yago_ship_date
+                            then sales
+                        end
+                    else sales
+                end
+            ) sales_mtd,
+            sum(sales) sales_wo_manuals,
+            0 alloc_amount,
+            0 sales_channel_wid,
+            bu.segment_description bu_segment
+        from
+            wc_daily_sales_m sq,
+            w_gl_account_d na,
+            w_gl_segment_d bu,
+            current_period cp,
+            ship_cal sc
+        where
+            na.gl_account_number = '401000'
+      --      and bu.segment_value_code = sq.gl_business_unit_wid
+
+            and (
+                calendar_date between cp.ent_period_end_date and cp.ent_period_end_date
+                or calendar_date
+                between cp.prior_period_start_dt and cp.prior_period_end_dt
+                or calendar_date
+                between cp.yago_period_start_dt and cp.yago_period_end_dt
+            )
+            and (
+                sq.gl_update_flag is null or w_updated_by = 'Finance daily break upload'
+            )
+            and sq.row_wid is null
+        group by
+            calendar_date,
+            sq.gl_business_unit_wid,
+            sq.gl_location_wid,
+            na.gl_account_id,
+            sq.gl_product_line_wid,
+            sq.gl_brand_wid,
+            bu.segment_description
+    )
+
+select *
+from sub_4

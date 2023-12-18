@@ -1,0 +1,111 @@
+doubts :
+1.generic_customer_id coming from which field (gl_Account_d) or (customer_account_d) in sales_details
+2. sq.group_account_num is account_group from gl_Account_d ??
+ and sales.account_group = 'GROSS SALES' -- fails
+        and xact_quantity > 0
+        and sales.sla_loc_amt <> 0
+        and customer_account_id > 0 -- fails
+
+in this part ... not in (
+                select distinct
+                    '1' || to_char(last_day(calendar_date), 'YYYYMMDD') || '000' acct_period_id,
+                    -- gl_business_unit_wid,
+                    -- gl_location_wid,
+                    GL_BRAND_ID,
+                    -- gl_product_line_wid,
+                    b.integration_id
+                from wc_daily_sales_m a, w_natural_account_d b
+                where
+                  --  gl_update_flag is null -- ??
+                  --  and a.row_wid is null -- (table code fo this)
+                    and GL_ACCOUNT_NUMBER = '401000'
+                    and calendar_date < last_day(sysdate())
+            ) 
+
+            ---  can i hard code table from omni (wc_daily_sales_m) ??
+            ---   glf.source_code  in ('AP', 'COGS', 'FA') this code fails (includes cogs)
+            query:  select source_code from dev_edw.edw_omni.w_xact_source_d where source_code  in ('COGS', 'AP', 'FA', 'AR')
+              
+            -- and customer_account_id > 0 -- fails 
+            --- for this query : customer_account_id > 0||'~||100 works
+
+
+            --- this query gives output
+            --  for alloc
+        where
+            glf.account <> 'Royalty Income'
+            and (
+                (
+                    glf.source_code not   in ('AP', 'COGS', 'FA') (fails)
+                    and glf.account_type <> 'R'  -- not a revenue generating customer
+                    and nvl(glf.event_class_code, 'NA') <> 'SALES_ORDER'
+                )
+                or glf.event_class_code is null
+                or (glf.source_code = 'AR')
+             and glf.generic_customer_account_id >= '0'||'~'||100 (this works)
+            )
+             and (
+                acct_period_id,
+                -- glf.gl_segment1_wid,
+                -- glf.gl_segment4_wid,
+                glf.brand_segment_id,
+                -- glf.gl_segment8_wid,
+                glf.gl_account_id
+            ) 
+           not   in (
+                select distinct
+                    '1' || to_char(last_day(calendar_date), 'YYYYMMDD') || '000' acct_period_id,
+                    -- gl_business_unit_wid,
+                    -- gl_location_wid,
+                    GL_BRAND_ID,
+                    -- gl_product_line_wid,
+                    b.integration_id
+                from dev_edw.edw_omni.wc_daily_sales_m a, dev_edw.edw_omni.w_gl_account_d b
+                where
+                 a.gl_update_flag is null
+                    and a.row_wid is null 
+                    and b.GL_ACCOUNT_NUMBER <> '401000'
+                    and a.calendar_date < last_day(sysdate())
+            ) 
+
+           -- for sales
+
+                 sales.xact_quantity > 0 -- tis fails
+        and sales.sla_loc_amt <> 0
+        and sales.account_group <> 'GROSS SALES' -- this fails
+       and sales.generic_customer_account_id > '0'||'~'||100-- concat works
+        and sales.customer_name not in (
+            'CONSUMER RELATIONS GENERAL SALES KAZ US',
+            'BBJ SUD OUEST KAZ CH',
+            'CDISCOUNT SA KAZ CH',
+            'CONSUMER RELATIONS WARRANTY SALES KAZ US'
+        )
+
+
+--  FOR EXCEPTION AMAZON
+
+select GENERIC_CUSTOMER_ACCOUNT_ID,b.customer_group from "DEV_DISCOVER"."FINANCIALS"."STG_ORACLE__CUSTOMER_NET_SALES" A,  "DEV_EDW"."EDW_OMNI"."W_CUSTOMER_ACCOUNT_D"  B WHERE 
+A.CUSTOMER_ACCOUNT_ID = B.INTEGRATION_ID and b.CUSTOMER_GROUP LIKE 'AMAZON%'
+A.GENERIC_CUSTOMER_ACCOUNT_ID = B.INTEGRATION_ID and b.CUSTOMER_GROUP LIKE 'AMAZON%'
+(NOT GIVING ROWS FOR AMAZON)
+           
+
+          
+
+            
+
+
+deriving :
+1. current period , sales details in one stage
+2. all sales precent and union all (for all_sales) in one stage
+3. combine the all_sales union all with actuals and fcst///
+this is the plan
+
+in this i am working on step 2
+ (incremental)
+final table will have all the segments and period for all the customers
+-- extract complete month of data
+-- find out the monthsn record got changed 
+-- integraion id with hash keys
+-- extract all the records for the month for those hash keys and update it
+-- allocation we can have intermediate models 

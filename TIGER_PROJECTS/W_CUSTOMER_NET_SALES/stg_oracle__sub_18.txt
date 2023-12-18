@@ -1,0 +1,46 @@
+with
+    freight_in as (select * from {{ ref("int__get_sales_frieght_in") }}),
+    alloc as (select * from {{ ref("stg_oracle__alloc") }}),
+
+sub_18 as (
+
+
+select  /* + parallel(16) */
+    -- Matching at BU and Location level
+    s1.customer_account_id customer_acct_id,
+    s1.customer_id,
+    s1.inventory_item_id,
+    s1.inventory_product_id,
+    s1.inventory_org_id,
+    alloc.period_id,
+    alloc.gl_business_unit_id,
+    alloc.gl_location_id,
+    alloc.gl_natural_acct_id,
+    s1.gl_product_line_id,
+    s1.gl_brand_id,
+    0 sales_amt,
+    0 sales_mtd,
+    0 sales_wo_manual,
+    alloc.allocation_amt * s1.per_loc_sales
+    gl_allocation_amt,
+    s1.sales_channel_id,
+    alloc.bu_segment
+from alloc, freight_in s1
+where
+    alloc.period_id = s1.period_id
+    and alloc.gl_business_unit_id = s1.gl_business_unit_id
+    and alloc.gl_company_id = s1.gl_company_id
+    and alloc.gl_location_id = s1.gl_location_id
+    and alloc.segment_val_descr like 'Freight In%'
+    and not exists
+    (
+        select 1
+        from freight_in s2
+        where
+            alloc.period_id = s2.period_id
+            and alloc.gl_business_unit_id = s2.gl_business_unit_id
+            and alloc.gl_product_line_id = s2.gl_product_line_id
+            and alloc.gl_company_id = s2.gl_company_id
+    )
+)
+select * from sub_18

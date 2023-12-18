@@ -1,0 +1,2430 @@
+/*-----------------------WC_CUSTOMER_NET_SALES_A-----------------------------------------------*/
+
+
+/* Snapshot step*/
+
+DELETE FROM WC_CUST_NETSALES_LAST_SNAPSHOT
+;
+
+INSERT INTO wc_cust_netsales_last_snapshot
+SELECT customer_account_wid, fiscal_period_wid, scenario, gl_business_unit_wid, gl_location_wid, gl_natural_acct_wid, gl_product_line_wid, gl_brand_wid,sales,GL_SALES_CHANNEL_WID,INVENTORY_ITEM_WID,INVENTORY_PRODUCT_WID,ORG_WID
+FROM WC_CUSTOMER_NET_SALES_A
+WHERE acct_period_end_dt between to_date(add_months(trunc(CURRENT_TIMESTAMP(),'MM'),-1)) 
+AND last_day(CURRENT_TIMESTAMP())
+AND nvl(sales,0) <> 0
+;
+
+commit;
+
+/* Delete Step  for customer Net Sales */
+
+
+DELETE FROM WC_CUSTOMER_NET_SALES_A where to_date(acct_period_end_dt)  in 
+  (
+    (SELECT         to_date(mcal_period_end_dt)
+                  FROM w_mcal_day_d a
+          WHERE     1 = 1
+                AND mcal_day_dt = current_date - 1
+                AND mcal_cal_name = 'HOT Calendar'
+                AND Adjustment_period_flg = 'N') 
+UNION ALL
+  (SELECT          to_date(mcal_period_end_dt) prior_period_end_dt
+                  FROM w_mcal_day_d a
+          WHERE     1 = 1
+                AND mcal_day_dt = add_months(current_date -1,-1)
+                AND mcal_cal_name = 'HOT Calendar'
+                AND Adjustment_period_flg = 'N') 
+UNION ALL
+  (SELECT       
+                  to_date(mcal_period_end_dt) yago_period_end_dt 
+          FROM w_mcal_day_d a
+         WHERE     1 = 1
+               AND mcal_day_dt = add_months(current_date -1 , -12) 
+               AND mcal_cal_name = 'HOT Calendar'
+               AND Adjustment_period_flg = 'N') 
+)
+;
+
+commit;
+
+/* insert into WC_CUSTOMER_NET_SALES_A */
+
+insert INTO WC_CUSTOMER_NET_SALES_A 
+WITH current_period
+     AS (SELECT mcal_period_wid,
+                row_wid - 10000000 Yago_dt_wid,
+                mcal_period_ago_wid yago_period_wid,
+                --mcal_day_of_period / cal_month_total_days mtd_percent,
+               row_wid mcal_day_wid,
+                FLOOR (mcal_prior_period_wid / 1000) * 1000 prior_period_wid,
+                mcal_day_of_period,
+                mcal_period_start_dt,
+                mcal_period_end_dt,
+                ADD_MONTHS(mcal_period_start_dt, -1) prior_period_start_dt,
+                dateadd(day,-1,mcal_period_start_dt) prior_period_end_dt,
+                mcal_year_start_day_wid,
+                mcal_year_start_day_wid + actuals_month * 100000
+                   forecast_actuals_day_wid,
+                mcal_year_start_day_wid + budget_actuals_months * 100000
+                   budget_actuals_day_wid,
+                b.scenario fc_scenario,
+                ADD_MONTHS (mcal_period_start_dt, -12) yago_period_start_dt,
+                ADD_MONTHS (mcal_period_end_dt, -12) yago_period_end_dt,
+                current_date -1  last_date
+           FROM w_mcal_day_d a, 
+                (SELECT actuals_month, scenario, budget_actuals_months
+                   FROM wc_forecast_scenarios_d
+                  WHERE active_flag = 'Y') b
+          WHERE     1 = 1
+                AND mcal_day_dt = current_date - 1 
+                --AND w_current_mcal_period_code = 'Current'
+                --AND w_current_mcal_day_code = 'Previous'
+                AND mcal_cal_name = 'HOT Calendar'
+                AND Adjustment_period_flg = 'N'),
+     mtd
+     AS (SELECT   COUNT (
+                     DISTINCT CASE
+                                 WHEN calendar_date < TO_DATE (sysdate())
+                                 THEN
+                                    x_ship_date
+                              END)
+                / COUNT (DISTINCT x_ship_date)
+                   mtd_percent
+           FROM w_day_d
+          WHERE per_name_ent_period = TO_CHAR (dateadd(day,-1,current_timestamp()), 'Mon-YY') ),
+     ship_cal
+     AS (SELECT '1' || TO_CHAR (MAX (year_ago_dt), 'YYYYMMDD') || '000'
+                   yago_ship_dt_wid,
+                MAX (year_ago_dt) yago_ship_date
+           FROM w_day_d
+          WHERE x_ship_date = (SELECT MAX (x_ship_date)
+                                 FROM w_day_d c
+                                WHERE calendar_date < TO_DATE (sysdate())))
+,
+sales_details as (select     sq.x_generic_cust_account_wid,
+           sq.x_generic_customer_wid,
+           sq.acct_period_end_dt_wid,
+                                   sq.INVENTORY_ITEM_WID,
+                                   sq.INVENTORY_PRODUCT_WID,
+                                   sq.org_wid,
+           sq.gl_segment1_wid,
+           sq.gl_segment2_wid,
+           sq.gl_segment4_wid,
+           sq.natural_account_wid,
+           sq.gl_segment8_wid,
+           sq.gl_segment7_wid,
+           sum(sq.sla_loc_amt) sla_loc_amt,
+           sum(sq.xact_quantity) xact_quantity,
+           sq.event_class_code,
+           sq.GL_SEGMENT3_WID
+             ,gl.group_account_num,gl.account_seg6_name,gl.account_seg1_name,j.w_source_code,j.source_code  
+             ,c.name, c.account_type_code,c.x_customer_group, f.freight_term_code,c.integration_id cust_integration_id,
+             nvl(rollup_sg.scd1_wid,sq.gl_segment8_wid) rollup_segment8_wid
+             --,inventory_item_wid     
+                 FROM wc_sla_xact_fsclprd_a sq,
+                                   w_ledger_d lg,
+                                   w_xact_source_d j,
+                                   w_gl_account_d gl,
+                                    w_customer_account_d c,
+                                    w_freight_terms_d f,
+                                    (SELECT b.level0_integration_id integration_id,
+               min(b.level0_integration_id) over(partition by c.segment_val_descr order by b.level0_integration_id ) gl_segment8_id  
+          FROM w_gl_segment_d_tl a,
+               w_gl_segment_dh b,
+               w_gl_segment_d_tl c
+         WHERE     a.integration_id = b.level31_integration_id
+               AND b.level30_integration_id = c.integration_id
+               AND a.segment_val_descr IN ('HH Leadership Categories',
+                                           'HH Seasonal Categories',
+                                           'HH Developing Categories',
+                                           'HH All Other Categories'
+                                           )
+               and level28_code <> level29_code) rollup_pl,
+               w_gl_segment_d rollup_sg
+                            , current_period cp
+                             WHERE     lg.row_wid = sq.ledger_wid
+                                   AND gl.account_seg1_code NOT IN ( --'9999',
+                                                                   --'9000',
+                                                                    --'9990',
+                                                                    '1070',
+                                                                    '1071',
+                                                                    '1075',
+                                                                    '1076',
+                                                                    '1077',
+                                                                    '1072',
+                                                                    '1074',
+                                                                    '1073','1061','1062','1063')
+                                   AND lg.currency_code = 'USD'
+                                   AND lg.LEDGER_NAME NOT IN ('HOT FASB52 USD FR',
+                                                              'HOT FASB52 USD GB',
+                                                              'HOT FASB52 USD MX',
+                                                              'CONSO HOT LATIN AMERICA LLC')
+                                   AND sq.journal_source_wid = j.row_wid
+                                   AND sq.gl_account_wid = gl.row_wid
+                                   AND gl.account_seg9_code = '000'
+                                   AND j.source_code <> 'Conversion'
+                                   and sq.ACCT_PERIOD_END_DT in (cp.mcal_period_end_dt, cp.prior_period_end_dt,cp.yago_period_end_dt)
+                                   --AND sq.ACCT_PERIOD_END_DT > '01-JAN-2019'
+                                   and c.row_wid = sq.x_generic_cust_account_wid
+                                   and f.row_wid = sq.x_freight_terms_wid
+                                   and rollup_pl.integration_id(+) = gl.account_seg8_integration_id
+                                   and rollup_pl.gl_segment8_id = rollup_sg.integration_id(+)
+   group by      sq.x_generic_cust_account_wid,
+           sq.x_generic_customer_wid,
+           sq.acct_period_end_dt_wid,
+                                   sq.INVENTORY_ITEM_WID,
+                                   sq.INVENTORY_PRODUCT_WID,
+                                   sq.org_wid,
+           sq.gl_segment1_wid,
+           sq.gl_segment2_wid,
+           sq.gl_segment4_wid,
+           sq.natural_account_wid,
+           sq.gl_segment8_wid,
+           nvl(rollup_sg.scd1_wid,sq.gl_segment8_wid),
+           sq.gl_segment7_wid,
+           sq.event_class_code,
+           sq.GL_SEGMENT3_WID
+             ,gl.group_account_num,gl.account_seg6_name,gl.account_seg1_name,j.w_source_code,j.source_code  
+             ,c.name, c.account_type_code,c.x_customer_group, f.freight_term_code ,c.integration_id 
+                                    )    
+SELECT act_fcst.customer_account_wid,
+       customer_wid,
+       act_fcst.fiscal_period_wid,
+       act_fcst.scenario,
+       --sh.row_wid gl_segment_hierarchy_wid,
+       act_fcst.gl_business_unit_wid,
+       act_fcst.gl_location_wid,
+       act_fcst.gl_natural_acct_wid,
+       act_fcst.gl_product_line_wid,
+       act_fcst.gl_brand_wid,
+       NVL (act_fcst.sales, 0) sales,
+       NVL (act_fcst.sales_wo_manuals, 0) sales_wo_manuals,
+       NVL (act_fcst.allocation_amt, 0) allocation_amt,
+       NVL (act_fcst.forecast_amount, 0) forecast_amount,
+       NVL (act_fcst.budget_amount, 0) budget_amount,
+       CASE
+          WHEN ns.segment_val_descr = 'Net Revenue'
+          THEN
+               NVL (act_fcst.sales_wo_manuals, 0)
+             + NVL (act_fcst.allocation_amt, 0)
+          ELSE
+             0
+       END
+          per_net_act_amt,
+       CASE
+          WHEN gs.segment_val_descr = 'Gross Sales'
+          THEN
+               NVL (act_fcst.sales_wo_manuals, 0)
+             + NVL (act_fcst.allocation_amt, 0)
+          ELSE
+             0
+       END
+          per_gross_act_amt,
+       NVL (sp.sales, 0) old_sales,
+       act_fcst.gl_SALES_CHANNEL_WID,
+       CASE
+          WHEN ns.segment_val_descr = 'Net Revenue'
+          THEN
+             NVL (act_fcst.sales, 0)
+          ELSE
+             0
+       END
+          per_net_act_amt_noalloc,
+       NVL (act_fcst.sales_mtd, 0) sales_mtd,
+       NVL (act_fcst.forecast_amount_mtd, 0) forecast_amount_mtd,
+       NVL (act_fcst.budget_amount_mtd, 0) budget_amount_mtd,
+       to_date(substr(act_fcst.fiscal_period_wid,2,8),'YYYYMMDD') acct_period_end_dt,
+       act_fcst.INVENTORY_ITEM_WID,
+                   act_fcst.INVENTORY_PRODUCT_WID,
+                   act_fcst.ORG_WID,
+                   act_fcst.FC3PLUS9_AMOUNT
+  FROM (                                      
+SELECT COALESCE (actuals.customer_account_wid,
+                         fcst.customer_account_wid)
+                  customer_account_wid,
+               COALESCE (actuals.customer_wid, fcst.customer_wid)
+                  customer_wid,
+                  COALESCE (actuals.INVENTORY_ITEM_WID,fcst.PRODUCT_WID) INVENTORY_ITEM_WID,
+                                                   COALESCE (actuals.INVENTORY_PRODUCT_WID, fcst.INVENTORY_PRODUCT_WID)
+                  INVENTORY_PRODUCT_WID,
+                COALESCE (actuals.ORG_WID, fcst.INVENTORY_ORG_WID) ORG_WID,
+               COALESCE (actuals.fiscal_period_wid, fcst.fiscal_period_wid)
+                  fiscal_period_wid,
+               COALESCE (actuals.gl_business_unit_wid,
+                         fcst.gl_business_unit_wid)
+                  gl_business_unit_wid,
+               COALESCE (actuals.gl_location_wid, fcst.gl_location_wid)
+                  gl_location_wid,
+               COALESCE (actuals.gl_natural_acct_wid,
+                         fcst.gl_natural_acct_wid)
+                  gl_natural_acct_wid,
+               COALESCE (actuals.gl_product_line_wid,
+                         fcst.gl_product_line_wid)
+                  gl_product_line_wid,
+               COALESCE (actuals.gl_brand_wid, fcst.gl_brand_wid)
+                  gl_brand_wid,
+               actuals.sales,
+               actuals.sales_wo_manuals,
+               actuals.allocation_amt,
+               CASE
+                  WHEN NVL (actuals.fiscal_period_wid,
+                            fcst.fiscal_period_wid) <
+                          cal.forecast_actuals_day_wid
+                  THEN
+                     CASE
+                        WHEN SUBSTR (
+                               NVL (actuals.fiscal_period_wid,
+                                     fcst.fiscal_period_wid),
+                                6,
+                                2) IN ('01', '02', '12')
+                        THEN
+                           fcst.fc9plus3
+                        ELSE
+                           actuals.sales
+                     END
+                  ELSE
+                     fcst.forecast_amount
+               END
+                  forecast_amount,
+               CASE
+                  WHEN     NVL (actuals.fiscal_period_wid,
+                                fcst.fiscal_period_wid) <
+                              cal.budget_actuals_day_wid
+                       AND NVL (actuals.fiscal_period_wid,
+                                fcst.fiscal_period_wid) >=
+                              cal.mcal_year_start_day_wid
+                  THEN
+                     actuals.sales
+                  ELSE
+                     fcst.budget_amount
+               END
+                  budget_amount,
+               COALESCE (fcst.scenario, actuals.scenario) scenario,
+               COALESCE (actuals.sales_channel_wid, fcst.sales_channel_wid)
+                  gl_sales_channel_wid,
+               CASE
+                  WHEN    NVL (actuals.fiscal_period_wid,
+                               fcst.fiscal_period_wid) = cal.mcal_period_wid
+                       OR (    mcal_day_of_period <= 6
+                           AND NVL (actuals.fiscal_period_wid,
+                                    fcst.fiscal_period_wid) =
+                                  prior_period_wid)
+                  THEN
+                    CASE
+                        WHEN NVL (actuals.bu_segment, fcst.bu_segment) IN ('Caribbean - Appliances',
+                                                                           'Caribbean - Home & Health',
+                                                                           'Caribbean - Idelle',
+                                                                           'Chile - Appliances',
+                                                                           'Chile - Home & Health',
+                                                                           'Chile - Idelle',
+                                                                           'Colombia - Appliances',
+                                                                           'Colombia - Home & Health',
+                                                                           'Colombia - Idelle',
+                                                                           'Costa Rica - Appliances',
+                                                                           'Costa Rica - Home & Health',
+                                                                           'Costa Rica - Idelle',
+                                                                           'Mexico - Home & Health',
+                                                                           'Panama - Appliances',
+                                                                           'Panama - Home & Health',
+                                                                           'Panama - Idelle',
+                                                                           'Peru - Appliances',
+                                                                           'Peru - Home & Health',
+                                                                           'Peru - Idelle',
+                                                                           'Beauty LATAM',
+                                                                           'KAZ-LATA RMO')
+                        THEN
+                           CASE
+                              WHEN (    mcal_day_of_period <= 6
+                                    AND NVL (actuals.fiscal_period_wid,
+                                             fcst.fiscal_period_wid) =
+                                           prior_period_wid)
+                              THEN
+                                 fcst.forecast_amount
+                              ELSE
+                                 mtd_percent * fcst.forecast_amount
+                           END
+                        ELSE
+                           actuals.sales_mtd
+                     END
+                  ELSE
+                     actuals.sales_mtd
+               END
+                  sales_mtd,
+               CASE
+                  WHEN NVL (actuals.fiscal_period_wid,
+                            fcst.fiscal_period_wid) = cal.mcal_period_wid
+                  THEN
+                     mtd_percent * fcst.forecast_amount
+                  WHEN NVL (actuals.fiscal_period_wid,
+                            fcst.fiscal_period_wid) <
+                          cal.forecast_actuals_day_wid
+                  THEN
+                     CASE
+                        WHEN SUBSTR (
+                                NVL (actuals.fiscal_period_wid,
+                                     fcst.fiscal_period_wid),
+                                6,
+                                2) IN ('01', '02', '12')
+                        THEN
+                           fc9plus3
+                        ELSE
+                           actuals.sales
+                     END
+                  ELSE
+                     fcst.forecast_amount
+               END
+                  forecast_amount_mtd,
+               CASE
+                  WHEN NVL (actuals.fiscal_period_wid,
+                            fcst.fiscal_period_wid) = cal.mcal_period_wid
+                  THEN
+                     mtd_percent * fcst.budget_amount
+                  WHEN     NVL (actuals.fiscal_period_wid,
+                                fcst.fiscal_period_wid) <
+                              cal.budget_actuals_day_wid
+                       AND NVL (actuals.fiscal_period_wid,
+                                fcst.fiscal_period_wid) >=
+                              cal.mcal_year_start_day_wid
+                  THEN
+                     actuals.sales              -- temp code for 1+11 scenario
+                  ELSE
+                     fcst.budget_amount
+               END     budget_amount_mtd,   --  99999
+               fcst.Fc3plus9 as FC3PLUS9_AMOUNT
+          FROM (                                                                
+SELECT                                  --/*+ parallel(4) */
+                        customer_account_wid,
+                         customer_wid,
+                                                                                                all_sales.INVENTORY_ITEM_WID,
+                                                                                                all_sales.INVENTORY_PRODUCT_WID,
+                                                                                                all_sales.org_wid,
+                         fiscal_period_wid,
+                        all_sales.gl_business_unit_wid,
+                         all_sales.gl_location_wid,
+                         all_sales.gl_natural_acct_wid,
+                         all_sales.gl_product_line_wid,
+                         all_sales.gl_brand_wid,
+                         SUM (net_sales) sales,
+                         SUM (sales_mtd) sales_mtd,
+                         SUM (sales_wo_manuals) sales_wo_manuals,
+                         SUM (allocation_amt) allocation_amt,
+                         all_sales.sales_channel_wid,
+                         all_sales.bu_segment,
+                         'BUDGET' scenario
+                    FROM (                                
+ with  
+ alloc      AS ( 
+                                SELECT glf.acct_period_end_dt_wid period_wid,
+                                            glf.rollup_segment8_wid
+                                               gl_product_line_wid,
+                                            glf.gl_segment1_wid
+                                               gl_business_unit_wid,
+                                            glf.gl_segment2_wid gl_le_wid,
+                                            glf.gl_segment4_wid gl_location_wid,
+                                            glf.natural_account_wid
+                                               gl_natural_acct_wid,
+                                            glf.account_seg6_name segment_val_descr,
+                                            SUM (-1 * sla_loc_amt) allocation_amt,
+                                            glf.account_seg1_name bu_segment
+                                       FROM Sales_details glf
+                                      WHERE glf.Account_seg6_name <> 'Royalty Income'
+                                        AND (   (    w_source_code IN ('AP',   'COGS',  'FA')
+                                                     AND account_type_code <>  'R' -- not a revenue generating customer
+                                                     AND NVL ( glf.event_class_code,'NA') <> 'SALES_ORDER')
+                                                 OR glf.event_class_code IS NULL
+                                                 OR (    w_source_code = 'AR'    AND glf.x_generic_cust_account_wid =   0))
+                                            AND (acct_period_end_dt_wid,
+                                                 --                      glf.gl_segment1_wid,
+                                                 --                      glf.gl_segment4_wid,
+                                                 glf.gl_segment7_wid,
+                                                 --                     glf.gl_segment8_wid,
+                                                 glf.natural_account_wid) NOT IN (SELECT DISTINCT
+                                                                                            '1'
+                                                                                         || TO_CHAR (
+                                                                                               LAST_DAY (
+                                                                                                  calendar_date),
+                                                                                               'YYYYMMDD')
+                                                                                         || '000'
+                                                                                            acct_period_end_dt_wid,
+                                                                                         --                gl_business_unit_wid,
+                                                                                         --                gl_location_wid,
+                                                                                         gl_brand_wid,
+                                                                                         --               gl_product_line_wid,
+                                                                                         b.row_wid
+                                                                                    FROM wc_daily_sales_m a,
+                                                                                         w_natural_account_d b
+                                                                                   WHERE     gl_update_flag
+                                                                                                IS NULL
+                                                                                         AND a.row_wid
+                                                                                                IS NULL
+                                                                                         AND natural_account_val_code =
+                                                                                                '401000'
+                                                                                         AND calendar_date <
+                                                                                                LAST_DAY (
+                                                                                                   SYSDATE()))
+                                   GROUP BY glf.acct_period_end_dt_wid,
+                                            glf.rollup_segment8_wid,
+                                            glf.gl_segment1_wid,
+                                            glf.gl_segment2_wid,
+                                            glf.gl_segment4_wid,
+                                            glf.natural_account_wid,
+                                            glf.account_seg6_name,
+                                            glf.account_seg1_name
+                                            having round(SUM (-1 * sla_loc_amt),2) <> 0
+                                            ),	
+                               sales
+                               AS (  SELECT /*+ parallel(16) */
+                                            sales.acct_period_end_dt_wid
+                                               period_wid,
+                                            x_generic_cust_account_wid customer_acct_wid,
+                                            x_generic_customer_wid customer_wid,
+                                                                                                                                                                                sales.INVENTORY_ITEM_WID,
+                                                                                                                                                                                sales.INVENTORY_PRODUCT_WID,
+                                                                                                                                                                                sales.org_wid,
+                                            sales.gl_segment1_wid
+                                               gl_business_unit_wid,
+                                            sales.gl_segment2_wid gl_le_wid ,
+                                            sales.gl_segment4_wid gl_location_wid,
+                                            sales.rollup_segment8_wid
+                                               gl_product_line_wid,
+                                            sales.gl_segment7_wid gl_brand_wid,
+                                              SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid,
+                                                                 sales.gl_segment2_wid ,
+                                                                 sales.gl_segment4_wid,
+                                                                 sales.rollup_segment8_wid),
+                                                 0)
+                                               per_sales,
+                                              SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid,
+                                                                 sales.gl_segment2_wid ,
+                                                                 sales.gl_segment4_wid),
+                                                 0)
+                                               per_loc_sales,
+                                              SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid,
+                                                                 sales.gl_segment2_wid ,
+                                                                 sales.rollup_segment8_wid),
+                                                 0)
+                                               per_pl_sales,
+                                              SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid,
+                                                                 sales.gl_segment2_wid),
+                                                 0)
+                                               per_bu_le_sales,
+                                                 SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid),
+                                                 0)
+                                               per_bu_sales,
+                                            sales.GL_SEGMENT3_WID
+                                               sales_channel_wid
+                                       FROM sales_details sales
+                                      WHERE     xact_quantity > 0
+                                            and sales.sla_loc_amt <> 0
+                                            AND group_account_num =     'GROSS SALES'
+                                              AND x_generic_cust_account_wid > 0
+                                              AND name NOT IN ('CONSUMER RELATIONS GENERAL SALES KAZ US',
+                                                               'BBJ SUD OUEST KAZ CH',
+                                                               'CDISCOUNT SA KAZ CH',
+                                                               'CONSUMER RELATIONS WARRANTY SALES KAZ US')
+                                   GROUP BY sales.acct_period_end_dt_wid,
+                                            x_generic_cust_account_wid,
+                                            x_generic_customer_wid,
+                                                                                                                                                                                sales.INVENTORY_ITEM_WID,
+                                                                                                                                                                                sales.INVENTORY_PRODUCT_WID,
+                                                                                                                                                                                sales.org_wid,
+                                            sales.gl_segment1_wid,
+                                            sales.gl_segment2_wid,
+                                            sales.gl_segment4_wid,
+                                            sales.rollup_segment8_wid,
+                                            sales.gl_segment7_wid,
+                                            sales.GL_SEGMENT3_WID),
+                               sales_commissions
+                               AS (  SELECT /*+ parallel(16) */
+                                            sales.acct_period_end_dt_wid
+                                               period_wid,
+                                            x_generic_cust_account_wid customer_acct_wid,
+                                            x_generic_customer_wid customer_wid,
+                                                                                                                                                                                sales.INVENTORY_ITEM_WID,
+                                                                                                                                                                                sales.INVENTORY_PRODUCT_WID,
+                                                                                                                                                                                sales.org_wid,
+                                            sales.gl_segment1_wid
+                                               gl_business_unit_wid,
+                                            sales.gl_segment2_wid gl_le_wid,
+                                            sales.gl_segment4_wid gl_location_wid,
+                                            sales.rollup_segment8_wid
+                                               gl_product_line_wid,
+                                            sales.gl_segment7_wid gl_brand_wid,
+                                              SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid,
+                                                                 sales.gl_segment2_wid,
+                                                                 sales.gl_segment4_wid,
+                                                                 sales.rollup_segment8_wid),
+                                                 0)
+                                               per_sales,
+                                              SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid,
+                                                                 sales.gl_segment2_wid,
+                                                                 sales.gl_segment4_wid),
+                                                 0)
+                                              per_loc_sales,
+                                              SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid,
+                                                                 sales.gl_segment2_wid,
+                                                                 sales.rollup_segment8_wid),
+                                                 0)
+                                               per_pl_sales,
+                                              SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid,
+                                                                 sales.gl_segment2_wid),
+                                                 0)
+                                               per_bu_le_sales,
+                                              SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid
+                                                            ),
+                                                 0)
+                                               per_bu_sales,                                               
+                                            sales.GL_SEGMENT3_WID
+                                               sales_channel_wid
+                                       FROM sales_details sales,
+                                            wc_customer_allocation_list pc
+                                      WHERE  cust_integration_id =   pc.integration_id
+                                            AND xact_quantity > 0
+                                            and sales.sla_loc_amt <> 0
+                                            AND group_account_num =
+                                                   'GROSS SALES'
+                                            AND x_generic_cust_account_wid > 0
+                                   GROUP BY sales.acct_period_end_dt_wid,
+                                            x_generic_cust_account_wid,
+                                            x_generic_customer_wid,
+                                                                                                                                                                                sales.INVENTORY_ITEM_WID,
+                                                                                                                                                                                sales.INVENTORY_PRODUCT_WID,
+                                                                                                                                                                                sales.org_wid,
+                                            sales.gl_segment1_wid,
+                                            sales.gl_segment2_wid,
+                                            sales.gl_segment4_wid,
+                                            sales.rollup_segment8_wid,
+                                            sales.gl_segment7_wid,
+                                            sales.GL_SEGMENT3_WID),
+                               sales_amazon
+                               AS (  SELECT sales.acct_period_end_dt_wid
+                                               period_wid,
+                                            x_generic_cust_account_wid customer_acct_wid,
+                                            x_generic_customer_wid customer_wid,
+                                                                                                                                                                                sales.INVENTORY_ITEM_WID,
+                                                                                                                                                                                sales.INVENTORY_PRODUCT_WID,
+                                                                                                                                                                                sales.org_wid,
+                                            sales.gl_segment1_wid
+                                               gl_business_unit_wid,
+                                            sales.gl_segment2_wid gl_le_wid,
+                                            sales.gl_segment4_wid gl_location_wid,
+                                            sales.rollup_segment8_wid
+                                               gl_product_line_wid,
+                                            sales.gl_segment7_wid gl_brand_wid,
+                                              SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid,
+                                                                 sales.gl_segment2_wid,
+                                                                 sales.gl_segment4_wid,
+                                                                 sales.rollup_segment8_wid),
+                                                 0)
+                                               per_sales,
+                                              SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid,
+                                                                 sales.gl_segment2_wid,
+                                                                 sales.gl_segment4_wid),
+                                                 0)
+                                               per_loc_sales,
+                                              SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid,
+                                                                 sales.gl_segment2_wid,
+                                                                 sales.rollup_segment8_wid),
+                                                 0)
+                                               per_pl_sales,
+                                              SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid,
+                                                                 sales.gl_segment2_wid),
+                                                 0)
+                                               per_bu_le_sales,
+                                               SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid
+                                                                 ),
+                                                 0)
+                                               per_bu_sales,   
+                                            sales.GL_SEGMENT3_WID
+                                               sales_channel_wid
+                                       FROM sales_details sales
+                                      WHERE x_customer_group LIKE 'AMAZON%'
+                                            AND group_account_num =
+                                                   'GROSS SALES'
+                                            AND xact_quantity > 0
+                                            and sales.sla_loc_amt <> 0
+                                            AND x_generic_cust_account_wid > 0
+                                            AND name <>  'CONSUMER RELATIONS GENERAL SALES KAZ US'
+                                   GROUP BY sales.acct_period_end_dt_wid,
+                                            x_generic_cust_account_wid,
+                                            x_generic_customer_wid,
+                                                                                                                                                                                sales.INVENTORY_ITEM_WID,
+                                                                                                                                                                                sales.INVENTORY_PRODUCT_WID,
+                                                                                                                                                                                sales.org_wid,
+                                            sales.gl_segment1_wid,
+                                            sales.gl_segment2_wid,
+                                            sales.gl_segment4_wid,
+                                            sales.rollup_segment8_wid,
+                                            sales.gl_segment7_wid,
+                                            sales.GL_SEGMENT3_WID),
+                               freight_in
+                               AS (  SELECT sales.acct_period_end_dt_wid
+                                               period_wid,
+                                            x_generic_cust_account_wid customer_acct_wid,
+                                            x_generic_customer_wid customer_wid,
+                                                                                                                                                                                sales.INVENTORY_ITEM_WID,
+                                                                                                                                                                                sales.INVENTORY_PRODUCT_WID,
+                                                                                                                                                                                sales.org_wid,
+                                            sales.gl_segment1_wid
+                                               gl_business_unit_wid,
+                                            sales.gl_segment2_wid gl_le_wid,
+                                            sales.gl_segment4_wid gl_location_wid,
+                                            sales.rollup_segment8_wid
+                                               gl_product_line_wid,
+                                            sales.gl_segment7_wid gl_brand_wid,
+                                              SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid,
+                                                                 sales.gl_segment2_wid,
+                                                                 sales.gl_segment4_wid,
+                                                                 sales.rollup_segment8_wid),
+                                                 0)
+                                               per_sales,
+                                              SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid,
+                                                                 sales.gl_segment2_wid,
+                                                                 sales.gl_segment4_wid),
+                                                 0)
+                                               per_loc_sales,
+                                              SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid,
+                                                                 sales.gl_segment2_wid,
+                                                                 sales.rollup_segment8_wid),
+                                                 0)
+                                               per_pl_sales,
+                                              SUM (sales.sla_loc_amt)
+                                           / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid,
+                                                                 sales.gl_segment2_wid),
+                                                 0)
+                                               per_bu_le_sales,
+                                            SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid
+                                                                 ),
+                                                 0)
+                                               per_bu_sales,
+                                            sales.GL_SEGMENT3_WID
+                                               sales_channel_wid
+                                       FROM Sales_details sales
+                                            WHERE  UPPER (freight_term_code) IN ('PAID','COLLECT')
+                                            AND group_account_num =
+                                                   'GROSS SALES'
+                                            AND account_seg6_name <>
+                                                   'Sales - Direct Imports'
+                                            AND xact_quantity > 0
+                                            and sales.sla_loc_amt <> 0
+                                            AND name NOT IN ('CONSUMER RELATIONS GENERAL SALES KAZ US',
+                                                               'BBJ SUD OUEST KAZ CH',
+                                                               'CDISCOUNT SA KAZ CH',
+                                                               'CONSUMER RELATIONS WARRANTY SALES KAZ US')
+                                   GROUP BY sales.acct_period_end_dt_wid,
+                                            x_generic_cust_account_wid,
+                                            x_generic_customer_wid,
+                                                                                                                                                                                sales.INVENTORY_ITEM_WID,
+                                                                                                                                                                                sales.INVENTORY_PRODUCT_WID,
+                                                                                                                                                                                sales.org_wid,
+                                            sales.gl_segment1_wid,
+                                            sales.gl_segment2_wid,
+                                            sales.gl_segment4_wid,
+                                            sales.rollup_segment8_wid,
+                                            sales.gl_segment7_wid,
+                                            sales.GL_SEGMENT3_WID),
+                               freight_out
+                               AS (  SELECT sales.acct_period_end_dt_wid
+                                               period_wid,
+                                            x_generic_cust_account_wid customer_acct_wid,
+                                            x_generic_customer_wid customer_wid,
+                                                                                                                                                                                sales.INVENTORY_ITEM_WID,
+                                                                                                                                                                                sales.INVENTORY_PRODUCT_WID,
+                                                                                                                                                                                sales.org_wid,
+                                            sales.gl_segment1_wid
+                                               gl_business_unit_wid,
+                                            sales.gl_segment2_wid gl_le_wid,
+                                            sales.gl_segment4_wid gl_location_wid,
+                                            sales.rollup_segment8_wid
+                                               gl_product_line_wid,
+                                            sales.gl_segment7_wid gl_brand_wid,
+                                              SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid,
+                                                                 sales.gl_segment2_wid,
+                                                                 sales.gl_segment4_wid,
+                                                                 sales.rollup_segment8_wid),
+                                                 0)
+                                               per_sales,
+                                              SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid,
+                                                                 sales.gl_segment2_wid,
+                                                                 sales.gl_segment4_wid),
+                                                 0)
+                                               per_loc_sales,
+                                              SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid,
+                                                                 sales.gl_segment2_wid,
+                                                                 sales.rollup_segment8_wid),
+                                                 0)
+                                               per_pl_sales,
+                                              SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid,
+                                                                 sales.gl_segment2_wid),
+                                                 0)
+                                               per_bu_le_sales,
+                                            SUM (sales.sla_loc_amt)
+                                            / NULLIF (
+                                                 SUM (
+                                                    SUM (sales.sla_loc_amt))
+                                                 OVER (
+                                                    PARTITION BY sales.acct_period_end_dt_wid,
+                                                                 sales.gl_segment1_wid
+                                                                 ),
+                                                 0)
+                                               per_bu_sales,
+                                            sales.gl_segment3_wid
+                                               sales_channel_wid
+                                       FROM Sales_details sales
+                                      WHERE UPPER (freight_term_code) =  'PAID'
+                                            AND group_account_num =
+                                                   'GROSS SALES'
+                                            AND account_seg6_name <>
+                                                   'Sales - Direct Imports'
+                                            AND xact_quantity > 0
+                                            and sales.sla_loc_amt <> 0
+                                            AND name NOT IN ('CONSUMER RELATIONS GENERAL SALES KAZ US',
+                                                               'BBJ SUD OUEST KAZ CH',
+                                                               'CDISCOUNT SA KAZ CH',
+                                                               'CONSUMER RELATIONS WARRANTY SALES KAZ US')
+                                   GROUP BY sales.acct_period_end_dt_wid,
+                                            x_generic_cust_account_wid,
+                                            x_generic_customer_wid,
+                                                                                                                                                                                sales.INVENTORY_ITEM_WID,
+                                                                                                                                                                                sales.INVENTORY_PRODUCT_WID,
+                                                                                                                                                                                sales.org_wid,
+                                            sales.gl_segment1_wid,
+                                            sales.gl_segment2_wid,
+                                            sales.gl_segment4_wid,
+                                            sales.rollup_segment8_wid,
+                                            sales.gl_segment7_wid,
+                                            sales.gl_segment3_wid)
+                            SELECT                       --/*+ parallel(16) */
+                                  sq.x_generic_cust_account_wid customer_account_wid,
+                                   sq.x_generic_customer_wid customer_wid,
+                                   --product_wid,
+                                                                                                                                   sq.INVENTORY_ITEM_WID,
+                                                                                                                                   sq.INVENTORY_PRODUCT_WID,
+                                                                                                                                   sq.org_wid,
+                                   sq.acct_period_end_dt_wid fiscal_period_wid,
+                                   sq.gl_segment1_wid gl_business_unit_wid,
+                                   sq.gl_segment4_wid gl_location_wid,
+                                   sq.natural_account_wid gl_natural_acct_wid,
+                                   sq.gl_segment8_wid gl_product_line_wid,
+                                   sq.gl_segment7_wid gl_brand_wid,
+                                   SUM (
+                                      CASE
+                                         WHEN db.acct_period_end_dt_wid IS NULL
+                                         THEN
+                                            -1 * sla_loc_amt
+                                      END)
+                                      Net_sales,
+                                   SUM (
+                                      CASE
+                                         WHEN     sq.acct_period_end_dt_wid NOT IN (cp.mcal_period_wid,
+                                                                                    cp.yago_period_wid)
+                                              AND db.acct_period_end_dt_wid
+                                                     IS NULL
+                                         THEN
+                                            -1 * sla_loc_amt
+                                         ELSE
+                                            0
+                                      END)
+                                      sales_mtd,
+                                   SUM (
+                                      CASE
+                                         WHEN     (   (    NVL (
+                                                              sq.event_class_code,
+                                                              'NA') <> 'NA'
+                                                       AND (   NVL (
+                                                                  sq.event_class_code,
+                                                                  'NA') =
+                                                                  'SALES_ORDER'
+                                                            OR w_source_code NOT IN ('COGS',
+                                                                                       'AP',
+                                                                                       'FA',
+                                                                                       'AR')
+                                                            OR (    w_source_code =
+                                                                       'AR'
+                                                                AND sq.x_generic_cust_account_wid <>
+                                                                       0)
+                                                            OR account_type_code =
+                                                                 'R'))
+                                                   OR account_seg6_name =
+                                                         'Royalty Income')
+                                              AND db.acct_period_end_dt_wid
+                                                     IS NULL
+                                         THEN
+                                            -1 * sla_loc_amt
+                                      END)
+                                      Sales_wo_Manuals,
+                                   0 allocation_amt,
+                                   sq.GL_SEGMENT3_WID sales_channel_wid,
+                                   account_seg1_name bu_segment
+                              FROM Sales_details sq,
+                                   current_period cp,
+                                   (SELECT DISTINCT
+                                             '1'
+                                           || TO_CHAR (LAST_DAY (calendar_date),
+                                                       'YYYYMMDD')
+                                           || '000'
+                                              acct_period_end_dt_wid,
+                                           --          gl_business_unit_wid,
+                                           --         gl_location_wid,
+                                           gl_brand_wid,
+                                           --         gl_product_line_wid,
+                                           b.row_wid natural_account_wid
+                                      FROM wc_daily_sales_m a,
+                                           w_natural_account_d b
+                                     WHERE     gl_update_flag IS NULL
+                                           AND a.row_wid IS NULL
+                                           AND natural_account_val_code =
+                                                  '401000'
+                                           AND calendar_date < LAST_DAY (SYSDATE()))
+                                   db
+                             WHERE   db.acct_period_end_dt_wid(+) =
+                                          sq.acct_period_end_dt_wid
+                                   AND db.gl_brand_wid(+) = sq.gl_segment7_wid
+                                   AND db.natural_account_wid(+) =
+                                          Sq.natural_account_wid
+                          GROUP BY sq.x_generic_cust_account_wid,
+                                   sq.x_generic_customer_wid,
+                                                                                                                                   sq.INVENTORY_ITEM_WID,
+                                                                                                                                   sq.INVENTORY_PRODUCT_WID,
+                                                                                                                                   sq.org_wid,
+                                   sq.acct_period_end_dt_wid,
+                                  sq.gl_segment1_wid,
+                                   sq.gl_segment4_wid,
+                                   sq.natural_account_wid,
+                                   sq.gl_segment8_wid,
+                                   sq.gl_segment7_wid,
+                                   sq.GL_SEGMENT3_WID,
+                                   account_seg1_name -- 
+                          UNION ALL -- MTD Sales for Current period and Yago current period for Daily Sales Customer drill down
+                            SELECT /*+ parallel(sq 16) */
+                                   sq.x_generic_cust_account_wid customer_account_wid,
+                                   sq.x_generic_customer_wid customer_wid,
+                                   --product_wid,
+                                                                                                                                   sq.INVENTORY_ITEM_WID,
+                                                                                                                                   sq.INVENTORY_PRODUCT_WID,
+                                                                                                                                   sq.org_wid,
+                                   sq.acct_period_end_dt_wid fiscal_period_wid,
+                                   sq.gl_segment1_wid gl_business_unit_wid,
+                                   sq.gl_segment4_wid gl_location_wid,
+                                   sq.natural_account_wid gl_natural_acct_wid,
+                                   sq.gl_segment8_wid gl_product_line_wid,
+                                   sq.gl_segment7_wid gl_brand_wid,
+                                   0 net_sales,
+                                   SUM (-1 * sla_loc_amt) sales_mtd,
+                                   0 sales_wo_manuals,
+                                   0 alloc_amount,
+                                   sq.GL_SEGMENT3_WID sales_channel_wid,
+                                   gl.account_seg1_name bu_segment
+                              FROM wc_sla_xact_day_a sq,
+                                   w_ledger_d lg,
+                                   w_natural_account_d na,
+                                   w_xact_source_d j,
+                                   w_gl_account_d gl,
+                                   w_status_d st,
+                                   current_period cp,
+                                   ship_cal sc
+                             WHERE     gl.account_seg1_code NOT IN ( --'9999',
+                                                                    --'9000',
+                                                                    --'9990',
+                                                                    '1070',
+                                                                    '1071',
+                                                                    '1075',
+                                                                    '1076',
+                                                                    '1077',
+                                                                    '1072',
+                                                                    '1074',
+                                                                    '1073','1061','1062','1063')
+                                   AND lg.row_wid = sq.ledger_wid
+                                   AND na.row_wid = sq.natural_account_wid
+                                   AND lg.currency_code = 'USD'
+                                   AND lg.LEDGER_NAME NOT IN ('HOT FASB52 USD FR',
+                                                              'HOT FASB52 USD GB',
+                                                              'HOT FASB52 USD MX',
+                                                              'CONSO HOT LATIN AMERICA LLC')
+                                   AND sq.journal_source_wid = j.row_wid
+                                   AND sq.gl_account_wid = gl.row_wid
+                                   AND gl.account_seg9_code = '000'
+                                   AND j.source_code <> 'Conversion'
+                                   AND st.row_wid = sq.gl_status_wid
+                                   AND st.w_substatus1_code = 'POSTED'
+                                   AND (   acct_period_end_dt BETWEEN cp.mcal_period_start_dt
+                                                                  AND cp.last_date
+                                        OR acct_period_end_dt BETWEEN cp.yago_period_start_dt
+                                                                  AND sc.yago_ship_date)
+                          GROUP BY sq.x_generic_cust_account_wid,
+                                   sq.x_generic_customer_wid,
+                                                                                                                                   sq.INVENTORY_ITEM_WID,
+                                                                                                                                   sq.INVENTORY_PRODUCT_WID,
+                                                                                                                                   sq.org_wid,
+                                   sq.acct_period_end_dt_wid,
+                                   sq.gl_segment1_wid,
+                                   sq.gl_segment4_wid,
+                                   sq.natural_account_wid,
+                                   sq.gl_segment8_wid,
+                                   sq.gl_segment7_wid,
+                                   sq.GL_SEGMENT3_WID,
+                                   gl.account_seg1_name
+                          UNION ALL
+                            /*+ added extrenal sales details which are not present in EBS */
+                            SELECT 0 customer_account_wid,
+                                   0 customer_wid,
+                                                                                                                                   0 INVENTORY_ITEM_WID,
+                                                                                                                                   0 INVENTORY_PRODUCT_WID,
+                                                                                                                                   0 org_wid,
+                                   CAST (
+                                         '1'
+                                      || TO_CHAR (LAST_DAY (calendar_date),
+                                                  'YYYYMMDD')
+                                      || '000' AS INT)
+                                      fiscal_period_wid,
+                                   sq.gl_business_unit_wid business_unit_wid,
+                                   sq.gl_location_wid gl_location_wid,
+                                   na.row_wid gl_natural_acct_wid,
+                                  sq.gl_product_line_wid gl_product_line_wid,
+                                   sq.gl_brand_wid gl_brand_wid,
+                                   SUM (sales) net_sales,
+                                   SUM (CASE
+                                 WHEN CAST (
+                                            '1'
+                                         || TO_CHAR (LAST_DAY (calendar_date),
+                                                     'YYYYMMDD')
+                                         || '000' AS INT) IN (cp.mcal_period_wid,
+                                                              cp.yago_period_wid)
+                                 THEN
+                                    CASE
+                                       WHEN    calendar_date BETWEEN cp.mcal_period_start_dt
+                                                                 AND cp.last_date
+                                            OR calendar_date BETWEEN cp.yago_period_start_dt
+                                                                 AND sc.yago_ship_date
+                                       THEN
+                                          sales
+                                    END
+                                 ELSE
+                                    sales
+                              END) sales_mtd,
+                                   SUM (sales) sales_wo_manuals,
+                                   0 alloc_amount,
+                                   0 sales_channel_wid,
+                                   bu.X_segment_val_desc bu_segment
+                              FROM wc_daily_sales_m sq,
+                                   w_natural_account_d na,
+                                   w_gl_segment_d bu,
+                                   current_period cp,
+                                   ship_cal sc
+                             WHERE     na.natural_account_val_code = '401000'
+                                   AND bu.scd1_wid = sq.gl_business_unit_wid
+                                   AND ( calendar_date between cp.mcal_period_start_dt and cp.mcal_period_end_dt
+                                        or calendar_date between cp.prior_period_start_dt and cp.prior_period_end_dt
+                                        or calendar_date between cp.yago_period_start_dt and cp.yago_period_end_dt
+                                        )
+                                   AND ( sq.gl_update_flag IS NULL  OR w_updated_by = 'Finance daily break upload')
+                                   AND sq.row_wid IS NULL
+                          GROUP BY    '1'
+                                   || TO_CHAR (LAST_DAY (calendar_date),
+                                               'YYYYMMDD')
+                                   || '000',
+                                   sq.gl_business_unit_wid,
+                                   sq.gl_location_wid,
+                                   na.row_wid,
+                                   sq.gl_product_line_wid,
+                                   sq.gl_brand_wid,
+                                   bu.X_segment_val_desc
+                          UNION ALL
+                            SELECT /*+ parallel(16) */
+                                   sales.x_generic_cust_account_wid customer_acct_wid,
+                                   sales.x_generic_customer_wid customer_wid,
+                                                                                                                                   sales.INVENTORY_ITEM_WID,
+                                                                                                                                   sales.INVENTORY_PRODUCT_WID,
+                                                                                                                                   sales.org_wid,
+                                   sales.acct_period_end_dt_wid,
+                                   --,pr.row_wid product_wid
+                                   sales.gl_segment1_wid gl_business_unit_wid,
+                                   sales.gl_segment4_wid gl_loc_wid,
+                                   na.row_wid gl_natural_acct_wid,
+                                   -- 0 gl_natural_acct_wid,
+                                   sales.gl_segment8_wid gl_product_line_wid,
+                                   sales.gl_segment7_wid gl_brand_wid,
+                                   0 sales_amt,
+                                   0 sales_mtd,
+                                   0 sales_wo_manual,
+                                     CASE
+                                        WHEN na.natural_account_val_code =
+                                                'S67001'
+                                        THEN
+                                           1
+                                        ELSE
+                                           -1
+                                     END
+                                   * SUM (
+                                          NVL (-1 * sla_loc_amt, 0)
+                                        - NVL (
+                                               xact_quantity
+                                             * CASE
+                                                  WHEN cu.x_cust_di_flag = 'Y'
+                                                  THEN
+                                                    NVL (p.list_price_di,
+                                                          p.list_price)
+                                                  ELSE
+                                                     p.list_price
+                                               END,
+                                             0))
+                                      list_variance,
+                                   sales.GL_SEGMENT3_WID sales_channel_wid,
+                                   gl.account_seg1_name bu_segment
+                              FROM wc_sla_xact_fsclprd_a sales,
+                                   wc_item_list_price_d p,
+                                   w_mcal_period_d pd,
+                                   w_natural_account_d na,
+                                   w_product_d pr,
+                                   w_party_d cu,
+                                   w_gl_account_d gl,
+                                   current_period cp
+                             WHERE sales.ACCT_PERIOD_END_DT in (cp.mcal_period_end_dt, cp.prior_period_end_dt,cp.yago_period_end_dt)
+                                   AND p.item_number = pr.part_num
+                                   AND pd.row_wid = sales.acct_period_end_dt_wid
+                                   AND pd.mcal_cal_name = 'HOT Calendar'
+                                   AND xact_quantity > 0
+                                   AND pd.mcal_period_start_dt BETWEEN p.start_date
+                                                                   AND p.end_date
+                                   AND na.natural_account_val_code IN ('S67001',
+                                                                       'S67002')
+                                   AND na.natural_account_lov_id = '1007682'
+                                   AND sales.inventory_item_wid = pr.row_wid
+                                   AND cu.row_wid = sales.x_generic_customer_wid
+                                   AND sales.gl_account_wid = gl.row_wid
+                                   AND gl.group_account_num = 'GROSS SALES'
+                          GROUP BY sales.x_generic_cust_account_wid,
+                                   sales.x_generic_customer_wid,
+                                                                                                                                   sales.INVENTORY_ITEM_WID,
+                                                                                                                                   sales.INVENTORY_PRODUCT_WID,
+                                                                                                                                   sales.org_wid,
+                                   sales.acct_period_end_dt_wid,
+                                   --,pr.row_wid product_wid
+                                   sales.gl_segment1_wid,
+                                   sales.gl_segment4_wid,
+                                   na.row_wid,
+                                   -- 0 gl_natural_acct_wid,
+                                   sales.gl_segment8_wid,
+                                   sales.gl_segment7_wid,
+                                   sales.GL_SEGMENT3_WID,
+                                   CASE
+                                      WHEN na.natural_account_val_code =
+                                              'S67001'
+                                      THEN
+                                         1
+                                      ELSE
+                                         -1
+                                   END,
+                                   gl.account_seg1_name
+                            HAVING round(SUM (
+                                        NVL (-1 * sla_loc_amt, 0)
+                                      - NVL (
+                                             xact_quantity
+                                           * CASE
+                                                WHEN cu.x_cust_di_flag = 'Y'
+                                                THEN
+                                                   NVL (p.list_price_di,
+                                                        p.list_price)
+                                                ELSE
+                                                   p.list_price
+                                             END,
+                                           0)),2) <> 0
+                        UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 --Matching at BU location and Product Line Level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 alloc.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 alloc.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, sales s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 and alloc.gl_le_wid = s1.gl_le_wid
+                                 AND alloc.gl_product_line_wid =
+                                        s1.gl_product_line_wid
+                                 AND alloc.gl_location_wid = s1.gl_location_wid
+                                 AND alloc.segment_val_descr NOT IN ('Digital Adv Amazon',
+                                                                     'Service Fees Amazon',
+                                                                     'Sales Commissions')
+                                 AND alloc.segment_val_descr NOT LIKE
+                                        'Freight In%'
+                                 AND alloc.segment_val_descr NOT LIKE
+                                        'Freight Out%'
+                  UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 -- Matching at BU and product line level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 s1.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 alloc.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_pl_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, sales s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 and alloc.gl_le_wid = s1.gl_le_wid
+                                 AND alloc.gl_product_line_wid = s1.gl_product_line_wid
+                                 AND alloc.segment_val_descr NOT IN ('Digital Adv Amazon',
+                                                                     'Sales Commissions',
+                                                                     'Service Fees Amazon')
+                                 AND alloc.segment_val_descr NOT LIKE
+                                        'Freight In%'
+                                 AND alloc.segment_val_descr NOT LIKE
+                                        'Freight Out%'
+                                 AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM sales s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                AND alloc.gl_location_wid = s2.gl_location_wid
+                                                and alloc.gl_le_wid = s2.gl_le_wid
+                                                )
+                      UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 -- Matching at BU and Location level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 alloc.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 s1.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_loc_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, sales s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 and alloc.gl_le_wid = s1.gl_le_wid
+                                 AND alloc.gl_location_wid = s1.gl_location_wid
+                                 AND alloc.segment_val_descr NOT IN ('Digital Adv Amazon',
+                                                                     'Sales Commissions',
+                                                                     'Service Fees Amazon')
+                                 AND alloc.segment_val_descr NOT LIKE
+                                        'Freight In%'
+                                 AND alloc.segment_val_descr NOT LIKE
+                                        'Freight Out%'
+                                 AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM sales s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                AND alloc.gl_product_line_wid =
+                                                       s2.gl_product_line_wid
+                                                and alloc.gl_le_wid = s2.gl_le_wid
+                                                 )
+               UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 --Matching at BU and LE level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 s1.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 s1.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_bu_le_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, sales s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 and alloc.gl_le_wid = s1.gl_le_wid
+                                 AND alloc.segment_val_descr NOT IN ('Digital Adv Amazon',
+                                                                     'Sales Commissions',
+                                                                     'Service Fees Amazon')
+                                 AND alloc.segment_val_descr NOT LIKE
+                                        'Freight In%'
+                                 AND alloc.segment_val_descr NOT LIKE
+                                        'Freight Out%'
+                                 AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM sales s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                AND alloc.gl_product_line_wid =
+                                                       s2.gl_product_line_wid
+                                                and alloc.gl_le_wid = s2.gl_le_wid
+                                                )
+                                 AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM sales s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                AND alloc.gl_location_wid =
+                                                       s2.gl_location_wid
+                                                and alloc.gl_le_wid = s2.gl_le_wid
+                                                )                                                 
+             UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 --Matching at BU level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 s1.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 s1.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_bu_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, sales s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 AND alloc.segment_val_descr NOT IN ('Digital Adv Amazon',
+                                                                     'Sales Commissions',
+                                                                     'Service Fees Amazon')
+                                 AND alloc.segment_val_descr NOT LIKE
+                                        'Freight In%'
+                                 AND alloc.segment_val_descr NOT LIKE
+                                        'Freight Out%'
+                                AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM sales s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                AND alloc.gl_le_wid =
+                                                       s2.gl_le_wid
+                                                )
+                    UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 --Matching at BU location and Product Line Level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 alloc.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 alloc.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, sales_amazon s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 AND alloc.gl_product_line_wid =
+                                        s1.gl_product_line_wid
+                                 and alloc.gl_le_wid = s1.gl_le_wid
+                                 AND alloc.gl_location_wid = s1.gl_location_wid
+                                 AND alloc.segment_val_descr IN ('Digital Adv Amazon',
+                                                                 'Service Fees Amazon')
+                          UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 --Matching at BU and Product Line level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 s1.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 alloc.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_pl_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, sales_amazon s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 and alloc.gl_le_wid = s1.gl_le_wid
+                                 AND alloc.gl_product_line_wid =
+                                        s1.gl_product_line_wid
+                                 AND alloc.segment_val_descr IN ('Digital Adv Amazon',
+                                                                 'Service Fees Amazon')
+                                 and not exists (select 1 from   sales_amazon s2
+                                            where alloc.gl_business_unit_wid =   s2.gl_business_unit_wid
+                                            AND alloc.gl_location_wid =   s2.gl_location_wid
+                                             AND alloc.period_wid = s2.period_wid
+                                             and alloc.gl_le_wid = s2.gl_le_wid
+                                            )
+                          UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 -- Matching at BU and Location level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 alloc.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 s1.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_loc_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, sales_amazon s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 and alloc.gl_le_wid = s1.gl_le_wid
+                                 AND alloc.gl_location_wid = s1.gl_location_wid
+                                 AND alloc.segment_val_descr IN ('Digital Adv Amazon',
+                                                                 'Service Fees Amazon')
+                                 AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM sales_amazon s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                AND alloc.gl_product_line_wid =
+                                                       s2.gl_product_line_wid
+                                                and alloc.gl_le_wid = s2.gl_le_wid
+                                                )
+                         UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 --Matching at BU and LE level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 s1.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 s1.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_bu_le_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, sales_amazon s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 and alloc.gl_le_wid = s1.gl_le_wid
+                                 AND alloc.segment_val_descr IN ('Digital Adv Amazon',
+                                                                 'Service Fees Amazon')
+                                 AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM sales_amazon s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                AND alloc.gl_product_line_wid =
+                                                       s2.gl_product_line_wid
+                                                and alloc.gl_le_wid = s2.gl_le_wid
+                                                 )
+                                 AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM sales_amazon s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                AND alloc.gl_location_wid =
+                                                      s2.gl_location_wid
+                                                and alloc.gl_le_wid = s2.gl_le_wid
+                                               )                                                
+                          UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 --Matching at BU level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 s1.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 s1.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_bu_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, sales_amazon s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 AND alloc.segment_val_descr IN ('Digital Adv Amazon',
+                                                                 'Service Fees Amazon')
+                              AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM sales_amazon s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                AND alloc.gl_le_wid =
+                                                       s2.gl_le_wid
+                                                )
+                          UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 --Matching at BU location and Product Line Level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 alloc.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 alloc.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, Freight_in s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 and alloc.gl_le_wid = s1.gl_le_wid
+                                 AND alloc.gl_product_line_wid =
+                                        s1.gl_product_line_wid
+                                 AND alloc.gl_location_wid = s1.gl_location_wid
+                                 AND alloc.segment_val_descr LIKE 'Freight In%'
+                       UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 --Matching at BU and Product Line level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                s1.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 alloc.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_pl_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, Freight_in s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 and alloc.gl_le_wid = s1.gl_le_wid
+                                 AND alloc.gl_product_line_wid =
+                                        s1.gl_product_line_wid
+                                 AND alloc.segment_val_descr LIKE 'Freight In%'
+                                 AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM Freight_in s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                and alloc.gl_location_wid = s2.gl_location_wid
+                                                and alloc.gl_le_wid = s2.gl_le_wid
+                                                )
+                          UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 -- Matching at BU and Location level
+                                s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 alloc.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 s1.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_loc_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, Freight_in s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 and alloc.gl_le_wid = s1.gl_le_wid
+                                 AND alloc.gl_location_wid = s1.gl_location_wid
+                                 AND alloc.segment_val_descr LIKE 'Freight In%'
+                                 AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM Freight_in s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                AND alloc.gl_product_line_wid =
+                                                       s2.gl_product_line_wid
+                                                and alloc.gl_le_wid = s2.gl_le_wid
+                                                )
+                       union all
+                             SELECT /*+ parallel(16) */
+                                 --Matching at BU and LE level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 s1.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 s1.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_bu_le_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, Freight_in s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 and alloc.gl_le_wid = s1.gl_le_wid
+                                 AND alloc.segment_val_descr LIKE 'Freight In%'
+                                 AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM Freight_in s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                AND alloc.gl_product_line_wid =
+                                                       s2.gl_product_line_wid
+                                                and alloc.gl_le_wid = s2.gl_le_wid
+                                                )
+                                 AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM Freight_in s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                AND alloc.gl_location_wid =
+                                                       s2.gl_location_wid
+                                                and alloc.gl_le_wid = s2.gl_le_wid
+                                                 )
+                          UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 --Matching at BU level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 s1.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 s1.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_bu_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, Freight_in s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 AND alloc.segment_val_descr LIKE 'Freight In%'
+                                   AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM Freight_in s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                AND alloc.gl_le_wid =
+                                                       s2.gl_le_wid
+                                                )
+                          UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 --Matching at BU location and Product Line Level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 alloc.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 alloc.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, Freight_out s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 and alloc.gl_le_wid = s1.gl_le_wid
+                                 AND alloc.gl_product_line_wid =
+                                        s1.gl_product_line_wid
+                                 AND alloc.gl_location_wid = s1.gl_location_wid
+                                 AND alloc.segment_val_descr LIKE
+                                        'Freight Out%'
+                          UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 --Matching at BU and Product Line level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 s1.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 alloc.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_pl_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, Freight_out s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 and alloc.gl_le_wid = s1.gl_le_wid
+                                 AND alloc.gl_product_line_wid =
+                                        s1.gl_product_line_wid
+                                 AND alloc.segment_val_descr LIKE
+                                        'Freight Out%'
+                                  AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM Freight_out s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                 and alloc.gl_location_wid = s2.gl_location_wid
+                                                 and alloc.gl_le_wid = s2.gl_le_wid
+                                                 )
+                          UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 -- Matching at BU and Location level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 alloc.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 s1.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_loc_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, Freight_out s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 and alloc.gl_le_wid = s1.gl_le_wid
+                                 AND alloc.gl_location_wid = s1.gl_location_wid
+                                 AND alloc.segment_val_descr LIKE
+                                        'Freight Out%'
+                                 AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM Freight_out s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                AND alloc.gl_product_line_wid =
+                                                       s2.gl_product_line_wid
+                                                and alloc.gl_le_wid = s2.gl_le_wid
+                                                )
+                            UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 --Matching at BU and LE level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 s1.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 s1.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_bu_le_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                           FROM alloc, Freight_out s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 and alloc.gl_le_wid = s1.gl_le_wid
+                                AND alloc.segment_val_descr LIKE
+                                        'Freight Out%'
+                                 AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM Freight_out s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                AND alloc.gl_product_line_wid =
+                                                       s2.gl_product_line_wid
+                                                and alloc.gl_le_wid = s2.gl_le_wid
+                                                )
+                                 AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM Freight_out s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                AND alloc.gl_location_wid =
+                                                       s2.gl_location_wid
+                                                and alloc.gl_le_wid = s2.gl_le_wid
+                                                )                                                
+                          UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 --Matching at BU level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 s1.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 s1.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_bu_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, Freight_out s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                AND alloc.segment_val_descr LIKE
+                                        'Freight Out%'
+                                 AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM Freight_out s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                AND alloc.gl_le_wid =
+                                                       s2.gl_le_wid
+                                                )
+                          UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 --Matching at BU location and Product Line Level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 alloc.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 alloc.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, sales_commissions s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 and alloc.gl_le_wid = s1.gl_le_wid
+                                 AND alloc.gl_product_line_wid =
+                                        s1.gl_product_line_wid
+                                 AND alloc.gl_location_wid = s1.gl_location_wid
+                                 AND alloc.segment_val_descr =
+                                        'Sales Commissions'
+                          UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 --Matching at BU and Product Line level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 s1.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 alloc.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_pl_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc,
+                                 sales_commissions s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 and alloc.gl_le_wid = s1.gl_le_wid
+                                 AND alloc.gl_product_line_wid =
+                                        s1.gl_product_line_wid
+                                 AND alloc.segment_val_descr =
+                                        'Sales Commissions'
+                                  AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM sales_commissions s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                and alloc.gl_location_wid = s2.gl_location_wid
+                                                and alloc.gl_le_wid = s2.gl_le_wid
+                                                )
+                          UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 -- Matching at BU and Location level
+                                s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 alloc.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 s1.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_loc_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, sales_commissions s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 and alloc.gl_le_wid = s1.gl_le_wid
+                                 AND alloc.gl_location_wid = s1.gl_location_wid
+                                 AND alloc.segment_val_descr =
+                                        'Sales Commissions'
+                                 AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM sales_commissions s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                AND alloc.gl_product_line_wid =
+                                                       s2.gl_product_line_wid
+                                                and alloc.gl_le_wid = s2.gl_le_wid
+                                                )
+                               UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 --Matching at BU and LE level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 s1.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 s1.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_bu_le_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, sales_commissions s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 and alloc.gl_le_wid = s1.gl_le_wid
+                                 AND alloc.segment_val_descr =
+                                        'Sales Commissions'
+                                 AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM sales_commissions s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                AND alloc.gl_product_line_wid =
+                                                       s2.gl_product_line_wid
+                                                and alloc.gl_le_wid = s2.gl_le_wid
+                                                )
+                                 AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM sales_commissions s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                AND alloc.gl_location_wid =
+                                                       s2.gl_location_wid
+                                                and alloc.gl_le_wid = s2.gl_le_wid
+                                                )
+                          UNION ALL
+                          SELECT /*+ parallel(16) */
+                                 --Matching at BU level
+                                 s1.customer_acct_wid,
+                                 s1.customer_wid,
+                                                                                                                                s1.INVENTORY_ITEM_WID,
+                                                                                                                                s1.INVENTORY_PRODUCT_WID,
+                                                                                                                                s1.org_wid,
+                                 alloc.period_wid,
+                                 alloc.gl_business_unit_wid,
+                                 s1.gl_location_wid,
+                                 alloc.gl_natural_acct_wid,
+                                 s1.gl_product_line_wid,
+                                 s1.gl_brand_wid,
+                                 0 sales_amt,
+                                 0 sales_mtd,
+                                 0 sales_wo_manual,
+                                 alloc.allocation_amt * s1.per_bu_sales
+                                    gl_allocation_amt,
+                                 s1.sales_channel_wid,
+                                 alloc.bu_segment
+                            FROM alloc, sales_commissions s1
+                           WHERE     alloc.period_wid = s1.period_wid
+                                 AND alloc.gl_business_unit_wid =
+                                        s1.gl_business_unit_wid
+                                 AND alloc.segment_val_descr =
+                                        'Sales Commissions'
+                                    AND NOT EXISTS
+                                        (SELECT 1
+                                           FROM sales_commissions s2
+                                          WHERE     alloc.period_wid =
+                                                       s2.period_wid
+                                                AND alloc.gl_business_unit_wid =
+                                                       s2.gl_business_unit_wid
+                                                AND alloc.gl_le_wid =
+                                                       s2.gl_le_wid
+                                                )
+                                                       )
+                         all_sales
+                GROUP BY customer_account_wid,
+                         customer_wid,
+                                                                                                all_sales.INVENTORY_ITEM_WID,
+                                                                                                all_sales.INVENTORY_PRODUCT_WID,
+                                                                                                all_sales.org_wid,
+                         fiscal_period_wid,
+                         all_sales.gl_business_unit_wid,
+                         all_sales.gl_location_wid,
+                         all_sales.gl_natural_acct_wid,
+                         all_sales.gl_product_line_wid,
+                         all_sales.gl_brand_wid,
+                         all_sales.sales_channel_wid,
+                         all_sales.bu_segment
+           UNION ALL
+                  SELECT                                 --/*+ parallel(16) */
+                       sq.x_generic_cust_account_wid customer_account_wid,
+                         sq.x_generic_customer_wid customer_wid,
+                                                                                                sq.INVENTORY_ITEM_WID,
+                                                                                                sq.INVENTORY_PRODUCT_WID,
+                                                                                                sq.org_wid,
+                         sq.acct_period_end_dt_wid fiscal_period_wid,
+                         sq.gl_segment1_wid gl_business_unit_wid,
+                         sq.gl_segment4_wid gl_location_wid,
+                         sq.natural_account_wid gl_natural_acct_wid,
+                         sq.gl_segment8_wid gl_product_line_wid,
+                         sq.gl_segment7_wid gl_brand_wid,
+                         SUM (-1 * sla_loc_amt) Net_sales,
+                         0 sales_mtd,
+                         0 Sales_wo_Manuals,
+                         0 allocation_amt,
+                         sq.GL_SEGMENT3_WID sales_channel_wid,
+                         sq.account_seg1_name bu_segment,
+                         'Beauty_Sales'
+                    FROM sales_details sq
+                  WHERE   sq.account_seg1_name IN ('Appliances US & CN',
+                                                      'BCA US & CN',
+                                                      'Belson',
+                                                      'Professional US & CN',
+                                                      'Personal Care',
+                                                      'Beauty Canada',
+                                                      'Beauty LATAM',
+                                                      'Beauty US')
+                GROUP BY sq.x_generic_cust_account_wid,
+                         sq.x_generic_customer_wid,
+                                                                                                sq.INVENTORY_ITEM_WID,
+                                                                                                sq.INVENTORY_PRODUCT_WID,
+                                                                                                sq.org_wid,
+                         sq.acct_period_end_dt_wid,
+                         sq.gl_segment1_wid,
+                         sq.gl_segment4_wid,
+                         sq.natural_account_wid,
+                         sq.gl_segment8_wid,
+                         sq.gl_segment7_wid,
+                         sq.GL_SEGMENT3_WID,
+                         sq.account_seg1_name
+                         ) actuals
+    FULL OUTER JOIN
+               (  
+               SELECT scenario,
+                         customer_account_wid,
+                         customer_wid,
+                                                                                                hf.INVENTORY_product_WID,
+                                                                                                hf.product_wid,
+                                                                                                hf.inventory_org_wid,
+                         acct_period_end_dt_wid fiscal_period_wid,
+                         hf.gl_business_unit_wid,
+                         hf.gl_location_wid,
+                         hf.gl_natural_acct_wid,
+                         hf.gl_product_line_wid,
+                         hf.gl_brand_wid,
+                         SUM (budgeted_amount) budget_amount,
+                         SUM (
+                            CASE cp.fc_scenario
+                               WHEN '3+9' THEN fc3plus9_amount
+                               WHEN '6+6' THEN fc6plus6_amount
+                               WHEN '9+3' THEN fc9plus3_amount
+                               ELSE forecast_amount
+                            END)
+                            forecast_amount,
+                         SUM (fc9plus3_amount) Fc9plus3,
+                         SUM (fc3plus9_amount) Fc3plus9,
+                         hf.GL_CHANNEL_WID sales_channel_wid,
+                         bu.x_segment_val_desc bu_segment
+                    FROM wc_hyperion_budget_f hf,
+                         current_period cp,
+                         w_gl_segment_d bu
+                   WHERE bu.scd1_wid = hf.gl_business_unit_wid
+                     and  acct_period_end_dt_wid in (cp.mcal_period_wid,cp.prior_period_wid,cp.yago_period_wid)
+                GROUP BY scenario,
+                         customer_account_wid,
+                         customer_wid,
+                                                                                                hf.INVENTORY_product_WID,
+                                                                                                hf.product_wid,
+                                                                                                hf.inventory_org_wid,
+                         acct_period_end_dt_wid,
+                         hf.gl_business_unit_wid,
+                         hf.gl_location_wid,
+                         hf.gl_natural_acct_wid,
+                         hf.gl_product_line_wid,
+                         hf.gl_brand_wid,
+                         hf.GL_CHANNEL_WID,
+                         bu.x_segment_val_desc ) fcst
+                 ON     actuals.customer_account_wid =
+                            fcst.customer_account_wid
+                                                                                AND actuals.INVENTORY_product_WID = fcst.INVENTORY_product_WID
+                                                                                AND actuals.INVENTORY_ITEM_WID = fcst.product_WID
+                                                                                AND actuals.ORG_WID = fcst.INVENTORY_ORG_WID
+                     AND actuals.fiscal_period_wid = fcst.fiscal_period_wid
+                     AND actuals.gl_business_unit_wid =
+                            fcst.gl_business_unit_wid
+                     AND actuals.gl_location_wid = fcst.gl_location_wid
+                     AND actuals.gl_natural_acct_wid =
+                            fcst.gl_natural_acct_wid
+                     AND actuals.gl_product_line_wid =
+                            fcst.gl_product_line_wid
+                     AND actuals.gl_brand_wid = fcst.gl_brand_wid
+                     AND actuals.sales_channel_wid = fcst.sales_channel_wid
+                     AND actuals.scenario = fcst.scenario,
+                      current_Period cal,  mtd  
+                        ) Act_fcst,
+       w_natural_account_dh hd,
+       w_natural_account_d na,
+       w_gl_segment_d_tl ns,
+       w_gl_segment_d_tl gs,
+       w_natural_account_dh hd2,
+       wc_cust_netsales_last_snapshot sp
+WHERE  act_fcst.gl_natural_acct_wid = na.row_wid(+)
+       AND na.scd1_wid = hd.natural_account_wid(+)
+       AND hd.hierarchy_id(+) = 'CP5379'
+       AND hd.level31_integration_id = ns.integration_id(+)
+       AND na.scd1_wid = hd2.natural_account_wid(+)
+       AND hd2.hierarchy_id(+) = 'CP5311'
+       AND hd2.level31_integration_id = gs.integration_id(+)
+       AND act_fcst.gl_business_unit_wid = sp.gl_business_unit_wid(+)
+       AND act_fcst.gl_product_line_wid = sp.gl_product_line_wid(+)
+       AND act_fcst.gl_location_wid = sp.gl_location_wid(+)
+       AND act_fcst.gl_brand_wid = sp.gl_brand_wid(+)
+       AND act_fcst.gl_natural_acct_wid = sp.gl_natural_acct_wid(+)
+       AND act_fcst.customer_account_wid = sp.customer_account_wid(+)
+       AND act_fcst.INVENTORY_ITEM_WID = sp.INVENTORY_ITEM_WID(+)
+       AND act_fcst.ORG_WID = sp.ORG_WID(+)
+       AND act_fcst.inventory_product_wid = sp.inventory_product_wid(+)
+       AND act_fcst.fiscal_period_wid = sp.fiscal_period_wid(+)
+       AND act_fcst.gl_sales_channel_wid = sp.gl_sales_channel_wid(+)
+       AND NVL (ACT_FCST.SCENARIO, 'NA') = NVL (SP.SCENARIO(+), 'NA')
+;
+
+commit;

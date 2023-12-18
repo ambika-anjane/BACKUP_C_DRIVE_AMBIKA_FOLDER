@@ -1,0 +1,115 @@
+with
+    sales_details as (select * from {{ ref("stg_oracle__customer_net_sales") }}),
+    wc_customer_allocation_list as (
+        select * from dev_edw.edw_omni.wc_customer_allocation_list
+    ),
+
+    sales_freightin as (
+        select
+
+            sq.accounting_date period_id,
+            sq.generic_customer_account_id customer_account_id,
+            sq.customer_account_id customer_id,
+            sq.inventory_item_id,
+            sq.inventory_product_id,
+            sq.inventory_org_id,
+            sq.business_unit_segment_id gl_business_unit_id,
+            sq.company_segment_id gl_company_id,
+            sq.location_segment_id gl_location_id,
+            sq.product_line_segment_id gl_product_line_id,
+            sq.brand_segment_id gl_brand_id,
+            sum(sq.sla_loc_amt) / nullif(
+                sum(sum(sq.sla_loc_amt)) over (
+                    partition by
+                        sq.accounting_date,
+                        sq.business_unit_segment_id,
+                        sq.company_segment_id,
+                        sq.location_segment_id,
+                        sq.product_line_segment_id
+                ),
+                0
+            )
+            per_sales,
+            sum(sq.sla_loc_amt) / nullif(
+                sum(sum(sq.sla_loc_amt)) over (
+                    partition by
+                        sq.accounting_date,
+                        sq.business_unit_segment_id,
+                        sq.company_segment_id,
+                        sq.location_segment_id
+                ),
+                0
+            )
+            per_loc_sales,
+            sum(sq.sla_loc_amt) / nullif(
+                sum(sum(sq.sla_loc_amt)) over (
+                    partition by
+                        sq.accounting_date,
+                        sq.business_unit_segment_id,
+                        sq.company_segment_id,
+                        sq.product_line_segment_id
+                ),
+                0
+            )
+            per_pl_sales,
+            sum(sq.sla_loc_amt) / nullif(
+                sum(sum(sq.sla_loc_amt)) over (
+                    partition by
+                        sq.accounting_date,
+                        sq.business_unit_segment_id,
+                        sq.company_segment_id
+                ),
+                0
+            )
+            per_bu_le_sales,
+            sum(sq.sla_loc_amt) / nullif(
+                sum(sum(sq.sla_loc_amt)) over (
+                    partition by sq.accounting_date, sq.business_unit_segment_id
+                ),
+                0
+            )
+            per_bu_sales,
+            sq.sales_channel_segment_id sales_channel_id
+        from sales_details sq
+        where
+            upper(sq.freight_term_code) = 'COLLECT'
+            and sq.account_group = 'Gross Sales'
+            and sq.account <> 'Sales - Direct Imports'
+            and sq.xact_quantity > 0
+            and sq.sla_loc_amt <> 0
+            and sq.customer_name not in (
+                'CONSUMER RELATIONS GENERAL SALES KAZ US',
+                'BBJ SUD OUEST KAZ CH',
+                'CDISCOUNT SA KAZ CH',
+                'CONSUMER RELATIONS WARRANTY SALES KAZ US'
+            )
+        group by
+               sq.accounting_date,
+            sq.generic_customer_account_id,
+            sq.customer_account_id,
+            sq.inventory_item_id,
+            sq.inventory_product_id,
+            sq.inventory_org_id,
+            sq.business_unit_segment_id,
+            sq.company_segment_id,
+            sq.location_segment_id,
+            sq.product_line_segment_id,
+            sq.brand_segment_id ,
+            sq.sales_channel_segment_id 
+    )
+select *
+from sales_freightin
+
+
+--  select freight_term_code from dev_discover.FINANCIALS.stg_oracle__customer_net_sales where freight_term_code in ('PAID', 'COLLECT')
+-- select freight_term_code from dev_edw.edw_omni.w_freight_terms_d where freight_term_code in ('PAID', 'COLLECT') - collect present
+/*
+ select freight_term_code from dev_discover.FINANCIALS.stg_oracle__customer_net_sales where freight_term_code in ('PAID', 'COLLECT')
+            AND account_group = 'Gross Sales' and account <> 'Sales - Direct Imports'  and xact_quantity > 0
+            and sla_loc_amt <> 0
+            and customer_name not in (
+                'CONSUMER RELATIONS GENERAL SALES KAZ US',
+                'BBJ SUD OUEST KAZ CH',
+                'CDISCOUNT SA KAZ CH',
+                'CONSUMER RELATIONS WARRANTY SALES KAZ US'
+            ) */
