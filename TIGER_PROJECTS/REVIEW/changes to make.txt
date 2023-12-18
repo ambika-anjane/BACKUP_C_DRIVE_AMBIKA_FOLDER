@@ -1,0 +1,22 @@
+inventory
+
+1. yaml fil (description : location)
+description: 'Shipping terms description like prepaid, collect etc..'
+2. incremental (include brackets)
+3. line 17 (add symbol)
+4. 41,44,51(add source_id)
+5. 63 
+6. 87 to be removed
+
+
+payment_methid_d (integration_d) symbol should be incuded
+47,48 same for others sub's
+64,65, (all the sub's)
+remove find_lookup_values and refer fnd_lookup_values
+
+
+customer_loc_use_d
+
+remove x from cols
+add source_id to ID fileds
+remove space in staging files in dbt and save
