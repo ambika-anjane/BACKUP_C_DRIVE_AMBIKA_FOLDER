@@ -1,0 +1,73 @@
+select
+    coalesce(to_char(sq_claims.claim_id),'')
+    || '~'
+    || coalesce(to_char(sq_claims.utilization_id),'')
+    || '~'
+    || coalesce(to_char(sq_claims.claim_line_id),'')
+    || '~'
+    || coalesce(to_char(sq_claims.claim_line_util_id),'')
+    || '~'
+    || coalesce(to_char(sq_claims._source_id),'') integration_id,
+    sq_claims.claim_number claim_number,
+    sq_claims.claim_date claim_date,
+    sq_claims.due_date due_date,
+    sq_claims.claim_type claim_type,
+    coalesce(to_char(sq_claims.bill_to_site_use_id) || '~' || sq_claims._source_id,'0') bill_to_site_use_id,
+    sq_claims.reason_code reason_code,
+    sq_claims.customer_ref_number customer_ref_number,
+    sq_claims.receipt_number receipt_number,
+    sq_claims.payment_method payment_method,
+    sq_claims.payment_reference_number payment_reference_number,
+    sq_claims.payment_status payment_status,
+    sq_claims.approved_date approved_date,
+    sq_claims.settled_date settled_date,
+    sq_claims.claim_doc_amount,
+    sq_claims.claim_loc_amount,
+    sq_claims.doc_curr_code doc_curr_code,
+    sq_claims.adjusted_doc_amount,
+    sq_claims.remaining_doc_amount,
+    sq_claims.settled_doc_amount settled_doc_amount,
+    sq_claims.settled_loc_amount settled_loc_amount,
+    sq_claims.tax_doc_amount,
+    sq_claims.exchange_rate exchange_rate,
+    sq_claims.exchange_rate_type exchange_rate_type,
+    sq_claims.exchange_rate_date exchange_rate_date,
+    sq_claims.claim_class claim_class,
+    sq_claims.last_update_date last_update_date,
+    sq_claims.gl_date gl_date,
+    sq_claims.check_number check_number,
+    sq_claims.status_code claim_status,
+    coalesce(to_char(sq_claims.claim_id) || '~' || sq_claims._source_id,'0') claim_id ,
+    coalesce(to_char(sq_claims.approved_by_id) || '~' || sq_claims._source_id,'0') approved_by_id ,
+    coalesce(to_char(sq_claims.settled_by_id) || '~' || sq_claims._source_id,'0') settled_by_id,
+    coalesce(to_char(sq_claims.operating_unit_id) || '~' || sq_claims._source_id,'0') operating_unit_id,
+    coalesce(to_char(sq_claims.customer_account_id) || '~' || (sq_claims._source_id),'0') customer_account_id,
+    coalesce(to_char(sq_claims.fund_id) || '~' || (sq_claims._source_id),'0') fund_id,
+    coalesce(to_char(sq_claims.user_id) || '~' || (sq_claims._source_id),'0') user_id,
+    coalesce(to_char(sq_claims.ship_to_site_use_id) || '~' || sq_claims._source_id,'0') ship_to_site_use_id,
+    sq_claims._source_id _source_id,
+    sq_claims._batch_update_date ,
+    sq_claims._batch_update_date_claim_text aux1_update_date,
+    sq_claims._batch_update_date_claim_utilized_fund aux2_update_date,
+    sq_claims._batch_update_date_trade_utilized_fund aux3_update_date,
+    sq_claims.owner_name owner_name,
+    nvl(ozf_fund_details.ledger_id||'~'||sq_claims._source_id,'0') ledger_id,
+    --nvl(to_char(sq_claims.customer_account_id)||'~'||sq_claims.ship_to_site_use_id||'~'||'ALL'||'~'||'ALL'||'~'||'~'||sq_claims._source_id,'0')::varchar(500)  territory_id,
+   nvl(to_char(sq_claims.customer_account_id)||'~'|| nvl(to_char(sq_claims.ship_to_site_use_id), '')||'~'||'ALL'||'~'||'ALL'||'~'||'~'||sq_claims._source_id,'0')::varchar(500)  territory_id,
+    'N' delete_flag,
+    sq_claims._source_id datasource_num_id,
+    {{env_var('DBT_CLOUD_RUN_ID',9999)}}::number(32,0) etl_proc_id,
+    $batch_start_time w_insert_date,
+    $batch_start_time w_update_date
+ from {{ ref("stg__claims") }} sq_claims
+ left join 
+ {{ ref('stg_oracle__trade_funds_details') }} ozf_fund_details 
+ on sq_claims.fund_id=ozf_fund_details.fund_id 
+ where 1=1
+ {% if is_incremental() %}
+        and (
+           (sq_claims._batch_update_date >= $batch_start_time and sq_claims._batch_update_date <= $batch_end_time)
+        or (sq_claims._batch_update_date_claim_text >= $batch_start_time and sq_claims._batch_update_date_claim_text <= $batch_end_time)
+        or (sq_claims._batch_update_date_claim_utilized_fund >= $batch_start_time and sq_claims._batch_update_date_claim_utilized_fund <= $batch_end_time)                
+            )
+ {% endif %} 

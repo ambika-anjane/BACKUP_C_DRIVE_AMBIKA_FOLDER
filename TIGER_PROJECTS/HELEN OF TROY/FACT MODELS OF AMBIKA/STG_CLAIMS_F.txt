@@ -1,0 +1,125 @@
+-- rerun 
+with
+    sq_claims_fs as (select * from {{ ref("stg_oracle__customer_claims") }}),
+    claim_reasons as (select * from {{ ref("stg_oracle__claim_reasons") }}),
+    claim_types as (select * from {{ ref("stg_oracle__claim_types") }}),
+    claim_utilized_funds as (
+        select * from {{ ref("stg_oracle__claim_utilized_funds") }}
+    ),
+    trade_funds_utilizations as (
+        select * from {{ ref("stg_oracle__trade_funds_utilizations") }}
+    ),
+    ap_checks_all as (select * from {{ ref("stg_oracle__ap_checks") }}),
+    ap_invoices_all as (select * from {{ ref("stg_oracle__ap_invoices") }}),
+    ap_invoice_payments_all as (
+        select * from {{ ref("stg_oracle__ap_invoice_payments") }}
+    ),
+    jtf_rs_resource_extns as (
+        select * from {{ ref("stg_oracle__resource_extns") }}
+    ),
+    sq_user_d as (select * from {{ ref('w_user_d') }})
+
+select 
+    sq_claims_fs.claim_line_accounted_amount claim_line_loc_amount,
+    sq_claims_fs.claim_line_amount claim_line_doc_amount,
+    case
+        when sq_claims_fs.accounted_settled_amount <> 0
+        then
+            coalesce(
+                claim_utilized_funds.accounted_amount,
+                sq_claims_fs.claim_line_accounted_amount,
+                sq_claims_fs.accounted_settled_amount
+            )
+        else sq_claims_fs.accounted_settled_amount
+    end settled_loc_amount,
+    sq_claims_fs.claim_id,
+    sq_claims_fs.claim_number,
+    sq_claims_fs.claim_date,
+    sq_claims_fs.due_date,
+    claim_types.name claim_type,
+    sq_claims_fs.customer_account_id,
+    sq_claims_fs.bill_to_site_use_id,
+    claim_reasons.reason_code,
+    sq_claims_fs.customer_ref_number,
+    sq_claims_fs.receipt_number,
+    sq_claims_fs.payment_method,
+    sq_claims_fs.payment_reference_number,
+    sq_claims_fs.payment_status,
+    sq_claims_fs.approved_date,
+    sq_claims_fs.approved_by_id,
+    sq_claims_fs.settled_date,
+    sq_claims_fs.settled_by_id,
+    sq_claims_fs.doc_curr_code doc_curr_code,
+    sq_claims_fs.adjusted_amount adjusted_doc_amount,
+    sq_claims_fs.remaining_amount remaining_doc_amount,
+    case
+        when sq_claims_fs.settled_amount <> 0
+        then
+            coalesce(
+                claim_utilized_funds.amount,
+                sq_claims_fs.claim_line_amount,
+                sq_claims_fs.settled_amount
+            )
+        else sq_claims_fs.settled_amount
+    end settled_doc_amount,
+    sq_claims_fs.tax_amount tax_doc_amount,
+    sq_claims_fs.claim_amount claim_doc_amount,
+    sq_claims_fs.accounted_claim_amount claim_loc_amount,
+    sq_claims_fs.exchange_rate exchange_rate,
+    sq_claims_fs.exchange_rate_date::date exchange_rate_date,
+    sq_claims_fs.exchange_rate_type,
+    sq_claims_fs.claim_class,
+    sq_claims_fs.last_update_date,
+    sq_claims_fs.gl_date::date gl_date,
+    sq_check_number_list.check_number,
+    trade_funds_utilizations.fund_id,
+    sq_claims_fs.operating_unit_id,
+    sq_claims_fs.claim_line_id,
+    claim_utilized_funds.utilization_id,
+    sq_claims_fs.status_code status_code,
+    claim_utilized_funds.claim_line_util_id,
+    sq_claims_fs.ship_to_site_use_id,
+    jtf_rs_resource_extns.user_id,
+    sq_claims_fs._source_id,
+    sq_claims_fs._batch_update_date,
+    jtf_rs_resource_extns._batch_update_date _batch_update_date_claim_text,
+    claim_utilized_funds._batch_update_date _batch_update_date_claim_utilized_fund,
+    trade_funds_utilizations._batch_update_date _batch_update_date_trade_utilized_fund,    
+    sq_user_d.full_name owner_name
+from sq_claims_fs
+left join
+
+    (
+        select
+            claim_id,
+            listagg(ap_checks_all.check_number, ',') within group (
+                order by claim_id desc
+            ) as check_number
+        from ap_checks_all, ap_invoices_all, ap_invoice_payments_all, sq_claims_fs   
+        where
+            (ap_invoices_all.invoice_num = sq_claims_fs.claim_number)
+            and (ap_invoice_payments_all.check_id = ap_checks_all.check_id)
+            and (ap_invoices_all.invoice_id = ap_invoice_payments_all.invoice_id)
+            and (
+                ap_invoices_all.source = 'TRADE MANAGEMENT'
+                and ap_invoices_all.invoice_type_lookup_code = 'STANDARD'
+            )
+            and ap_invoice_payments_all.reversal_inv_pmt_id is null
+        group by (sq_claims_fs.claim_id)
+
+    ) sq_check_number_list
+    on sq_claims_fs.claim_id = sq_check_number_list.claim_id
+left join claim_reasons on sq_claims_fs.reason_code_id = claim_reasons.reason_code_id
+left join claim_types on claim_types.claim_type_id = sq_claims_fs.claim_type_id
+left join
+    claim_utilized_funds
+    on sq_claims_fs.claim_line_id = claim_utilized_funds.claim_line_id
+left join
+    trade_funds_utilizations
+    on claim_utilized_funds.utilization_id = trade_funds_utilizations.utilization_id
+left join
+    jtf_rs_resource_extns 
+    on sq_claims_fs.owner_id = jtf_rs_resource_extns.resource_id
+left join sq_user_d
+    on sq_user_d.user_id=jtf_rs_resource_extns.user_id
+

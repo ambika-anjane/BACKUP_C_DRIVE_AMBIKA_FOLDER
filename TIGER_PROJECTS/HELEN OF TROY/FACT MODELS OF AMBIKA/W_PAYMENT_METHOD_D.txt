@@ -1,0 +1,93 @@
+with
+    rec_method as (select * from {{ ref("stg_oracle__ar_receipt_methods") }}),
+    odr_pay_methd as (select * from {{ ref("stg_oracle__order_payment_methods")}}),
+    extrn_usr_pay as (
+        select * from {{ ref("stg_oracle__external_user_payment_methods") }}
+    ),
+    
+
+    external_payment_method as (
+        select
+            payment_method_code,
+            nvl(created_by_id||'~'||_source_id,'0') created_by_id,
+            created_on_date,
+            nvl(changed_by_id||'~'||_source_id,'0') changed_by_id,
+            changed_on_date,
+            'AP~' || nvl(payment_method_code || '~' || _source_id, '0') integration_id,
+            active_flag,
+            _source_id datasource_num_id,
+            payment_method_name,
+            payment_method_description,
+            'AP' PAYMETHOD_CAT_CODE
+        from extrn_usr_pay
+        where
+            (1 = 1)
+            {% if is_incremental() %}
+            and (extrn_usr_pay._batch_update_date >= $batch_start_time
+            and extrn_usr_pay._batch_update_date <= $batch_end_time)
+            or (extrn_usr_pay.b_batch_update_date >= $batch_start_time
+            and extrn_usr_pay.b_batch_update_date <= $batch_end_time)
+            {% endif %}
+    ),
+
+    receipt_payment_method as (
+        select
+            to_varchar(receipt_method_id) payment_method_code,
+            nvl(created_by_id||'~'||_source_id,'0')created_by_id,
+            created_on_date,
+            nvl(rec_method.last_updated_by_id||'~'||_source_id,'0') changed_by_id,
+            rec_method.last_update_date changed_on_date,
+            'AR~'
+            || rec_method.receipt_method_id
+            || '~'
+            || rec_method._source_id integration_id,
+             active_flag,            
+            _source_id datasource_num_id,
+            receipt_payment_method_name,
+            payment_method_description,
+            'AR' PAYMETHOD_CAT_CODE
+        from rec_method
+        where (1=1)
+          {% if is_incremental() %}
+          and
+          rec_method._batch_update_date >= $batch_start_time and rec_method._batch_update_date <= $batch_end_time
+          {% endif %}
+    ),
+
+     order_payment_method as (
+        select
+            payment_method_code,
+            nvl(created_by_id||'~'||_source_id,'0')created_by_id,
+            created_on_date,
+            nvl(changed_by_id||'~'||_source_id,'0')changed_by_id,
+            changed_on_date,
+            'OM~' ||payment_method_code||'~'||_source_id integration_id,
+            active_flag,
+            _source_id datasource_num_id,
+            payment_method_name,
+            payment_method_description,
+            'OM' PAYMETHOD_CAT_CODE
+        from odr_pay_methd
+        where
+            (1 = 1)
+            {% if is_incremental() %}
+            and odr_pay_methd._batch_update_date >= $batch_start_time
+            and odr_pay_methd._batch_update_date <= $batch_end_time
+            {% endif %}
+
+    ),
+
+      final as (
+        select *
+        from external_payment_method
+        union all
+        select *
+        from receipt_payment_method
+        union all
+        select *
+        from order_payment_method
+    )
+select *,
+'N' delete_flag,
+{{ env_var("DBT_CLOUD_RUN_ID", 9999) }}::number(32) etl_proc_id, $batch_start_time w_insert_dt, $batch_start_time w_update_dt
+from final

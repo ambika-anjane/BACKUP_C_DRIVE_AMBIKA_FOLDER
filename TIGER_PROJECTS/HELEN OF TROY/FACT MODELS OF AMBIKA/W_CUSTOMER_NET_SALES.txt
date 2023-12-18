@@ -1,0 +1,498 @@
+with
+    sales as (select * from {{ ref("int__get_sales_precentage") }}),
+    alloc as (select * from {{ ref("stg_oracle__alloc") }}),
+    sales_amazon as (select * from {{ ref("int__get_sales_amazon") }}),
+    sales_commissions as (select * from {{ ref("int__get_sales_amazon") }}),
+    freight_in as (select * from {{ ref("int__get_sales_frieght_in") }}),
+    freight_out as (select * from {{ ref("int__get_sales_freight_out") }}),
+    sub_1 as (select * from {{ ref("stg_oracle__sub_1") }}),
+    sub_2 as (select * from {{ ref("stg_oracle__sub_2") }}),
+    sub_3 as (select * from {{ ref("stg_oracle__sub_3") }}),
+    sub_4 as (select * from {{ ref("stg_oracle__sub_4") }}),
+    sub_5 as (select * from {{ ref("stg_oracle__sub_5") }}),
+    sub_6 as (select * from {{ ref("stg_oracle__sub_6") }}),
+    sub_7 as (select * from {{ ref("stg_oracle__sub_7") }}),
+    sub_8 as (select * from {{ ref("stg_oracle__sub_8") }}),
+    sub_9 as (select * from {{ ref("stg_oracle__sub_9") }}),
+    sub_10 as (select * from {{ ref("stg_oracle__sub_10") }}),
+    sub_11 as (select * from {{ ref("stg_oracle__sub_11") }}),
+    sub_12 as (select * from {{ ref("stg_oracle__sub_12") }}),
+    sub_13 as (select * from {{ ref("stg_oracle__sub_13") }}),
+    sub_14 as (select * from {{ ref("stg_oracle__sub_14") }}),
+    sub_15 as (select * from {{ ref("stg_oracle__sub_15") }}),
+    sub_16 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_17 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_18 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_19 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_20 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_21 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_22 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_23 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_24 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_25 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_26 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_27 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_28 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_29 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_30 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sub_31 as (select * from {{ ref("stg_oracle__sub_16") }}),
+    sales_details as (select * from {{ ref("stg_oracle__customer_net_sales") }}),
+
+select
+    act_fcst.customer_account_id,
+    customer_id,
+    act_fcst.fiscal_period_id,
+    act_fcst.scenario,
+    -- sh.row_wid gl_segment_hierarchy_wid,
+    act_fcst.gl_business_unit_id,
+    act_fcst.gl_location_wid,
+    act_fcst.gl_natural_acct_id,
+    act_fcst.gl_product_line_id,
+    act_fcst.gl_brand_id,
+    nvl(act_fcst.sales, 0) sales,
+    nvl(act_fcst.sales_wo_manuals, 0) sales_wo_manuals,
+    nvl(act_fcst.allocation_amt, 0) allocation_amt,
+    nvl(act_fcst.forecast_amount, 0) forecast_amount,
+    nvl(act_fcst.budget_amount, 0) budget_amount,
+    case
+        when ns.segment_val_descr = 'Net Revenue'
+        then nvl(act_fcst.sales_wo_manuals, 0) + nvl(act_fcst.allocation_amt, 0)
+        else 0
+    end
+    per_net_act_amt,
+    case
+        when gs.segment_val_descr = 'Gross Sales'
+        then nvl(act_fcst.sales_wo_manuals, 0) + nvl(act_fcst.allocation_amt, 0)
+        else 0
+    end
+    per_gross_act_amt,
+    nvl(sp.sales, 0) old_sales,
+    act_fcst.gl_sales_channel_wid,
+    case
+        when ns.segment_val_descr = 'Net Revenue' then nvl(act_fcst.sales, 0) else 0
+    end
+    per_net_act_amt_noalloc,
+    nvl(act_fcst.sales_mtd, 0) sales_mtd,
+    nvl(act_fcst.forecast_amount_mtd, 0) forecast_amount_mtd,
+    nvl(act_fcst.budget_amount_mtd, 0) budget_amount_mtd,
+    to_date(substr(act_fcst.fiscal_period_wid, 2, 8), 'YYYYMMDD') acct_period_end_dt,
+    act_fcst.inventory_item_wid,
+    act_fcst.inventory_product_wid,
+    act_fcst.org_wid,
+    act_fcst.fc3plus9_amount
+from
+    (
+
+        select
+            coalesce(actuals.customer_account_id, fcst.customer_account_id)
+            customer_account_id,
+            coalesce(actuals.customer_id, fcst.customer_id)
+            customer_id,
+            coalesce(actuals.inventory_item_id, fcst.product_id) inventory_item_id,
+            coalesce(actuals.inventory_product_id, fcst.inventory_product_id)
+            inventory_product_id,
+            coalesce(actuals.inventory_org_id, fcst.inventory_org_id) inventory_org_id,
+            coalesce(actuals.fiscal_period_id, fcst.fiscal_period_id)
+            fiscal_period_wid,
+            coalesce(actuals.gl_business_unit_id, fcst.gl_business_unit_id)
+            gl_business_unit_id,
+            coalesce(actuals.gl_location_id, fcst.gl_location_id)
+            gl_location_id,
+            coalesce(actuals.gl_natural_acct_id, fcst.gl_natural_acct_id)
+            gl_natural_acct_id,
+            coalesce(actuals.gl_product_line_id, fcst.gl_product_line_id)
+            gl_product_line_id,
+            coalesce(actuals.gl_brand_id, fcst.gl_brand_id)
+            gl_brand_id,
+            actuals.sales,
+            actuals.sales_wo_manuals,
+            actuals.allocation_amt,
+            case
+                when
+                    nvl(actuals.fiscal_period_id, fcst.fiscal_period_id)
+                    < cal.forecast_actuals_day_wid
+                then
+                    case
+                        when
+                            substr(
+                                nvl(actuals.fiscal_period_id, fcst.fiscal_period_id),
+                                6,
+                                2
+                            )
+                            in ('01', '02', '12')
+                        then fcst.fc9plus3
+                        else actuals.sales
+                    end
+                else fcst.forecast_amount
+            end
+            forecast_amount,
+            case
+                when
+                    nvl(actuals.fiscal_period_id, fcst.fiscal_period_id)
+                    < cal.budget_actuals_day_id
+                    and nvl(actuals.fiscal_period_id, fcst.fiscal_period_id)
+                    >= cal.mcal_year_start_day_id
+                then actuals.sales
+                else fcst.budget_amount
+            end
+            budget_amount,
+            coalesce(fcst.scenario, actuals.scenario) scenario,
+            coalesce(actuals.sales_channel_id, fcst.sales_channel_id)
+            gl_sales_channel_id,
+            case
+                when
+                    nvl(actuals.fiscal_period_id, fcst.fiscal_period_id)
+                    = cal.mcal_period_wid
+                    or (
+                        mcal_day_of_period <= 6
+                        and nvl(actuals.fiscal_period_id, fcst.fiscal_period_id)
+                        = prior_period_wid
+                    )
+                then
+                    case
+                        when
+                            nvl(actuals.bu_segment, fcst.bu_segment) in (
+                                'Caribbean - Appliances',
+                                'Caribbean - Home & Health',
+                                'Caribbean - Idelle',
+                                'Chile - Appliances',
+                                'Chile - Home & Health',
+                                'Chile - Idelle',
+                                'Colombia - Appliances',
+                                'Colombia - Home & Health',
+                                'Colombia - Idelle',
+                                'Costa Rica - Appliances',
+                                'Costa Rica - Home & Health',
+                                'Costa Rica - Idelle',
+                                'Mexico - Home & Health',
+                                'Panama - Appliances',
+                                'Panama - Home & Health',
+                                'Panama - Idelle',
+                                'Peru - Appliances',
+                                'Peru - Home & Health',
+                                'Peru - Idelle',
+                                'Beauty LATAM',
+                                'KAZ-LATA RMO'
+                            )
+                        then
+                            case
+                                when
+                                    (
+                                        mcal_day_of_period <= 6
+                                        and nvl(
+                                            actuals.fiscal_period_id,
+                                            fcst.fiscal_period_id
+                                        )
+                                        = prior_period_id
+                                    )
+                                then fcst.forecast_amount
+                                else mtd_percent * fcst.forecast_amount
+                            end
+                        else actuals.sales_mtd
+                    end
+                else actuals.sales_mtd
+            end
+            sales_mtd,
+            case
+                when
+                    nvl(actuals.fiscal_period_id, fcst.fiscal_period_id)
+                    = cal.mcal_period_wid
+                then mtd_percent * fcst.forecast_amount
+                when
+                    nvl(actuals.fiscal_period_id, fcst.fiscal_period_id)
+                    < cal.forecast_actuals_day_wid
+                then
+                    case
+                        when
+                            substr(
+                                nvl(actuals.fiscal_period_id, fcst.fiscal_period_id),
+                                6,
+                                2
+                            )
+                            in ('01', '02', '12')
+                        then fc9plus3
+                        else actuals.sales
+                    end
+                else fcst.forecast_amount
+            end
+            forecast_amount_mtd,
+            case
+                when
+                    nvl(actuals.fiscal_period_id, fcst.fiscal_period_id)
+                    = cal.mcal_period_wid
+                then mtd_percent * fcst.budget_amount
+                when
+                    nvl(actuals.fiscal_period_id, fcst.fiscal_period_id)
+                    < cal.budget_actuals_day_wid
+                    and nvl(actuals.fiscal_period_id, fcst.fiscal_period_id)
+                    >= cal.mcal_year_start_day_wid
+                then actuals.sales  -- temp code for 1+11 scenario
+                else fcst.budget_amount
+            end budget_amount_mtd,  -- 99999
+            fcst.fc3plus9 as fc3plus9_amount
+        from
+            (
+                select  -- /*+ parallel(4) */
+                    customer_account_id,
+                    customer_id,
+                    all_sales.inventory_item_id,
+                    all_sales.inventory_product_id,
+                    all_sales.inventory_org_id,
+                    all_sales.period_id,
+                    all_sales.gl_business_unit_id,
+                    all_sales.gl_location_id,
+                    -- all_sales.gl_natural_acct_id,
+                    all_sales.gl_product_line_id,
+                    all_sales.gl_brand_id,
+                    -- sum(net_sales) sales,
+                    -- sum(sales_mtd) sales_mtd,
+                    -- sum(sales_wo_manuals) sales_wo_manuals,
+                    -- sum(allocation_amt) allocation_amt,
+                    all_sales.sales_channel_id,
+                    -- all_sales.bu_segment,
+                    'BUDGET' scenario
+
+                from
+                    (
+                        select *
+                        from alloc
+                        select *
+                        from sales
+                        union all
+                        select *
+                        from sales_amazon
+                        union all
+                        select *
+                        from sales_commissions
+                        union all
+                        select *
+                        from freight_in
+                        union all
+                        select *
+                        from freight_out
+                        union all
+                        select *
+                        from sub_1
+                        union all
+                        select *
+                        from sub_2
+                        union all
+                        select *
+                        from sub_3
+                        union all
+                        select *
+                        from sub_4
+                        union all
+                        select *
+                        from sub_5
+                        union all
+                        select *
+                        from sub_6
+                        union all
+                        select *
+                        from sub_7
+                        union all
+                        select *
+                        from sub_8
+                        union all
+                        select *
+                        from sub_9
+                        union all
+                        select *
+                        from sub_10
+                        union all
+                        select *
+                        from sub_11
+                        union all
+                        select *
+                        from sub_12
+                        union all
+                        select *
+                        from sub_13
+                        union all
+                        select *
+                        from sub_14
+                        union all
+                        select *
+                        from sub_15
+                        union all
+                        select *
+                        from sub_16
+                        union all
+                        select *
+                        from sub_17
+                        union all
+                        select *
+                        from sub_18
+                        union all
+                        select *
+                        from sub_19
+                        union all
+                        select *
+                        from sub_20
+                        union all
+                        select *
+                        from sub_21
+                        union all
+                        select *
+                        from sub_22
+                        union all
+                        select *
+                        from sub_23
+                        union all
+                        select *
+                        from sub_24
+                        union all
+                        select *
+                        from sub_25
+                        union all
+                        select *
+                        from sub_26
+                        union all
+                        select *
+                        from sub_27
+                        union all
+                        select *
+                        from sub_28
+                        union all
+                        select *
+                        from sub_29
+                        union all
+                        select *
+                        from sub_30
+                        union all
+                        select *
+                        from sub_31
+
+                    )
+                    all_sales
+                group by all
+                union all
+                select  -- /*+ parallel(16) */
+                    sq.generic_customer_account_id customer_account_id,
+                    sq.customer_account_id customer_id,
+                    sq.inventory_item_id,
+                    sq.inventory_product_id,
+                    sq.inventory_org_id,
+                    sq.accounting_date fiscal_period_wid,
+                    sq.business_unit_segment_id gl_business_unit_wid,
+                    sq.location_segment_id gl_location_wid,
+                    -- sq.gl_account_id gl_natural_acct_wid,
+                    sq.product_line_segment_id gl_product_line_id,
+                    sq.brand_segment_id gl_brand_wid,
+                    -- sum(-1 * sla_loc_amt) net_sales,
+                    -- 0 sales_mtd,
+                    -- 0 sales_wo_manuals,
+                    -- 0 allocation_amt,
+                    sq.sales_channel_segment_id sales_channel_id,
+                    -- sq.business_unit bu_segment,
+                    'Beauty_Sales'
+                from sales_details sq
+                where
+                    sq.business_unit in (
+                        'Appliances US & CN',
+                        'BCA US & CN',
+                        'Belson',
+                        'Professional US & CN',
+                        'Personal Care',
+                        'Beauty Canada',
+                        'Beauty LATAM',
+                        'Beauty US'
+                    )
+                group by all
+            ) actuals
+        full outer join
+            (
+                select
+                    scenario,
+                    customer_account_wid,
+                    customer_wid,
+                    hf.inventory_product_id,
+                    hf.product_id,
+                    hf.inventory_org_id,
+                    acct_period_end_dt_wid fiscal_period_wid,
+                    hf.gl_business_unit_id,
+                    hf.gl_location_id,
+                    hf.gl_natural_acct_id,
+                    hf.gl_product_line_id,
+                    hf.gl_brand_id,
+                    sum(budgeted_amount) budget_amount,
+                    sum(
+                        case
+                            cp.fc_scenario
+                            when '3+9'
+                            then fc3plus9_amount
+                            when '6+6'
+                            then fc6plus6_amount
+                            when '9+3'
+                            then fc9plus3_amount
+                            else forecast_amount
+                        end
+                    )
+                    forecast_amount,
+                    sum(fc9plus3_amount) fc9plus3,
+                    sum(fc3plus9_amount) fc3plus9,
+                    hf.gl_channel_id sales_channel_wid,
+                    bu.x_segment_val_desc bu_segment
+                from wc_hyperion_budget_f hf, current_period cp, w_gl_segment_d bu
+                where
+                    bu.integration_id = hf.gl_business_unit_id
+                    and acct_period_end_dt_wid
+                    in (cp.mcal_period_wid, cp.prior_period_wid, cp.yago_period_wid)
+                group by
+                    scenario,
+                    customer_account_id,
+                    customer_id,
+                    hf.inventory_product_id,
+                    hf.product_id,
+                    hf.inventory_org_id,
+                    acct_period_end_dt_id,
+                    hf.gl_business_unit_id,
+                    hf.gl_location_id,
+                    hf.gl_natural_acct_id,
+                    hf.gl_product_line_id,
+                    hf.gl_brand_id,
+                    hf.gl_channel_id,
+                    bu.x_segment_val_desc
+            ) fcst
+            on actuals.customer_account_id = fcst.customer_account_id
+            and actuals.inventory_product_id = fcst.inventory_product_id
+            and actuals.inventory_item_id = fcst.product_id
+            and actuals.org_id = fcst.inventory_org_id
+            and actuals.fiscal_period_id = fcst.fiscal_period_id
+            and actuals.gl_business_unit_id = fcst.gl_business_unit_id
+            and actuals.gl_location_id = fcst.gl_location_id
+            and actuals.gl_natural_acct_id = fcst.gl_natural_acct_id
+            and actuals.gl_product_line_id = fcst.gl_product_line_id
+            and actuals.gl_brand_id = fcst.gl_brand_id
+            and actuals.sales_channel_id = fcst.sales_channel_id
+            and actuals.scenario = fcst.scenario,
+            current_period cal,
+            mtd
+    ) act_fcst,
+    w_gl_account_d hd,
+    w_gl_account_d na,
+    w_gl_segment_d_tl ns,
+    w_gl_segment_d_tl gs,
+    w_gl_account_dh hd2,
+    wc_cust_netsales_last_snapshot sp
+where
+    act_fcst.gl_natural_acct_id = na.gl_account_id(+)
+    and na.integration_id = hd.natural_account_id(+)
+  --  and hd.hierarchy_id(+) = 'CP5379'
+    and hd.level31_integration_id = ns.integration_id(+)
+    and na.gl_account_id = hd2.natural_account_id(+)
+    and hd2.hierarchy_id(+) = 'CP5311'
+    and hd2.level31_integration_id = gs.integration_id(+)
+    and act_fcst.gl_business_unit_wid = sp.gl_business_unit_wid(+)
+    and act_fcst.gl_product_line_wid = sp.gl_product_line_wid(+)
+    and act_fcst.gl_location_wid = sp.gl_location_wid(+)
+    and act_fcst.gl_brand_wid = sp.gl_brand_wid(+)
+    and act_fcst.gl_natural_acct_wid = sp.gl_natural_acct_wid(+)
+    and act_fcst.customer_account_wid = sp.customer_account_wid(+)
+    and act_fcst.inventory_item_wid = sp.inventory_item_wid(+)
+    and act_fcst.org_wid = sp.org_wid(+)
+    and act_fcst.inventory_product_wid = sp.inventory_product_wid(+)
+    and act_fcst.fiscal_period_wid = sp.fiscal_period_wid(+)
+    and act_fcst.gl_sales_channel_wid = sp.gl_sales_channel_wid(+)
+    and nvl(act_fcst.scenario, 'NA') = nvl(sp.scenario(+), 'NA')

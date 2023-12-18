@@ -1,0 +1,111 @@
+with
+    stg_wc_trade_funds as (select * from {{ ref("stg__trade_funds") }}),
+    brand_cat as (
+        select * from {{ ref("stg_oracle__item_category_inventory_attributes") }}
+    )
+select
+    stg_wc_trade_funds.utilization_type utilization_type,
+    nvl(
+        to_char(stg_wc_trade_funds.fund_id) || '~' || stg_wc_trade_funds._source_id, '0'
+    ) fund_id,
+    stg_wc_trade_funds.object_type object_type,
+    stg_wc_trade_funds.accrual_doc_amt accrual_doc_amount,
+    stg_wc_trade_funds.accrual_loc_amt accrual_loc_amount,
+    stg_wc_trade_funds.doc_curr_code doc_currency_code,
+    stg_wc_trade_funds.exchange_rate_type exchange_rate_type,
+    stg_wc_trade_funds.exchange_rate_date::date exchange_rate_date,
+    stg_wc_trade_funds.loc_exchange_rate loc_exchange_rate,
+    stg_wc_trade_funds.adjustment_type adjustment_type,
+    nvl(
+        to_char(stg_wc_trade_funds.org_id) || '~' || stg_wc_trade_funds._source_id, '0'
+    ) operating_unit_id,
+   -- nvl(to_char(stg_wc_trade_funds.product_id) || '~' ||
+   --  stg_wc_trade_funds._source_id,'0') inventory_product_id,
+   coalesce(to_char(stg_wc_trade_funds.product_id)
+    || '~'
+    || 82
+    || '~'
+    || to_char(stg_wc_trade_funds._source_id) ,'0')inventory_product_id, 
+
+    nvl(
+        to_char(stg_wc_trade_funds.cust_account_id)
+        || '~'
+        || stg_wc_trade_funds._source_id,
+        '0'
+    ) customer_account_id,
+    nvl(
+        to_char(stg_wc_trade_funds.price_adjustment_id)
+        || '~'
+        || stg_wc_trade_funds._source_id,
+        '0'
+    ) price_adjustment_id,
+    nvl(
+        to_char(stg_wc_trade_funds.bill_to_site_use_id)
+        || '~'
+        || stg_wc_trade_funds._source_id,
+        '0'
+    ) bill_to_site_use_id,
+    nvl(
+        to_char(stg_wc_trade_funds.order_line_id)
+        || '~'
+        || stg_wc_trade_funds._source_id,
+        '0'
+    ) sales_order_line_id,
+    stg_wc_trade_funds.gl_posted_flag gl_posted_flag,
+    stg_wc_trade_funds.gl_date gl_date,
+    nvl(
+        to_char(stg_wc_trade_funds.ledger_id) || '~' || stg_wc_trade_funds._source_id,
+        '0'
+    ) ledger_id,
+    nvl(
+        to_char(stg_wc_trade_funds.utilization_id)
+        || '~'
+        || stg_wc_trade_funds._source_id,
+        '0'
+    ) integration_id,
+    stg_wc_trade_funds._source_id datasource_num_id,
+    $batch_start_time w_insert_date,
+    $batch_start_time w_update_date,
+    'N' delete_flag,
+    {{ env_var("DBT_CLOUD_RUN_ID", 9999) }}::number(32) etl_proc_id,
+    nvl(
+        to_char(stg_wc_trade_funds.created_by_id)
+        || '~'
+        || stg_wc_trade_funds._source_id,
+        '0'
+    ) created_by_id,
+    nvl(
+        to_char(stg_wc_trade_funds.changed_by_id)
+        || '~'
+        || stg_wc_trade_funds._source_id,
+        '0'
+    ) changed_by_id,
+    stg_wc_trade_funds.adjusted_on_dt adjusted_on_date,
+    stg_wc_trade_funds.changed_on_dt changed_on_date,
+    nvl(
+        to_char(stg_wc_trade_funds.cust_account_id)
+        || '~'
+        || nvl(to_char(stg_wc_trade_funds.ship_to_site_use_id), '')
+        || '~'
+        || nvl(brand_cat.inventory_ctg_brand, 'NA')
+        || '~'
+        || nvl(brand_cat.inventory_category, 'NA')
+        || '~'
+        || '~'
+        || stg_wc_trade_funds._source_id,
+        '0'
+    )::varchar(500) territory_id  -- Since No Sales Rep available, pass empty as Sales Rep ID
+from stg_wc_trade_funds
+left outer join
+    brand_cat
+    on stg_wc_trade_funds.product_id = brand_cat.inventory_item_id
+    and 82 = brand_cat.organization_id
+where
+    (1 = 1)
+    {% if is_incremental() %}
+        and (
+            stg_wc_trade_funds._batch_update_date >= $batch_start_time
+            and stg_wc_trade_funds._batch_update_date <= $batch_end_time
+        )
+
+    {% endif %}

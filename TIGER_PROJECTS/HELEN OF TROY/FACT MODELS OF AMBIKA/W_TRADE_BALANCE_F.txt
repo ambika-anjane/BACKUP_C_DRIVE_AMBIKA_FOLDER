@@ -1,0 +1,324 @@
+with
+    w_trade_funds_f as (select * from {{ ref("w_trade_funds_f") }}),
+    w_claims_f as (select * from {{ ref("w_claims_f") }}),
+    w_fund_d as (select * from {{ ref("w_fund_d") }}),
+    w_day_d as (select * from {{ ref("w_day_d") }}),
+
+    w_period_dayd as (
+        select distinct ent_period_start_date, ent_period_end_date from w_day_d
+    ),
+
+    tm as (
+
+        select
+            fun.fund_id fund_ids,
+            fun.customer_account_id cust_account_ids,
+            fun.operating_unit_id org_ids,
+            fun.ledger_id ledger_ids,
+            fun.territory_id territory_ids,
+            dayd.ent_period_start_date,
+            dayd.ent_period_end_date,
+
+            sum(
+                case
+                    when
+                        fun.utilization_type = 'ACCRUAL'
+                        and fun.gl_posted_flag = 'Y'
+                        and fun.gl_date is not null
+                    then accrual_loc_amount
+                end
+            )
+            accrual_amount,
+            sum(
+                case
+                    when
+                        fun.utilization_type = 'ADJUSTMENT'
+                        and fun.gl_posted_flag = 'Y'
+                        and fun.gl_date is not null
+                    then accrual_loc_amount
+                end
+            )
+            adjustment_amount,
+            sum(
+                case
+                    when fun.gl_posted_flag <> 'Y' and fun.gl_date is null
+
+                    then accrual_loc_amount
+                end
+            )
+            unposted_accruals,
+            0 paid_amount
+        -- fun.datasource_num_id
+        from w_trade_funds_f fun
+        inner join
+            w_day_d dayd
+            on nvl(fun.gl_date::date, fun.adjusted_on_date::date) = dayd.calendar_date
+            and (fun.utilization_type in ('ACCRUAL', 'ADJUSTMENT'))
+            and (dayd.calendar_date is not null)
+
+        group by
+
+            fund_ids,
+            cust_account_ids,
+            org_ids,
+            ledger_ids,
+            territory_ids,
+            dayd.ent_period_start_date,
+            dayd.ent_period_end_date
+        -- fun.datasource_num_id
+        union all
+        select
+            cl.fund_id fund_id,
+            cl.customer_account_id cust_account_id,
+            cl.operating_unit_id org_id,
+            cl.ledger_id,
+            cl.territory_id territory_id,
+            dayd.ent_period_start_date,
+            dayd.ent_period_end_date,
+            0 accrual_amt,
+            0 adjust_amt,
+            0 unposted_amt,
+            sum(cl.settled_loc_amount) paid_amount
+        -- cl.datasource_num_id
+        from w_claims_f cl
+        inner join
+            w_day_d dayd
+            on cl.gl_date::date = dayd.calendar_date
+            and (dayd.calendar_date is not null)
+            and (fund_id is not null)
+            and (cl.payment_status = 'PAID')
+
+        group by
+            fund_id,
+            cust_account_id,
+            org_id,
+            ledger_id,
+            territory_id,
+            dayd.ent_period_start_date,
+            dayd.ent_period_end_date
+    ),
+
+    fund_periods as (
+
+        select
+            fund_id,
+            cust_account_id,
+            org_id,
+            ledger_id,
+            territory_id,
+            datasource_num_id,
+            mip.ent_period_start_date,
+            mip.ent_period_end_date
+        from
+            (
+                select distinct
+                    fund_id,
+                    cust_account_id,
+                    org_id,
+                    ledger_id,
+                    territory_id,
+                    min(a_gl_date) over (partition by fund_id)
+                    min_date,
+                    max(a_gl_date) over (partition by fund_id)
+                    max_date,
+                    datasource_num_id
+
+                from
+                    (
+                        select
+                            a.fund_id fund_id,
+                            a.customer_account_id cust_account_id,
+                            a.operating_unit_id org_id,
+                            a.ledger_id ledger_id,
+                            a.territory_id territory_id,
+                            a.gl_date a_gl_date,
+                            a.datasource_num_id
+
+                        from w_trade_funds_f a
+                        where a.utilization_type in ('ACCRUAL', 'ADJUSTMENT')
+
+                        union all
+                        select
+                            k.fund_id fund_id,
+                            k.customer_account_id cust_account_id,
+                            k.operating_unit_id org_id,
+                            k.ledger_id,
+                            k.territory_id territory_id,
+                            k.gl_date k_gl_date,
+                            k.datasource_num_id
+
+                        from w_claims_f k
+
+                        where k.payment_status = 'PAID' and fund_id is not null
+
+                    ) h
+
+                group by
+                    fund_id,
+                    cust_account_id,
+                    org_id,
+                    ledger_id,
+                    a_gl_date,
+                    territory_id,
+                    datasource_num_id
+
+            ) fund,
+            w_period_dayd mip
+        where
+            mip.ent_period_start_date
+            between trunc(min_date, 'MM') and trunc(max_date, 'MM')
+            and mip.ent_period_start_date <= trunc(current_date(), 'MM')
+        order by mip.ent_period_start_date
+    ),
+
+    final as (
+
+        select
+
+            cust_account_id as cust_account_id,
+            org_id,
+            ledger_id,
+            territory_id,
+            fund_id,
+            ent_period_start_date,
+            ent_period_end_date,
+            nvl(
+                lag(ending_accrual) over (
+                    partition by
+                        fund_id, cust_account_id, org_id, territory_id, ledger_id
+                    order by ent_period_start_date
+                ),
+                0
+            )
+
+            beginning_accrual,
+            accrual_amount,
+            adjustment_amount,
+            paid_amount,
+            nvl(ending_accrual, 0) ending_accrual,
+            unposted_accruals,
+            integration_id,
+            datasource_num_id
+
+        from
+
+            (
+                select
+                    cust_account_id,
+                    org_id,
+                    ledger_id,
+                    fund_id,
+                    territory_id,
+                    ent_period_start_date,
+                    ent_period_end_date,
+                    sum(nvl(accrual_amount, 0)) accrual_amount,
+                    sum(nvl(adjustment_amount, 0)) adjustment_amount,
+                    sum(nvl(paid_amount, 0)) paid_amount,
+                    sum(
+                        sum(nvl(accrual_amount, 0))
+                        + sum(nvl(adjustment_amount, 0))
+                        - sum(nvl(paid_amount, 0))
+
+                    ) over (
+                        partition by
+                            fund_id, cust_account_id, org_id, ledger_id, territory_id
+                        order by ent_period_end_date
+                    )
+                    ending_accrual,
+                    sum(nvl(unposted_accruals, 0)) unposted_accruals,
+                    integration_id,
+                    datasource_num_id
+
+                from
+
+                    (
+                        select
+                            fund_periods.fund_id,
+                            fund_periods.cust_account_id,
+                            fund_periods.org_id,
+                            fund_periods.ledger_id,
+                            fund_periods.territory_id,
+                            fund_periods.ent_period_start_date,
+                            fund_periods.ent_period_end_date,
+                            nvl(tm.accrual_amount, 0) accrual_amount,
+                            nvl(tm.adjustment_amount, 0) adjustment_amount,
+                            nvl(tm.unposted_accruals, 0) unposted_accruals,
+                            nvl(tm.paid_amount, 0) paid_amount,
+                            coalesce(to_char(fund_periods.cust_account_id), '')
+                            || '~'
+                            || coalesce(to_char(fund_periods.org_id), '')
+                            || '~'
+                            || coalesce(to_char(fund_periods.ledger_id), '')
+                            || '~'
+                            || coalesce(to_char(fund_periods.fund_id), '')
+                            || '~'
+                            || coalesce(to_char(fund_periods.territory_id), '')
+                            || '~'
+                            || coalesce(to_char(fund_periods.ent_period_start_date), '')
+                            || '~'
+                            || coalesce(to_char(fund_periods.ent_period_end_date), '')
+                            || '~'
+                            || coalesce(to_char(datasource_num_id), '')
+                            integration_id,
+                            datasource_num_id
+
+                        from fund_periods
+
+                        left outer join
+                            tm
+
+                            on fund_periods.fund_id = tm.fund_ids
+                            and fund_periods.ent_period_start_date
+                            = tm.ent_period_start_date
+                            and fund_periods.ent_period_end_date
+                            = tm.ent_period_end_date
+                            and fund_periods.cust_account_id = tm.cust_account_ids
+                            and fund_periods.ledger_id = tm.ledger_ids
+                            and fund_periods.org_id = tm.org_ids
+                            and fund_periods.territory_id = tm.territory_ids
+                    ) b
+
+                group by
+                    cust_account_id,
+                    org_id,
+                    ledger_id,
+                    fund_id,
+                    territory_id,
+                    ent_period_start_date,
+                    ent_period_end_date,
+                    integration_id,
+                    datasource_num_id
+
+            )
+
+    ),
+
+    sub_final as (
+        select
+
+            final.fund_id,
+            final.cust_account_id customer_account_id,
+            final.org_id inventory_org_id,
+            final.ledger_id,
+            final.territory_id,
+            nvl(final.ent_period_start_date::date, '0') ent_period_start_date,
+            nvl(final.ent_period_end_date::date, '0') ent_period_end_date,
+            final.beginning_accrual,
+            final.ending_accrual,
+            final.unposted_accruals,
+            final.accrual_amount,
+            final.adjustment_amount,
+            final.paid_amount,
+            final.integration_id,
+            final.datasource_num_id,
+            'N' delete_flag
+        from final
+
+    )
+
+select
+    *,
+    $batch_start_time w_insert_dt,
+    $batch_start_time w_update_dt,
+    {{ env_var("DBT_CLOUD_RUN_ID", 9999) }}::number(32) etl_proc_id
+from sub_final

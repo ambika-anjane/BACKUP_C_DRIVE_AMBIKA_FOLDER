@@ -1,0 +1,46 @@
+with
+    trade_funds_details as (
+        select * from {{ ref("stg_oracle__trade_funds_details") }}
+    ),
+    trade_funds_utilizations as (
+        select * from {{ ref("stg_oracle__trade_funds_utilizations")}}
+    )
+    
+select
+    trade_funds_utilizations.utilization_id utilization_id,
+    trade_funds_utilizations.last_update_date changed_on_dt,
+    trade_funds_utilizations.last_updated_by changed_by_id,
+    trade_funds_utilizations.last_update_login last_update_login,
+    trade_funds_utilizations.adjustment_date::date adjusted_on_dt,
+    trade_funds_utilizations.created_by created_by_id,
+    trade_funds_utilizations.utilization_type utilization_type,
+    trade_funds_utilizations.fund_id fund_id,
+    trade_funds_utilizations.object_type object_type,
+    trade_funds_utilizations.amount accrual_doc_amt,
+    trade_funds_utilizations.acctd_amount accrual_loc_amt,
+    trade_funds_utilizations.currency_code doc_curr_code,
+    trade_funds_utilizations.exchange_rate_type exchange_rate_type,
+    trade_funds_utilizations.exchange_rate_date exchange_rate_date,
+    trade_funds_utilizations.exchange_rate loc_exchange_rate,
+    trade_funds_utilizations.adjustment_type adjustment_type,
+    trade_funds_utilizations.org_id org_id,
+    trade_funds_utilizations.product_id product_id,
+    trade_funds_utilizations.cust_account_id cust_account_id,
+    trade_funds_utilizations.gl_date::date gl_date, -- no need to do type cast in load of TB
+    trade_funds_utilizations.price_adjustment_id price_adjustment_id,
+    trade_funds_utilizations.gl_posted_flag gl_posted_flag,
+    trade_funds_utilizations.bill_to_site_use_id bill_to_site_use_id,
+    trade_funds_utilizations.order_line_id order_line_id,
+    trade_funds_details.ledger_id ledger_id,
+    trade_funds_utilizations.ship_to_site_use_id ship_to_site_use_id,
+    trade_funds_utilizations._batch_update_date _batch_update_date,
+  --  trade_funds_details._batch_update_date _batch_update_date1,
+    trade_funds_utilizations._source_id _source_id
+from trade_funds_utilizations, trade_funds_details
+where
+    (1 = 1)
+    and (
+        trade_funds_utilizations.fund_id = trade_funds_details.fund_id
+    )
+    and (nvl(trade_funds_utilizations.amount, 0) <> 0)
+

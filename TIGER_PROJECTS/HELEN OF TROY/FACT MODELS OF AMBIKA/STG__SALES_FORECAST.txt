@@ -1,0 +1,193 @@
+with
+    sales_data as (
+        select *
+        from {{ ref("stg_oracle__forecasted_sales") }}
+    ),
+
+    list_price as (select * from {{ ref("stg_oracle__custom_list_price") }}),
+    mop as (select * from {{ ref("stg_oracle__trading_partners") }}),
+    ac as (select * from {{ ref("stg_oracle__abc_class") }}),
+    msi as (select * from {{ ref("stg_oracle__inventory_products") }}),
+    customer_currency as (select * from {{ ref("stg_oracle__customer_group_list_prices") }}),
+    sob as (select * from {{ ref("stg_oracle__gl_ledgers") }}),
+    hca as (select * from {{ ref("stg_oracle__customer_accounts") }}),
+    hca1 as (select * from {{ ref("stg_oracle__customer_accounts") }}),
+    hp as (select * from {{ ref("stg_oracle__parties") }}),
+     ti as (select * from {{ ref("stg_oracle__forecasted_items") }}),
+    teo as (select * from {{ ref("stg_oracle__forecasted_organizations") }}),
+    td as (select * from {{ ref("stg_oracle__demand_class") }}),
+    ord as (select * from {{ ref("stg_oracle__organization_definitions") }}),
+    customer_group_account as (select * from {{ ref("stg_oracle__customer_group_and_lob") }})
+   
+
+select
+
+    ac.abc_code,
+    sales_data.sales_date sales_date,
+    sales_data.demand_ly last_year_sales,
+    sales_data.actual_quantity actual_quantity,
+    sales_data.actuals_ttl_dol actuals_total_value,
+    sales_data.item_cost,
+    sales_data.sales_base_override,
+    sales_data.budget budget_value,
+    sales_data.invoice_price invoice_price,
+    coalesce(sales_data.demand_ly * sales_data.invoice_price, 0) last_year_sales_value,
+    sales_data.base_forecast,
+    sales_data.incremental_forecast,
+    sales_data.total_forecast total_sales_forecast,
+    sales_data.sales_projected_volume,
+    sales_data.sales_projected_value,
+    sales_data.volume_base_feature,
+    sales_data.volume_base_future_value,
+  --  sales_data.uplift_future,
+    sales_data.final_forecast,
+    sales_data.consensus_forecast_value,
+    sales_data.last_update_date,
+    sales_data.book_quantity_book_date,
+    sales_data.pseudo_sale history_override,
+    sales_data.actual_quantity history,
+    sales_data.adjusted_history,
+    sales_data.sim_val_1 simulation,
+    sales_data.baseline_forecast_amount,
+    sales_data.baseline_forecast,
+    sales_data.manual_stat base_overridde,
+    sales_data.book_quantity_book_date_amount,
+    sales_data.history_amount,
+    sales_data.adjusted_history_amount,
+    sales_data.final_forecast_amount,
+    sales_data.change_to_base,
+    sales_data.manual_stat,
+    sales_data.consensus_forecast,
+    sales_data.base_forecast_amount,
+    sales_data.forecast_flag,
+    sales_data.hot_budget_review_1,
+    sales_data.hot_budget_review_2,
+    sales_data.hot_future_orders,
+    sales_data.hot_future_orders_amount,
+    sales_data.hot_wtd_ship,
+    sales_data.hot_est_list_price,
+    sales_data.one_month_lag_forecast,
+    sales_data.two_month_lag_forecast,
+    sales_data.three_month_lag_forecast,
+    sales_data.four_month_lag_forecast,
+    sales_data.hot_hyperion_budget,
+    sales_data.hot_budget_review_3,
+    sales_data.hot_hyperion_units_rev1,
+    sales_data.hot_hyperion_units_rev2,
+    sales_data.hot_hyperion_units_rev3,
+    sales_data.hot_hyperion_budget_rev1,
+    sales_data.hot_hyperion_budget_rev2,
+    sales_data.hot_hyperion_budget_rev3,
+    sales_data.hot_hyperion_cogs_rev1,
+    sales_data.hot_hyperion_cogs_rev2,
+    sales_data.hot_hyperion_cogs_rev3,
+    sales_data.five_month_lag_forecast,
+    sales_data.six_month_lag_forecast,
+    sales_data.seven_month_lag_forecast,
+    sales_data.eight_month_lag_forecast,
+    sales_data.nine_month_lag_forecast,
+    sales_data.item_price,
+    sales_data.ten_month_lag_forecast,
+    sales_data.eleven_month_lag_forecast,
+    sales_data.twelve_month_lag_forecast,
+    sales_data.hot_hyperion_units,
+    sales_data.hot_abc_flag,
+    sales_data.max_sales_date max_sales_date,
+    sales_data.one_month_lag_bat_forecast,
+    sales_data.two_month_lag_bat_forecast,
+    sales_data.three_month_lag_bat_forecast,
+    sales_data.four_month_lag_bat_forecast,
+    sales_data.three_month_error_lag_forecast,
+    sales_data.four_month_error_lag_forecast,
+    sales_data.one_month_error_lag_forecast,
+    sales_data.three_month_error_lag_bat_forcast,
+    sales_data.four_month_error_lag_bat_forecast,
+    sales_data.disp_fcst_lag_1,
+    sales_data.disp_fcst_lag_2,
+    sales_data.disp_fcst_lag_3,
+    sales_data.disp_fcst_lag_4,
+    sales_data.disp_fcst_lag_5,
+    sales_data.disp_fcst_lag_6,
+    sales_data.disp_fcst_lag_7,
+    sales_data.disp_fcst_lag_8,
+    sales_data.disp_fcst_lag_9,
+    sales_data.disp_fcst_lag_10,
+    sales_data.disp_fcst_lag_11,
+    sales_data.disp_fcst_lag_12,
+    sales_data.period_diff,
+    sales_data.invoice_price_override,
+    case
+        when nvl(sales_data.invoice_price_override, 0) = 0
+        then
+            coalesce(
+                customer_group_currency.group_currency,
+                customer_group_currency.cust_currency,
+                customer_currency.currency_code,
+                sob.ledger_currency
+            )
+        else
+            coalesce(
+                customer_currency.currency_code,
+                customer_group_currency.group_currency,
+                customer_group_currency.cust_currency,
+                sob.ledger_currency
+            )
+    end currency_code,
+    sales_data.forecast_flag_override,
+    sales_data.one_month_lag_forecast_amount,
+    sales_data.two_month_lag_forecast_amount,
+    sales_data.three_month_lag_forecast_amount,
+    sales_data.four_month_lag_forecast_amount,
+ --   inventory_item_id || '~' || org_id item_org_id,
+    td.ebs_demand_class ebs_demand_class,
+    hot_unconstrained_demand,
+    hot_unconstrained_demand_amount,
+    sales_data.one_month_lag_fcst_dol,
+     msi.inventory_item_id inventory_item_id,
+    msi.sales_account item_sales_account,
+            nvl(
+                hca.customer_account_id,
+                (
+                    select max(hca1.customer_account_id)
+                    from hca1, hp
+                    where
+                        hp.party_id = hca1.party_id
+                        and hca1.active_flag = 'a'
+                        and hp.status = 'a'
+                        and customer_group_account.party_name
+                        = upper(hp.party_name)
+                )
+            ) customer_account_id,
+    mop.sr_tp_id organization_id,
+    sales_data._source_id,
+    sales_data._batch_update_date,
+    sales_data.item_id,
+    sales_data.location_id
+from sales_data
+left outer  join ac on ac.t_ep_hot_abc_class_ep_id = sales_data.t_ep_hot_abc_class_ep_id
+left outer join
+    (
+        select
+            item_id lp1_item_id,
+            location_id lp1_location_id,
+            max(case when list_price.cg_flag = 1 then currency_code end) group_currency,
+            max(case when list_price.cg_flag = 0 then currency_code end) cust_currency
+        from list_price
+        group by lp1_item_id, lp1_location_id
+    ) customer_group_currency
+    on sales_data.item_id = lp1_item_id
+    and sales_data.location_id = lp1_location_id
+left join ti on sales_data.t_ep_item_ep_id = ti.t_ep_item_ep_id
+left outer join msi on ti.item = msi.item_number and msi.organization_id = 82
+left join teo on sales_data.t_ep_organization_ep_id = teo.t_ep_organization_ep_id
+left outer join mop on nvl(teo.organization, 'NA') = mop.organization_code
+left join td on sales_data.t_ep_ebs_demand_class_ep_id = td.t_ep_ebs_demand_class_ep_id
+left outer join ord on mop.sr_tp_id = ord.organization_id
+left outer join sob on ord.set_of_books_id = sob.ledger_id
+left join customer_group_account on  sales_data.location_id  = customer_group_account.location_id
+ -- and sales_data.t_ep_ebs_account_ep_id = customer_group_account.t_ep_ebs_account_ep_id /* commented this join based on data analysis that location can have single row */
+left outer join hca on hca.customer_account_number = customer_group_account.customer_account_number
+left outer join
+    customer_currency
+    on customer_group_account.customer_account_number = customer_currency.customer_account_number
+

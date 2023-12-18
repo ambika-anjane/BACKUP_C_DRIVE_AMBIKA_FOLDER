@@ -1,0 +1,133 @@
+with
+    cust_sites as (select * from {{ ref("stg_oracle__customer_sites") }}),
+    party_sites as (select * from {{ ref("stg_oracle__party_sites") }}),
+    contact_points as (select * from {{ ref("stg_oracle__customer_contact_points") }}),
+    location as (select * from {{ ref("stg_oracle__party_locations") }}),
+
+
+lkp_phone as(
+   select contact_points.owner_table_id party_site_id,
+   max(substr(contact_points.raw_phone_number, 1,30)) phone_number
+   from	contact_points   
+   where	
+   (1=1)
+   and contact_points.owner_table_name = 'HZ_PARTY_SITES'  
+   and contact_points.primary_flag = 'Y' 
+   and contact_point_type = 'PHONE'
+   AND contact_points.PHONE_LINE_TYPE = 'GEN'  
+   and contact_points.status = 'A'
+   group by contact_points.owner_table_id
+),
+
+lkp_fax as(
+   select contact_points.owner_table_id party_site_id,
+   max(substr(contact_points.raw_phone_number, 1,30)) fax_number
+   from	contact_points   
+   where	(1=1)
+   
+   and contact_points.owner_table_name = 'HZ_PARTY_SITES'  
+   and contact_points.primary_flag = 'Y' 
+   and contact_point_type = 'FAX'
+   AND contact_points.phone_line_type = 'GEN'  
+   and contact_points.status = 'A'
+   group by contact_points.owner_table_id
+),
+
+lkp_email as(
+   select contact_points.owner_table_id party_site_id,
+   substr(contact_points.email_address,0,255) email_address
+   from	contact_points   
+   where	
+   (1=1)
+   
+   and contact_points.owner_table_name = 'HZ_PARTY_SITES'  
+   and contact_points.primary_flag = 'Y' 
+   and contact_point_type = 'EMAIL'
+   and contact_points.status = 'A'
+),
+
+lkp_url as(
+   select contact_points.owner_table_id party_site_id,
+   substr(contact_points.url,1,255) web_address
+   from	contact_points   
+   where	
+   (1=1)
+    and contact_points.owner_table_name = 'HZ_PARTY_SITES'  
+    and contact_points.primary_flag = 'Y' 
+    and contact_point_type = 'WEB'
+    and contact_points.status = 'A'
+)
+
+    select 
+       NVL(cust_sites.customer_account_id|| '~' ||cust_sites._source_id,'0')::VARCHAR(200) customer_account_id,
+       NVL(cust_sites.party_site_id|| '~' ||cust_sites._source_id,'0')::VARCHAR(200) party_site_id,
+       location.st_address1,
+       location.st_address2,
+	   location.st_address3,
+	   location.st_address4,
+       location.postal_code postal_code,
+       location.city city,
+       location.county county,
+	   location.state_prov_code,
+       location.country_code,
+       lkp_phone.phone_number as phone_number,
+       lkp_fax.fax_number as fax_number,
+       lkp_email.email_address as email_adress,
+       lkp_url.web_address as web_address,
+       cust_sites.active_flag,
+       party_sites.addressee addressee,
+       nvl(cust_sites.created_by_id||'~'||cust_sites._source_id,'0')created_by_id,
+       nvl(cust_sites.last_updated_by_id||'~'||cust_sites._source_id,'0') changed_by_id,
+       location.created_on_date,
+       cust_sites.last_update_date  changed_on_date,
+       location.last_update_date aux1_changed_on_date,
+       party_sites.last_update_date aux2_changed_on_date,
+       nvl(cust_sites.customer_account_site_id||'~'||cust_sites._source_id,'0')integration_id,
+       location.last_update_date,
+       $batch_start_time  w_insert_dt,
+       $batch_start_time  w_update_dt,
+       cust_sites._source_id datasource_num_id,
+       'N' delete_flg,
+       {{ env_var("DBT_CLOUD_RUN_ID", 9999) }}::number(32) etl_proc_id
+    from cust_sites  
+    left outer join party_sites  on cust_sites.party_site_id=party_sites.party_site_id
+    left outer join location  on party_sites.location_id=location.location_id
+    left outer join lkp_email on party_sites.party_site_id =lkp_email.party_site_id
+    left outer join  lkp_phone on party_sites.party_site_id =lkp_phone.party_site_id
+    left outer join  lkp_fax on party_sites.party_site_id=lkp_fax.party_site_id
+    left outer join   lkp_url on party_sites.party_site_id=lkp_url.party_site_id
+    where 
+       (1=1)
+       {% if is_incremental() %}
+       and 
+       cust_sites.customer_account_site_id in 
+       (select cust_sites.customer_account_site_id 
+       from  cust_sites where
+       cust_sites._batch_update_date >= $batch_start_time and  cust_sites._batch_update_date <= $batch_end_time
+       union all
+       select cust_sites.customer_account_site_id
+       from  cust_sites inner join party_sites
+       on cust_sites.party_site_id=party_sites.party_site_id
+       where
+       party_sites._batch_update_date >= $batch_start_time and party_sites._batch_update_date <= $batch_end_time
+       union all
+       select cust_sites.customer_account_site_id
+       from cust_sites inner join party_sites 
+       on cust_sites.party_site_id=party_sites.party_site_id
+       inner join location 
+       on party_sites.location_id =location.location_id
+       where
+       location._batch_update_date >= $batch_start_time and location._batch_update_date <= $batch_end_time
+       union all
+       select cust_sites.customer_account_site_id 
+       from 
+       cust_sites inner join party_sites 
+       on cust_sites.party_site_id=party_sites.party_site_id
+       inner join contact_points
+       on party_sites.party_site_id = contact_points.owner_table_id
+       where
+       contact_points._batch_update_date >= $batch_start_time and contact_points._batch_update_date <= $batch_end_time
+       )
+      {% endif %}
+       
+     
