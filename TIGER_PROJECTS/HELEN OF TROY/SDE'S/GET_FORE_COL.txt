@@ -1,0 +1,107 @@
+create or replace 
+FUNCTION  -- $Revision: 1.27.118.1 $
+get_fore_col
+  (ii_order             NUMBER,
+   ii_profile_id        INTEGER)
+RETURN VARCHAR2
+IS
+   vs_sql               VARCHAR2(3000);
+   vi_exists            INTEGER;
+   vi_ind               INTEGER := 0;
+   vs_col               VARCHAR2(33) := NULL;
+   vs_fore_column_name  VARCHAR2(33) := NULL;
+   vi_profile_id        INTEGER;
+   vi_dummy             INTEGER;
+
+   TYPE rec_cursor      IS REF CURSOR;
+   rec                  rec_cursor;
+
+BEGIN
+
+   /*********************************************************************/
+   /* GET_FORE_COL is used to map a forecast number into a FORE_%       */
+   /* column name (eg: "the 7th forecast" is the "FORE_1" column). Note */
+   /* that forecast columns are grouped by so that there is always 1    */
+   /* parent [batch] and 0 or more children [simulation]).              */
+   /*                                                                   */
+   /* GET_FORE_COL has 1 special case for the ii_order parameter.       */
+   /*    1. If the ii_order passed is larger than the number of fore-   */
+   /*       casts in the group (or less than 0) then it returns NULL.   */
+   /*                                                                   */
+   /* GET_FORE_COL has 2 special cases for the ii_profile_id parameter: */
+   /*    1. If the ii_profile_id parameter is NULL then a default pro-  */
+   /*       file is found by looking for lowest (oldest?) profile_id    */
+   /*       of type BATCH. If there aren't any then it assumes profile  */
+   /*       ID is 1.                                                    */
+   /*    2. If the ii_profile_id is invalid (eg: no such profile exists)*/
+   /*       then an exception is thrown.                                */
+   /*                                                                   */
+   /* NOTE: Some functionality which used to be provided by             */
+   /* GET_FORE_COL has been moved to the procedure GET_FORE_GENERATE_COL*/
+   /*********************************************************************/
+
+   IF ii_profile_id IS  NULL  THEN
+
+      vs_sql := 'SELECT COUNT(*)
+                 FROM   engine_profiles
+                 where  profile_type_id = 1';
+      vi_exists := dynamic_number(vs_sql);
+
+      IF vi_exists > 0 THEN
+         vs_sql := 'SELECT MIN(engine_profiles_id)
+                    FROM   engine_profiles
+                    WHERE  profile_type_id = 1';
+
+         vi_profile_id := dynamic_number(vs_sql);
+      ELSE
+         vi_profile_id := 1;
+      END IF;
+
+   ELSE -- ii_profile_id is not null
+
+      IF get_is_engine_profile_exists(ii_profile_id) = 0 THEN
+
+         RAISE_APPLICATION_ERROR(-20005, 'ii_profile_id='|| TO_CHAR(ii_profile_id) ||' is not valid');
+
+      ELSE
+         /************************************************************************/
+         /* Always ensure that the parent (batch) profile is used                */
+         /* So this still works even if the Child (simulation) profile is passed */
+         /************************************************************************/
+         vi_profile_id := ii_profile_id;
+
+         IF get_eng_profile_type_id( vi_profile_id ) <> 1 THEN
+            vi_profile_id := get_engine_profile_parent_id(ii_profile_id);
+         END IF;
+
+      END IF;
+
+   END IF;
+
+
+   /*************************************************************************/
+   /* Choose the existing forecast columns for this profile by their STATUS */
+   /* and timestamp (first the rows with successful forecasts, then rows    */
+   /* which never had a forecast attempt, and finally the rows with failed  */
+   /* forecasts), most recent first. Returns NULL if there is no match.     */
+   /*************************************************************************/
+   OPEN rec FOR
+      'SELECT DECODE(status,1,1,2,2,3), fore_column_name
+       FROM   forecast_history
+       WHERE  engine_profiles_id = '|| vi_profile_id ||'
+       ORDER BY 1, time_sig DESC';
+   LOOP
+
+      FETCH rec INTO vi_dummy, vs_fore_column_name;
+      EXIT WHEN rec%NOTFOUND;
+
+      IF vi_ind = ii_order THEN
+         vs_col := vs_fore_column_name;
+      END IF;
+      vi_ind := vi_ind + 1;
+   END LOOP;
+   CLOSE rec;
+
+   RETURN vs_col;
+END;
+ 

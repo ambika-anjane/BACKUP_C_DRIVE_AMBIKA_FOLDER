@@ -1,0 +1,72 @@
+create or replace 
+FUNCTION  -- $Revision: 1.21 $
+GET_EXP_WITH_NO_TOKEN
+  ( is_expression VARCHAR2,
+    is_prefix     VARCHAR2 DEFAULT NULL)
+RETURN VARCHAR2
+IS
+
+  vi_ind                  NUMBER(10);
+  vs_old_exp              VARCHAR2(10000);
+  vs_new_exp              VARCHAR2(10000) := NULL;
+  vs_fixed_exp            VARCHAR2(10000);
+  vs_fore_column          VARCHAR2(30) := NULL;
+  vs_exp_params           VARCHAR2(60);
+
+BEGIN
+
+   /***************************************************************/
+   /* Convert series expression containing a #FORE@v@p# series    */
+   /* expression into a FORE_% column reference (with an optional */
+   /* tablename prefix).                                          */
+   /***************************************************************/
+
+   vs_fixed_exp:=LOWER(is_expression);
+
+   WHILE instr(vs_fixed_exp,'@')>0
+   LOOP
+
+      vi_ind := instr(vs_fixed_exp,'#');
+
+      /* parse out the stuff between the '#' and '#' marks */
+      vs_old_exp := LOWER(substr(vs_fixed_exp,instr(vs_fixed_exp,'#',vi_ind)+1,instr(vs_fixed_exp,'#',vi_ind,2)-instr(vs_fixed_exp,'#',vi_ind)-1));
+
+      /**************************************************************/
+      /* Parse the version and profile from the expression and      */
+      /* generate a FORE_% column name. If the parsing fails we use */
+      /* default version and profile numbers. Catch exceptions just */
+      /* in case our parsing causes a to_number to throw up.        */
+      /**************************************************************/
+      BEGIN
+         vs_exp_params := substr(vs_old_exp, instr(vs_old_exp, '@') + 1);
+
+         IF instr(vs_exp_params, '@') <> 0 THEN
+            vs_fore_column := LOWER(NVL(get_fore_col(to_number( substr(vs_exp_params, 1, instr(vs_exp_params, '@') - 1)),
+                                                     to_number( substr(vs_exp_params, instr(vs_exp_params, '@') + 1 ))),
+                                        get_fore_col(0, NULL)));
+         ELSE
+            vs_fore_column := LOWER(NVL(get_fore_col(to_number(vs_exp_params), NULL),
+                                        get_fore_col(0, NULL)));
+         END IF;
+
+      EXCEPTION
+         WHEN OTHERS THEN
+            send_err_message('GET_EXP_WITH_NO_TOKEN', 'Error parsing expression '||is_expression);
+      END;
+
+      vs_new_exp := vs_fore_column;
+
+      IF LOWER(substr(vs_old_exp,1,instr(vs_old_exp,'@')-1))<>'fore' THEN
+
+         vs_new_exp:=vs_new_exp || '_' || substr(vs_old_exp,1,instr(vs_old_exp,'@')-1);
+
+      END IF;
+
+      vs_fixed_exp:=REPLACE (vs_fixed_exp,'#'||vs_old_exp||'#',is_prefix || vs_new_exp);
+
+   END LOOP;
+
+   RETURN vs_fixed_exp;
+
+END GET_EXP_WITH_NO_TOKEN;
+ 

@@ -1,0 +1,327 @@
+create or replace PACKAGE BODY          "HOT_PTP_OBIEE_DATA_EXTRACT" IS
+procedure HOT_PTP_SALES_DATA_FULL  as
+v_fore varchar2(30);
+v_uplift varchar2(30);
+v_max_date date;
+v_sql varchar2(8000);
+v_start_time date;
+v_max_period_num varchar2(10);
+begin
+
+execute immediate('truncate table HOT_PTP_SALES_DATA_STG'); 
+
+select hotdem2.get_exp_with_no_token('#FORE@0#') into v_fore from dual;
+
+--Get #UNIT# column name
+--    select get_exp_with_no_token('#UNIT#') into v_unit from dual;
+
+-- Get Max date
+ SELECT TO_DATE(hotdem2.get_max_date, 'MM-DD-YYYY HH24:MI:SS') INTO v_max_date FROM DUAL;
+
+SELECT start_time into v_start_time FROM hot_time_etl_track WHERE process_name = 'HOT_PTP_SALES_DATA';
+
+select hotdem2.get_exp_with_no_token('#UPLIFT@0#') into v_uplift from dual;
+
+select to_char(T) into v_max_period_num from hotdem2.inputs  where datet = v_max_date;  
+
+--dbms_output.put_line('query: '|| v_uplift);
+
+v_sql := 
+'insert into  HOT_PTP_SALES_DATA_STG
+(
+ITEM_ID,
+LOCATION_ID,
+SALES_DATE_WID,
+SALES_DATE,
+DEMAND_LY,
+ACTUAL_QUANTITY,
+ACTUALS_TTL_DOL,
+COGS_SD,
+SALES_BASE_OVERRIDE,
+BUDGET,
+INVOICE_PRICE_SD,
+BASE_FORECAST,
+INCREMENTAL_FORECAST,
+TOTAL_FORECAST,
+LAST_UPDATE_DATE,
+MANUAL_STAT,
+FORE_0_CALC,
+--MAX_DATE_DIFF,
+ENTER_FORE,
+COL_FOR_OVER,
+SIM_VAL_1,
+TRG_CANNIZN_PERC,
+SRC_CANNIZN_PERC,
+MANUAL_FACT,
+FIXED_PROM,
+RULE_COLL,
+INT_COST,
+FF,
+PSEUDO_SALE,
+EBS_BH_BOOK_QTY_BD,
+DEMAND,
+DEMAND_FACT,
+WCP_OVERRIDE,
+PCT_FINAL_WEIGHT,
+SALES_OVERRIDE,
+SALES_BASELINE,
+SALES_PCT_CHANGE,
+PCT_SALES_WEIGHT,
+MKTG_OVERRIDE,
+MKTG_BASELINE,
+MKTG_PCT_CHANGE,
+PCT_MKTG_WEIGHT,
+LIST_PRICE,
+DO_FORE,
+HOT_FUTURE_ORDERS,
+HOT_BUDGET_REVIEW_1,
+HOT_BUDGET_REVIEW_2,
+HOT_WTD_SHIP,
+ONE_MONTH_LAG_FCST,
+TWO_MONTH_LAG_FCST,
+THREE_MONTH_LAG_FCST,
+FOUR_MONTH_LAG_FCST,
+HOT_HYPERION_BUDGET,
+HOT_HYPERION_UNITS,
+HOT_BUDGET_REVIEW_3,
+HOT_HYPERION_UNITS_REV1,
+HOT_HYPERION_UNITS_REV2,
+HOT_HYPERION_UNITS_REV3,
+HOT_HYPERION_BUDGET_REV1,
+HOT_HYPERION_BUDGET_REV_2,
+HOT_HYPERION_BUDGET_REV3,
+HOT_HYPERION_COGS_REV1,
+HOT_HYPERION_COGS_REV2,
+HOT_HYPERION_COGS_REV3,
+HOT_EST_LIST_PRICE,
+HOT_TARG_FCST_5_LAG,
+HOT_TARG_FCST_6_LAG,
+HOT_TARG_FCST_7_LAG,
+HOT_TARG_FCST_8_LAG,
+HOT_TARG_FCST_9_LAG,
+HOT_TARG_FCST_10_LAG,
+HOT_TARG_FCST_11_LAG,
+HOT_TARG_FCST_12_LAG,
+BAT_FCST_1_LAG,
+BAT_FCST_2_LAG,
+BAT_FCST_3_LAG,
+BAT_FCST_4_LAG,
+HOT_ABC_FLAG,
+MAX_SALES_DATE,
+PERIOD_DIFF,
+CURRENCY_CODE,
+INVOICE_PRICE_OVERRIDE,
+DO_FORE_OVERRIDE,
+CUSTOMER_ACCOUNT_ID,
+INVENTORY_ITEM_ID,
+ORG_ID,
+UPLIFT_FUTURE,
+SALES_PROJ_VOL,
+DEMAND_CLASS,
+SALES_ACCOUNT,
+HOT_1_LAG_FCST_DOL,
+HOT_UNCONSTRAINED_DEMAND,
+customer_account_id_n,
+inventory_item_id_n,
+org_id_n
+)
+SELECT 
+s.ITEM_ID
+,s.LOCATION_ID
+,TO_CHAR(s.SALES_DATE, ''YYYYMMDD'') SALES_DATE
+,s.SALES_DATE
+,s.DEMAND_LY
+,s.ACTUAL_QUANTITY
+,s.ACTUALS_TTL_DOL
+,s.SDATA7
+,s.HOT_SALES_BASE_OVER
+,s.BUDGET
+,s.SDATA8
+,s.SDATA5
+,s.SDATA6
+,s.TTL_FCST
+,s.LAST_UPDATE_DATE
+,s.MANUAL_STAT
+,s.'||v_fore||'
+--,sign(TO_DATE('''||v_max_date||''',''MM-DD-YYYY HH24:MI:SS''))
+--,(TO_DATE(''01-10-2019 00:00:00'',''MM-DD-YYYY HH24:MI:SS'') - TO_DATE(''01-10-2019 00:00:00'',''MM-DD-YYYY HH24:MI:SS''))
+--,sign(s.sales_date - to_date('''||v_max_date||''' ,''DD-MON-YY''))   
+,s.ENTER_FORE
+,s.COL_FOR_OVER
+,s.SIM_VAL_1
+,s.TRG_CANNIZN_PERC
+,s.SRC_CANNIZN_PERC
+,s.MANUAL_FACT
+,s.FIXED_PROM
+,s.RULE_COLL
+,s.INT_COST
+,s.FF
+,s.PSEUDO_SALE
+,s.ebs_bh_book_qty_bd
+,s.DEMAND
+,s.DEMAND_FACT
+,s.WCP_OVERRIDE
+,s.PCT_FINAL_WEIGHT
+,s.SALES_OVERRIDE
+,s.SALES_BASELINE
+,s.SALES_PCT_CHANGE
+,s.PCT_SALES_WEIGHT
+,s.MKTG_OVERRIDE
+,s.MKTG_BASELINE
+,s.MKTG_PCT_CHANGE
+,s.PCT_MKTG_WEIGHT
+,s.ebspricelist102
+,mp.do_fore
+,s.HOT_FUTURE_ORDERS
+,s.HOT_BUDGET_VALUE_REVIEW_1
+,S.HOT_BUDGET_VALUE_REVIEW_2
+,S.HOT_WTD_SHIP
+,S.Week4_lag_fcst
+,S.week_8_lag_fcst
+,S.targ_fcst_3_lag
+,S.targ_fcst_4_lag
+,S.hot_hyperion_budget
+,S.hot_hyperion_units
+,S.HOT_BUDGET_VALUE_REVIEW_3
+,S.hot_hyperion_units_rev1
+,S.hot_hyperion_units_rev2
+,S.hot_hyperion_units_rev3
+,S.hot_hyperion_budget_rev1
+,S.hot_hyperion_budget_rev_2
+,S.hot_hyperion_budget_rev3
+,S.hot_hyperion_cogs_rev1
+,S.hot_hyperion_cogs_rev2
+,S.hot_hyperion_cogs_rev3
+,s.hot_est_list_price
+,s.hot_targ_fcst_5_lag
+,s.hot_targ_fcst_6_lag
+,s.hot_targ_fcst_7_lag
+,s.hot_targ_fcst_8_lag
+,s.hot_targ_fcst_9_lag
+,s.hot_targ_fcst_10_lag
+,s.hot_targ_fcst_11_lag
+,s.hot_targ_fcst_12_lag
+,s.bat_fcst_1_lag
+,s.bat_fcst_2_lag
+,s.bat_fcst_3_lag
+,s.bat_fcst_4_lag
+,ac.abc_code
+,to_date('''||v_max_date||''' ,''DD-MON-YY'')
+,cal.T-to_number('||v_max_period_num||')
+,case when nvl(s.hot_invoice_price_over,0) = 0 then coalesce(lp.group_currency, lp.cust_currency,fl.tag,sob.currency_code) 
+   else coalesce(fl.tag,lp.group_currency, lp.cust_currency,sob.currency_code) end currency_code
+,s.hot_invoice_price_over
+,mp.hot_do_fore_over
+,nvl(TO_CHAR(nvl(hca.cust_account_id,(select max(hca1.cust_account_id) from apps.hz_cust_accounts hca1, apps.hz_parties hp where hp.party_id = hca1.party_id and hca1.status = ''A'' and hp.status = ''A''
+and UPPER(TRIM(SUBSTR(ea.EBS_ACCOUNT,1,INSTR(ea.EBS_ACCOUNT,'':'',-1)-1))) = UPPER(hp.PARTY_NAME))))
+,cc.e1_cust_cat_2) customer_acct_id
+,msi.inventory_item_id
+,mop.sr_tp_id org_id
+,prom.uplift_future
+,nvl(s.HOT_SALES_BASE_OVER,s.'||v_fore||') + nvl(prom.uplift_future,0) Sales_proj_vol
+,td.ebs_demand_class
+,msi.sales_account
+,s.HOT_1_LAG_FCST_DOL
+,s.hot_unconstrained_demand
+,nvl(hca.cust_account_id,(select max(hca1.cust_account_id) from apps.hz_cust_accounts hca1, apps.hz_parties hp where hp.party_id = hca1.party_id and hca1.status = ''A'' and hp.status = ''A''
+and UPPER(TRIM(SUBSTR(ea.EBS_ACCOUNT,1,INSTR(ea.EBS_ACCOUNT,'':'',-1)-1))) = UPPER(hp.PARTY_NAME))) customer_account_id_n
+,msi.inventory_item_id inventory_item_id_n
+,mop.sr_tp_id org_id_n
+From HOTDEM2.SALES_DATA S
+ ,HOTDEM2.MDP_MATRIX mp
+,hotdem2.t_ep_e1_cust_cat_2 cc
+,hotdem2.t_ep_item ti
+,hotdem2.t_ep_organization teo
+,hotdem2.t_ep_ebs_demand_class td
+,hotdem2.inputs cal
+,hotdem2.hot_abc_class ac
+,(
+select item_id, location_id, max(case when cg_flag = 1 then currency_code end) group_currency
+,max(case when cg_flag = 0 then currency_code end) cust_currency from
+hotdem2.hot_list_price 
+group by item_id, location_id
+) lp
+,apps.msc_trading_partners mop
+,apps.mtl_system_items msi
+,apps.hz_cust_accounts hca
+,hotdem2.t_ep_ebs_account ea
+,apps.FND_LOOKUP_VALUES fl
+,(select location_id, item_id, sales_date, sum(nvl(EVENT_LIFT_OVERRIDE ,'||v_uplift||')) uplift_future
+from hotdem2.promotion_data
+where sales_date >= trunc(sysdate,''MM'')
+and (event_lift_override > 0)
+group by location_id, item_id, sales_date
+) prom
+,apps.ORG_ORGANIZATION_DEFINITIONS ord
+,apps.gl_sets_of_books  sob
+where S.Sales_date between 
+    case when to_char(sysdate, ''Mon'') in (''Jan'', ''Feb'') then add_months(trunc(sysdate, ''YY''), - 22) else add_months(trunc(sysdate,''YYYY''),-10) end
+and add_months(sysdate,24)
+and MP.item_id = S.item_id
+and MP.location_id = s.location_id
+and cal.datet = s.sales_date
+and ac.t_ep_hot_abc_class_ep_id = mp.t_ep_hot_abc_class_ep_id
+and s.item_id = lp.item_id(+)
+and s.location_id = lp.location_id(+)
+and mp.t_ep_item_ep_id = ti.t_ep_item_ep_id
+--and nvl(ti.ebs_item_dest_key,0) = msi.inventory_item_id(+)
+and ti.item = msi.segment1(+)
+and msi.organization_id(+) = 82
+and mp.t_ep_organization_ep_id = teo.t_ep_organization_ep_id
+--and nvl(teo.ebs_org_dest_key,0) = mop.partner_id(+)
+and nvl(teo.organization,''NA'') = mop.organization_code(+)
+and mp.t_ep_ebs_demand_class_ep_id = td.t_ep_ebs_demand_class_ep_id
+and s.location_id = prom.location_id(+)
+and s.item_id = prom.item_id(+)
+and s.sales_date = prom.sales_date(+)
+and mop.sr_tp_id = ord.organization_id(+)
+and ord.set_of_books_id = sob.set_of_books_id(+)
+and mp.t_ep_e1_cust_cat_2_ep_id = cc.t_ep_e1_cust_cat_2_ep_id
+and mp.T_EP_EBS_ACCOUNT_EP_ID = ea.T_EP_EBS_ACCOUNT_EP_ID
+and hca.ACCOUNT_NUMBER(+)= SUBSTR(ea.EBS_ACCOUNT,INSTR(ea.EBS_ACCOUNT,'':'',-1,1)+1,LENGTH(ea.EBS_ACCOUNT)-INSTR(ea.EBS_ACCOUNT,'':'',-1,1))
+and fl.lookup_type(+) = ''HOT_OVERRIDE_PRICE_TAG''
+and SUBSTR(ea.EBS_ACCOUNT,INSTR(ea.EBS_ACCOUNT,'':'',-1) + 1) = fl.lookup_code(+)
+and (s.hot_targ_fcst_5_lag > 0
+or s.hot_targ_fcst_6_lag > 0
+or s.hot_targ_fcst_7_lag > 0
+or s.hot_targ_fcst_8_lag > 0
+or s.hot_targ_fcst_9_lag > 0
+or s.hot_targ_fcst_10_lag > 0
+or s.hot_targ_fcst_11_lag > 0
+or s.hot_targ_fcst_12_lag > 0
+or s.bat_fcst_1_lag > 0
+or s.bat_fcst_2_lag > 0
+or s.bat_fcst_3_lag > 0
+or s.bat_fcst_4_lag > 0
+or S.Week4_lag_fcst > 0
+or S.week_8_lag_fcst > 0
+or S.targ_fcst_3_lag > 0
+or S.targ_fcst_4_lag > 0
+or s.HOT_FUTURE_ORDERS > 0
+or s.SALES_OVERRIDE > 0
+or S.HOT_WTD_SHIP > 0
+or s.'||v_fore||' > 0
+or s.ENTER_FORE > 0
+or s.HOT_SALES_BASE_OVER > 0
+or s.MANUAL_STAT > 0
+or s.ACTUAL_QUANTITY> 0
+or s.COL_FOR_OVER > 0
+or s.SIM_VAL_1 > 0
+or s.FIXED_PROM > 0
+or s.RULE_COLL > 0
+or s.INT_COST > 0
+or s.FF > 0)'
+;
+
+
+--dbms_output.put_line('query: '|| v_sql);
+
+--begin
+Execute immediate v_sql;
+--exception when others then null;
+--end;
+commit;
+--dbms_output.put_line('Sqlcode: '||sqlerrm);
+
+end hot_ptp_sales_data_full;
+End hot_ptp_obiee_data_extract;
