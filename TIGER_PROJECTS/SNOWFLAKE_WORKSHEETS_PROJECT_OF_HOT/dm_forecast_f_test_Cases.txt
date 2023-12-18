@@ -1,0 +1,95 @@
+SELECT count(*) FROM  "DEV_DISCOVER"."SUPPLY_CHAIN"."STG_ORACLE__HOT_PTP_SALES_DATA"   
+select COUNT(*) from "DEV_ODS"."ORACLE_SCP"."SALES_DATA" WHERE ITEM_ID = 13954 AND BUDGET IS  NULL
+-- INCREMANTAL INSERT TEST
+
+SELECT INTEGRATION_ID,BUDGET_VALUE,SALES_DATE FROM "DEV_EDW"."EDW_OMNI"."W_DM_FORECAST_F" WHERE ITEM_ID = 13954 AND SALES_DATE = '2021-02-01 00:00:00.000'
+SELECT COUNT(*) FROM "DEV_EDW"."EDW_OMNI"."W_DM_FORECAST_F" WHERE ITEM_ID = 13954 AND SALES_DATE = '2021-02-01 00:00:00.000'
+
+SELECT COUNT(*) FROM"DEV_ODS"."ORACLE_SCP"."SALES_DATA" S 
+where S.SALES_DATE >= dateadd('year', -2, date_trunc('year', current_date()))
+        
+         AND  (S.hot_targ_fcst_5_lag > 0
+                or S.hot_targ_fcst_6_lag > 0
+                or S.hot_targ_fcst_7_lag > 0
+                or S.hot_targ_fcst_8_lag > 0
+                or S.hot_targ_fcst_9_lag > 0
+                or S.hot_targ_fcst_10_lag > 0
+                or S.hot_targ_fcst_11_lag > 0
+                or S.hot_targ_fcst_12_lag > 0
+                or S.bat_fcst_1_lag > 0
+                or S.bat_fcst_2_lag > 0
+                or S.bat_fcst_3_lag > 0
+                or S.bat_fcst_4_lag > 0
+                or S.Week4_lag_fcst > 0
+                or S.week_8_lag_fcst > 0
+                or S.targ_fcst_3_lag > 0
+                or S.targ_fcst_4_lag > 0
+                or S.HOT_FUTURE_ORDERS > 0
+                or S.SALES_OVERRIDE > 0
+                or S.HOT_WTD_SHIP > 0
+                --or v_f.v_fore > 0
+                or S.ENTER_FORE > 0
+                or S.HOT_SALES_BASE_OVER > 0
+                or S.MANUAL_STAT > 0
+                or S.ACTUAL_QUANTITY> 0
+                or S.COL_FOR_OVER > 0
+                or S.SIM_VAL_1 > 0
+                or S.FIXED_PROM > 0
+                or S.RULE_COLL > 0
+                or S.INT_COST > 0
+                or S.FF > 0)
+                
+ SELECT COUNT(*) FROM  "DEV_DISCOVER"."SUPPLY_CHAIN"."STG_ORACLE__HOT_PTP_SALES"
+  SELECT COUNT(*) FROM  "DEV_DISCOVER"."SUPPLY_CHAIN"."STG_ORACLE__HOT_PTP_SALES_DATA_OLD"
+drop view "DEV_DISCOVER"."SUPPLY_CHAIN"."STG_ORACLE__HOT_PTP_SALES_DATA_OLD"
+-- 471189246
+-- 495475156
+ -- 01aa8b4b-0504-52b7-000b-ab870a90eb8e
+
+delete from  "DEV_EDW"."EDW_OMNI"."W_DM_FORECAST_F" WHERE ITEM_ID = 13954 AND BUDGET_VALUE IS  NULL AND SALES_DATE = '2021-02-01 00:00:00.000'
+UPDATE "DEV_ODS"."ORACLE_SCP"."SALES_DATA"    SET _batch_update_date = CURRENT_TIMESTAMP() 
+WHERE ITEM_ID = 13954 AND BUDGET IS  NULL AND SALES_DATE = '2021-02-01 00:00:00.000'
+
+select ITEM_ID from "DEV_ODS"."ORACLE_SCP"."SALES_DATA" WHERE ITEM_ID = 13954 AND BUDGET_VALUE IS  NULL AND SALES_DATE = '2021-02-01 00:00:00.000'
+AND ITEM_ID  IN (SELECT ITEM_ID FROM "DEV_ODS"."ORACLE_SCP"."SALES_DATA")
+
+--AUDIT LOGS
+-- unique test
+select
+ integration_id as unique_field,
+    count(*) as n_records
+from "DEV_EDW"."EDW_OMNI"."W_DM_FORECAST_F"
+group by integration_id
+having count(*) > 1
+
+select
+ *
+from "DEV_DISCOVER"."SUPPLY_CHAIN"."STG_ORACLE__HOT_PTP_SALES_DATA"
+where  s_item_id = 1149267 and s_location_id = 108008 and s_sales_date = '2022-11-01 00:00:00.000'
+
+
+
+-- audit logs 
+select * from "DEV_EDW"."EDW_METADATA"."EL_AUDIT_BALANCE_LOG" where node_name = 'w_dm_forecast_f'
+
+
+
+
+
+
+
+
+
+
+
+select ITEM_ID,BUDGET_VALUE from "DEV_EDW"."EDW_OMNI"."W_DM_FORECAST_F" WHERE ITEM_ID = 13954 AND SALES_DATE = '2021-02-01 00:00:00.000'
+AND ITEM_ID  IN (SELECT ITEM_ID FROM "DEV_ODS"."ORACLE_SCP"."SALES_DATA")
+SELECT ITEM_ID,BUDGET FROM "DEV_ODS"."ORACLE_SCP"."SALES_DATA" WHERE ITEM_ID = 13954  AND SALES_DATE = '2021-02-01 00:00:00.000'
+DESC TABLE "DEV_EDW"."EDW_OMNI"."W_DM_FORECAST_F"
+--UPDATE INCREMENTAL TEST
+UPDATE "DEV_ODS"."ORACLE_SCP"."SALES_DATA"   SET BUDGET = 5  WHERE ITEM_ID = 13954 AND SALES_DATE = '2021-02-01 00:00:00.000'
+UPDATE "DEV_ODS"."ORACLE_SCP"."SALES_DATA"    SET _batch_update_date = CURRENT_TIMESTAMP() WHERE ITEM_ID = 13954 AND SALES_DATE = '2021-02-01 00:00:00.000'
+
+select ITEM_ID,BUDGET from "DEV_ODS"."ORACLE_SCP"."SALES_DATA" WHERE ITEM_ID = 13954  AND SALES_DATE = '2021-02-01 00:00:00.000'
+
+UPDATE ORACLE_MASTER_DATA.HZ_CUST_SITE_USES_ALL    SET _batch_update_date = CURRENT_TIMESTAMP() WHERE SITE_USE_ID = 7943537

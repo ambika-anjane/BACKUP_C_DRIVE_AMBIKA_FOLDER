@@ -1,0 +1,11 @@
+select table_schema, 
+       table_name, 
+       created as create_date,
+       last_altered as modify_date
+from information_schema.tables 
+where table_name in ('ENGINE_PROFILES')
+order by table_schema,
+        table_name
+        
+-- cancel query command        
+SELECT SYSTEM$CANCEL_QUERY('01aa8034-0504-5057-000b-ab870a59bc6e')

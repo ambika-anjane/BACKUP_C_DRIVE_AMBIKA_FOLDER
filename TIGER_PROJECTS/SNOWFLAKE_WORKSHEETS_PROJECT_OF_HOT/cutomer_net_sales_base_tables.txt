@@ -1,0 +1,123 @@
+--select * from "DEV_EDW"."EDW_OMNI"."W_SLA_XACT_F"
+
+select t.table_schema, 
+       t.table_name
+from information_schema.tables t
+inner join information_schema.columns c on 
+       c.table_schema = t.table_schema and c.table_name = t.table_name
+where t.table_type = 'BASE TABLE'
+       and column_name ='ORDER_NUMBER'
+order by t.table_schema, 
+       t.table_name;
+
+select acct_period_id,ACCOUNTING_DATE from "DEV_EDW"."EDW_OMNI"."W_SLA_XACT_F" limit 10
+desc table "DEV_EDW"."EDW_OMNI"."W_SLA_XACT_F"
+select CAL_YEAR_START_DATE + actuals_month * 100000 from  "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+SELECT * FROM "DEV_EDW"."EDW_OMNI"."W_FORECAST_SCENARIOS_D"
+select integration
+DESC TABLE "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+desc table "DEV_EDW"."EDW_OMNI"."W_SLA_XACT_F"
+
+           
+ ''
+select ACCOUNTING_DATE FROM "DEV_EDW"."EDW_OMNI"."W_SLA_XACT_F" WHERE ACCOUNTING_DATE > '2022-01-01'AND ACCOUNTING_DATE  IN (SELECT dateadd(day, -1, ent_period_end_date)   FROM  "DEV_EDW"."EDW_OMNI"."W_DAY_D")
+
+select * from "DEV_EDW"."BI11G_DW"."W_DAY_D"
+
+select  dateadd(day, -1, ent_period_end_date) prior_period_end_dt from  "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+select  add_months(ent_period_end_date, -1) prior_period_start_dt from  "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+
+select ent_period_end_date from  "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+
+select t.table_schema, 
+       t.table_name
+from information_schema.tables t
+inner join information_schema.columns c on 
+       c.table_schema = t.table_schema and c.table_name = t.table_name
+where t.table_type = 'BASE TABLE'
+       and column_name ='YEAR_AGO_SHIP_DATE'
+order by t.table_schema, 
+       t.table_name;
+       
+select row_wid from "DEV_EDW"."BI11G_DW"."W_DAY_D"
+select row_wid - 10000000  from "DEV_EDW"."BI11G_DW"."W_DAY_D"
+select integration_id,row_wid from  "DEV_EDW"."BI11G_DW"."W_DAY_D"
+selecT SHIP_dATE from "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+
+
+DESC TABLE "DEV_EDW"."EDW_OMNI"."W_FREIGHT_TERMS_D"
+ from 
+ DESC TABLE  "DEV_EDW"."EDW_OMNI"."W_SLA_XACT_F"
+  DESC TABLE  "DEV_EDW"."EDW_OMNI"."W_LEDGER_D"
+  select * from  "DEV_EDW"."EDW_OMNI"."W_LEDGER_D" where LEDGER_NAME NOT IN ('HOT FASB52 USD FR',
+                                                              'HOT FASB52 USD GB',
+                                                              'HOT FASB52 USD MX',
+                                                              'CONSO HOT LATIN AMERICA LLC')
+
+ 
+  SELECT * FROM  "DEV_EDW"."EDW_OMNI"."W_XACT_SOURCE_D" LIMIT 10
+  
+   SELECT * FROM  "DEV_EDW"."EDW_OMNI"."W_CUSTOMER_ACCOUNT_D"LIMIT 10
+   DESC TABLE "DEV_EDW"."EDW_OMNI"."W_CUSTOMER_ACCOUNT_D"
+   DESC TABLE "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_DH"
+   w_gl_segment_d_tl
+   DESC TABLE "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D"
+select SEGMENT_DESCRIPTION from  "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D" where SEGMENT_DESCRIPTION in  ('HH Leadership Categories',
+                                           'HH Seasonal Categories',
+                                           'HH Developing Categories',
+                                           'HH All Other Categories'
+                                           )
+
+-- queries test for record present
+-- 1
+select
+            count(distinct case when calendar_date < current_date() THEN ship_date           
+                              END)
+                / COUNT (DISTINCT ship_date)
+           mtd_percent
+           FROM "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+           WHERE ent_period = TO_CHAR (dateadd(day,-1,current_timestamp()), 'Mon-YY') 
+           
+           
+           select DISTINCT ship_date from "DEV_EDW"."EDW_OMNI"."W_DAY_D"
+           
+--2
+select SEGMENT_DESCRIPTION from  "DEV_EDW"."EDW_OMNI"."W_GL_SEGMENT_D" where SEGMENT_DESCRIPTION in  ('HH Leadership Categories',
+                                           'HH Seasonal Categories',
+                                           'HH Developing Categories',
+                                           'HH All Other Categories'
+                                           )
+
+--3 
+DESC TABLE  "DEV_EDW"."EDW_OMNI"."W_GL_ACCOUNT_D"
+ SELECT * FROM  "DEV_EDW"."EDW_OMNI"."W_GL_ACCOUNT_D" where GL_ACCOUNT_NUMBER not in  ( --'9999',
+                                                                   --'9000',
+                                                                    --'9990',
+                                                                    '1070',
+                                                                    '1071',
+                                                                    '1075',
+                                                                    '1076',
+                                                                    '1077',
+                                                                    '1072',
+                                                                    '1074',
+                                                                    '1073','1061','1062','1063')
+  --4
+  select * from "DEV_EDW"."EDW_OMNI"."W_SLA_XACT_F" a, "DEV_EDW"."EDW_OMNI"."W_CUSTOMER_ACCOUNT_D" b
+where b.integration_id = a.CUSTOMER_ACCOUNT_ID LIMIT 10
+
+select freight_terms_id  from "DEV_EDW"."EDW_OMNI"."W_SLA_XACT_F" a, "DEV_EDW"."EDW_OMNI"."W_FREIGHT_TERMS_D" b
+where b.integration_id = a.freight_terms_id LIMIT 10
+
+
+select INTEGRATION_ID
+ from "DEV_EDW"."EDW_OMNI"."W_FREIGHT_TERMS_D"
+ select source_code from "DEV_EDW"."EDW_OMNI"."W_XACT_SOURCE_D" where source_code <> 'Conversion'
+                                                                
+_id,ent_period_year_ago_end_date,day_of_year,ent_period_start_date,add_months(ent_period_end_date, -1),dateadd(day, -1,
+                                                        ent_period_end_date),cal_year_start_date,add_months(ent_period_start_date, -12),
+                                                        add_months(ent_period_end_date, -12),current_date - 1  from  "DEV_EDW"."EDW_OMNI"."W_DAY_D"                                                                
+                                                               
+                                                               
+  -- 5
+  select acct_period_id from "DEV_EDW"."EDW_OMNI"."W_SLA_XACT_F" a, "DEV_EDW"."EDW_OMNI"."W_XACT_SOURCE_D" b
+where b.integration_id = a.JOURNAL_SOURCE_ID  limit 10
