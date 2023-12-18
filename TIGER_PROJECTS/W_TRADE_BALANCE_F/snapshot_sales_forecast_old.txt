@@ -1,0 +1,161 @@
+{% set current_date = modules.datetime.datetime.today() %}
+{% set snapshot_dt= var('process_date', current_date) %}
+{% set pre_hook_filter = "SNAPSHOT_DATE = '"~snapshot_dt~"'::DATE" %}
+
+{% set pre_hook_filter = "(SNAPSHOT_DATE = '"~snapshot_dt~"'::DATE
+ OR (SNAPSHOT_DATE < dateadd(days, -7, '"~snapshot_dt~"'::DATE) AND dayname('"~snapshot_dt~"'::DATE) <> 'Mon') 
+ OR SNAPSHOT_DATE < dateadd(days, -60, '"~snapshot_dt~"'::DATE))" %}
+
+{{
+    config(
+        pre_hook= delete_snapshot_records(pre_hook_filter),
+        cluster_by=['SNAPSHOT_DATE']
+    )
+}}
+
+
+with hot_ptp_load as (select * from {{ ref("stg__sales_forecast") }}),
+customer_gl_account as (select * from {{ ref('int__get_latest_revenue_account_for_customer') }}),
+gl_segment as (select * from {{ ref('stg_oracle__gl_account_combinations') }})
+
+select
+    '{{snapshot_dt}}'::DATE SNAPSHOT_DATE,
+    nvl(l.item_id || '~' || l._source_id, '0')::varchar(200) item_id,
+    nvl(l.location_id || '~' || l._source_id, '0')::varchar(200) location_id,
+    nvl(l.organization_id || '~' || l._source_id, '0')::varchar(200) inventory_org_id,
+    nvl(l.inventory_item_id || '~' || l.organization_id || '~' || l._source_id,'0') inventory_product_id,
+    nvl(l.customer_account_id || '~' || l._source_id, '0')::varchar(200) customer_account_id,
+      l.item_id
+    || '~'
+    || l.location_id
+    || '~'
+    || l.sales_date
+    || '~'
+    || l._source_id integration_id,
+    l.sales_base_override sales_base_override,
+    l.sales_date,
+    l.last_year_sales last_year_sales_qty,
+    l.actual_quantity,
+    l.actuals_total_value,
+    l.item_cost,
+    l.budget_value,
+    l.invoice_price,
+    l.last_year_sales_value,
+    l.base_forecast base_forecast_qty,
+    l.incremental_forecast incremental_forecast_qty,
+    l.total_sales_forecast total_sales_forecast_qty,
+    l.sales_projected_volume,
+    l.sales_projected_value,
+    l.volume_base_feature volume_base_feature_qty,
+    l.volume_base_future_value,
+    l.final_forecast final_forecast_qty,
+    l.consensus_forecast_value,
+    l.last_update_date,
+  --  l.actual_ttl_value,
+    l.book_quantity_book_date,
+    l.history history_qty,
+    l.history_override history_override_qty,
+    l.adjusted_history,
+    l.simulation,
+    l.baseline_forecast_amount,
+    l.baseline_forecast,
+    l.base_overridde,
+    l.book_quantity_book_date_amount,
+    l.history_amount,
+    l.final_forecast_amount,
+    l.change_to_base,
+    l.manual_stat, 
+    l.consensus_forecast, 
+    l.adjusted_history_amount,
+    l.base_forecast_amount,
+    l.forecast_flag,
+    l.hot_budget_review_1,
+    l.hot_budget_review_2,
+    l.hot_future_orders,
+    l.hot_future_orders_amount,
+    l.hot_wtd_ship,
+    l.one_month_lag_forecast,
+    l.two_month_lag_forecast,
+    l.three_month_lag_forecast,
+    l.four_month_lag_forecast,
+    l.hot_hyperion_units,
+    l.hot_hyperion_budget,
+    l.hot_budget_review_3,
+    l.hot_hyperion_units_rev1,
+    l.hot_hyperion_units_rev2,
+    l.hot_hyperion_units_rev3,
+    l.hot_hyperion_budget_rev1,
+    l.hot_hyperion_budget_rev2,
+    l.hot_hyperion_budget_rev3,
+    l.hot_hyperion_cogs_rev1,
+    l.hot_hyperion_cogs_rev2,
+    l.hot_hyperion_cogs_rev3,
+    l.five_month_lag_forecast,
+    l.six_month_lag_forecast,
+    l.seven_month_lag_forecast,
+    l.eight_month_lag_forecast,
+    l.nine_month_lag_forecast,
+    l.ten_month_lag_forecast,
+    l.eleven_month_lag_forecast,
+    l.twelve_month_lag_forecast,
+    l.hot_abc_flag,
+    l.max_sales_date,
+    l.one_month_lag_bat_forecast,
+    l.two_month_lag_bat_forecast,
+    l.three_month_lag_bat_forecast,
+    l.four_month_lag_bat_forecast,
+    l.three_month_error_lag_forecast,
+    l.four_month_error_lag_forecast,
+    l.three_month_error_lag_bat_forcast,
+    l.four_month_error_lag_bat_forecast,
+    l.hot_est_list_price estimated_list_price,
+    l.one_month_error_lag_forecast,
+    l.disp_fcst_lag_1,
+    l.disp_fcst_lag_2,
+    l.disp_fcst_lag_3,
+    l.disp_fcst_lag_4,
+    l.disp_fcst_lag_5,
+    l.disp_fcst_lag_6,
+    l.disp_fcst_lag_7,
+    l.disp_fcst_lag_8,
+    l.disp_fcst_lag_9,
+    l.disp_fcst_lag_10,
+    l.disp_fcst_lag_11,
+    l.disp_fcst_lag_12,
+    l.period_diff,
+    l.currency_code,
+    l.forecast_flag_override,
+    l.one_month_lag_forecast_amount,
+    l.two_month_lag_forecast_amount,
+    l.three_month_lag_forecast_amount,
+    l.four_month_lag_forecast_amount,
+    l.ebs_demand_class demand_class,
+   -- l.uplift_future,
+     l.hot_unconstrained_demand unconstrained_demand,
+    l.hot_unconstrained_demand_amount unconstrained_demand_amount,
+    l.invoice_price_override,
+    nvl(product_account_segment.brand_segment_id||'~'||'Brand'||'~'||l._source_id,'0')::varchar(80) brand_segment_id,
+    nvl(product_account_segment.product_line_segment_id||'~'||'Product Line'||'~'||l._source_id,'0')::varchar(80) product_line_segment_id,
+    nvl(customer_account_segment.business_unit_segment_id||'~'||'Business Unit'||'~'||l._source_id,'0')::varchar(80) business_unit_segment_id,
+    nvl(customer_account_segment.sales_channel_segment_id||'~'||'Channel'||'~'||l._source_id,'0')::varchar(80) sales_channel_segment_id,
+    nvl(customer_account_segment.location_segment_id||'~'||'Location'||'~'||l._source_id,'0')::varchar(80) location_segment_id,
+    l._source_id as datasource_num_id,
+    $batch_start_time w_insert_dt,
+    $batch_start_time w_update_dt,
+   {{ env_var("DBT_CLOUD_RUN_ID", 9999) }}::number(32)  dbt_etl_proc_id 
+from hot_ptp_load l left outer join customer_gl_account on l.customer_account_id = customer_gl_account.customer_account_id
+left outer join gl_segment customer_account_segment on customer_gl_account.customer_site_revenue_account_id = customer_account_segment.code_combination_id
+left outer join gl_segment product_account_segment on l.item_sales_account = product_account_segment.code_combination_id
+where
+    (1 = 1)
+{#    {% if is_incremental() %}
+    and l._batch_update_date >= $batch_start_time
+    and l._batch_update_date <= $batch_end_time
+    {% endif %}
+ #}
+-- select * from w_sales_forecast_f (replace all the lines from stage) 
+-- need to update this code first, then the file name and then push the code
+-- then update dev_plan
+-- let me understand the process of hyperion step by step
+-- derekk video to go through
+-- connect with derek for sampleinputt file

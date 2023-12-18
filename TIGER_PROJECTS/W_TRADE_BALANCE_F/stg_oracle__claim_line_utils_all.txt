@@ -1,0 +1,42 @@
+with
+    source as (
+        select * from {{ source("oracle_financials", "ozf_claim_lines_util_all") }}
+    ),
+
+    renamed as (
+        select
+            to_varchar(claim_line_util_id) claim_line_util_id,
+            object_version_number,
+            last_update_date,
+            last_updated_by,
+            creation_date,
+            created_by,
+            last_update_login,
+            claim_line_id,
+            utilization_id,
+            amount,
+            currency_code,
+            exchange_rate_type,
+            exchange_rate_date,
+            exchange_rate,
+            acctd_amount,
+            org_id,
+            security_group_id,
+            scan_unit,
+            activity_product_id,
+            uom_code,
+            quantity,
+            utilized_acctd_amount,
+            fxgl_acctd_amount,
+            util_curr_amount,
+            plan_curr_amount,
+            univ_curr_amount,
+            _batch_run_id,
+            _batch_insert_date,
+            _batch_update_date,
+            _source_id
+
+        from source
+    )
+select *
+from renamed

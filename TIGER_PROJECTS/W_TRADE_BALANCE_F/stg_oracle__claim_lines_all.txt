@@ -1,0 +1,113 @@
+with
+    source as (
+        select * from {{ source("oracle_financials", "ozf_claim_lines_all") }}
+    ),
+
+    renamed as (
+        select
+            to_varchar(claim_line_id) claim_line_id,
+            object_version_number
+            ,last_update_date
+            ,last_updated_by
+            ,creation_date
+            ,created_by
+            ,last_update_login
+            ,request_id
+            ,program_application_id
+            ,program_update_date
+            ,program_id
+            ,created_from
+            ,claim_id
+            ,line_number
+            ,split_from_claim_line_id
+            ,amount
+            ,acctd_amount
+            ,currency_code
+            ,exchange_rate_type
+            ,exchange_rate_date
+            ,exchange_rate
+            ,set_of_books_id
+            ,valid_flag
+            ,source_object_id
+            ,source_object_class
+            ,source_object_type_id
+            ,plan_id
+            ,offer_id
+            ,payment_method
+            ,payment_reference_id
+            ,payment_reference_number
+            ,payment_reference_date
+            ,voucher_id
+            ,voucher_number
+            ,payment_status
+            ,approved_flag
+            ,approved_date
+            ,approved_by
+            ,settled_date
+            ,settled_by
+            ,performance_complete_flag
+            ,performance_attached_flag
+            ,attribute_category
+            ,attribute1
+            ,attribute2
+            ,attribute3
+            ,attribute4
+            ,attribute5
+            ,attribute6
+            ,attribute7
+            ,attribute8
+            ,attribute9
+            ,attribute10
+            ,attribute11
+            ,attribute12
+            ,attribute13
+            ,attribute14
+            ,attribute15
+            ,org_id
+            ,security_group_id
+            ,utilization_id
+            ,claim_currency_amount
+            ,tax_code
+            ,item_id
+            ,item_description
+            ,quantity
+            ,quantity_uom
+            ,rate
+            ,activity_type
+            ,activity_id
+            ,earnings_associated_flag
+            ,related_cust_account_id
+            ,relationship_type
+            ,comments
+            ,buy_group_cust_account_id
+            ,select_cust_children_flag
+            ,credit_to
+            ,source_object_line_id
+            ,tax_amount
+            ,claim_curr_tax_amount
+            ,acctd_tax_amount
+            ,item_type
+            ,activity_line_id
+            ,offer_type
+            ,prorate_earnings_flag
+            ,sale_date
+            ,earnings_end_date
+            ,buy_group_party_id
+            ,dpp_cust_account_id
+            ,batch_line_id
+            ,activity_name
+            ,year_id
+            ,quantity2
+            ,quantity_uom2
+            ,tax_action
+            ,_batch_run_id
+            ,_batch_insert_date
+            ,_batch_update_date
+            _source_id
+
+
+
+        from source
+    )
+select *
+from renamed

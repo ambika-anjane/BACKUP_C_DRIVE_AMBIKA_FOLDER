@@ -1,0 +1,6 @@
+1. develop proof of concept of using jira tickets (jira based) resource management
+a. safety manager
+b. security manager
+c. safety analysis
+d. securtiy analysis
+

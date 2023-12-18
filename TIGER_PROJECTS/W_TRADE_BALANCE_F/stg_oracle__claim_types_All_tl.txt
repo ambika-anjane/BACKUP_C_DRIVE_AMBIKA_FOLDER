@@ -1,0 +1,29 @@
+with
+    source as (
+        select * from {{ source("oracle_financials", "ozf_claim_types_all_tl") }}
+    ),
+
+    renamed as (
+        select
+            claim_type_id,
+            last_update_date,
+            last_updated_by,
+            creation_date,
+            created_by,
+            last_update_login,
+            description,
+            language,
+            name,
+            source_lang,
+            org_id,
+            security_group_id,
+            _batch_run_id,
+            _batch_insert_date,
+            _batch_update_date,
+            _source_id
+
+
+        from source
+    )
+select *
+from renamed

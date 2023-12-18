@@ -1,0 +1,131 @@
+with
+    sq_claims_fs as (select * from {{ ref("stg_oracle__customer_claims") }}),
+    ozf_reason_codes_all_b as (select * from {{ source("oracle_financials", "ozf_reason_codes_all_b") }}    ),
+    ozf_claim_types_all_tl as (select * from {{ source("oracle_financials", "ozf_claim_types_all_tl") }}    ),
+  --  ozf_claim_lines_all as (select * from {{ source('oracle_financials', 'ozf_claim_lines_all') }}),
+    ozf_claim_lines_util_all as (select * from {{ source('oracle_financials', 'ozf_claim_lines_util_all') }}),
+    ozf_funds_utilized_all_b as (select * from {{ source('oracle_financials', 'ozf_funds_utilized_all_b') }}),  
+    ap_checks_all as (select * from {{ source("oracle_financials", "ap_checks_all") }}),
+    ap_invoices_all as (select * from {{ source("oracle_financials", "ap_invoices_all") }}),
+    ap_invoice_payments_all as (select * from {{ source("oracle_financials", "ap_invoice_payments_all") }}),
+    jtf_rs_resource_extns as (select * from {{ source('oracle_financials', 'jtf_rs_resource_extns') }})
+--- replace source with ref 
+-- stg__wc_claims
+-- stg__wc_trade_funds
+-- lije n 2 and 5 combine and make it as view as stg_oracle__customer_claims
+-- line no 3. make it as claim_reasons
+-- line no .6 stg_oracle__claim_utilized_funds
+-- 8,9,10 replace with corresponding base view
+-- if it is there will make use of it or else recreate 
+
+        select distinct
+            sq_claims_fs.acctd_amount claim_loc_amt,
+            case
+                when sq_claims_fs.acctd_amount_settled <> 0
+                then
+                    coalesce(
+                        ozf_claim_lines_util_all.acctd_amount,
+                        ozf_claim_lines_all.acctd_amount,
+                        sq_claims_fs.acctd_amount_settled
+                    )
+                else sq_claims_fs.acctd_amount_settled
+            end settled_loc_amt,
+            sq_claims_fs.claim_id claim_id,
+            sq_claims_fs.claim_number claim_number,
+            sq_claims_fs.claim_date claim_date,
+            sq_claims_fs.due_date due_date,
+            ozf_claim_types_all_tl.name claim_type,
+            sq_claims_fs.cust_account_id cust_account_id,
+            nvl(sq_claims_fs.cust_billto_acct_site_id, 0) cust_billto_acct_site_id,
+            ozf_reason_codes_all_b.reason_code reason_code,
+            sq_claims_fs.customer_ref_number customer_ref_number,
+            sq_claims_fs.receipt_number receipt_number,
+            sq_claims_fs.payment_method payment_method,
+            sq_claims_fs.payment_reference_number payment_reference_number,
+            sq_claims_fs.payment_status payment_status,
+            sq_claims_fs.approved_date approved_date,
+            sq_claims_fs.approved_by approved_by,
+            sq_claims_fs.settled_date settled_date,
+            sq_claims_fs.settled_by settled_by,
+            sq_claims_fs.amount claim_doc_amt,
+            sq_claims_fs.currency_code doc_curr_code,
+            sq_claims_fs.amount_adjusted amount_adjusted,
+            sq_claims_fs.amount_remaining amount_remaining,
+            case
+                when sq_claims_fs.amount_settled <> 0
+                then
+                    coalesce(
+                        ozf_claim_lines_util_all.amount,
+                        ozf_claim_lines_all.amount,
+                        sq_claims_fs.amount_settled
+                    )
+                else sq_claims_fs.amount_settled
+            end settled_doc_amt,
+            sq_claims_fs.tax_amount tax_doc_amt,
+            sq_claims_fs.exchange_rate exchange_rate,
+            sq_claims_fs.exchange_rate_date exchange_rate_date,
+            sq_claims_fs.exchange_rate_type exchange_rate_type,
+            sq_claims_fs.claim_class claim_class,
+            sq_claims_fs.last_update_date last_update_date,
+            sq_claims_fs.gl_date gl_date,
+            sq_check_number_list.check_number check_number,
+            ozf_funds_utilized_all_b.fund_id fund_id,
+            sq_claims_fs.org_id org_id,
+            ozf_claim_lines_all.claim_line_id claim_line_id,
+            ozf_claim_lines_util_all.utilization_id utilization_id,
+            sq_claims_fs.status_code status_code,
+            ozf_claim_lines_util_all.claim_line_util_id claim_line_util_id,
+            sq_claims_fs.cust_shipto_acct_site_id,
+            jtf_rs_resource_extns.user_id user_id,
+            sq_claims_fs._source_id _source_id,
+            sq_claims_fs._batch_update_date _batch_update_date,
+            ozf_reason_codes_all_b._batch_update_date _batch_update_date1,
+            ozf_claim_types_all_tl._batch_update_date _batch_update_date2,
+            ozf_claim_lines_all._batch_update_date _batch_update_date3,
+            jtf_rs_resource_extns._batch_update_date _batch_update_date4,
+            ozf_claim_lines_util_all._batch_update_date _batch_update_date5,
+            ozf_funds_utilized_all_b._batch_update_date _batch_update_date6
+        from
+            sq_claims_fs left join 
+                       
+            (
+                select
+                    claim_id,
+                    listagg(ap_checks_all.check_number, ',') within group (
+                        order by claim_id desc
+                    ) as check_number
+                from
+                    ap_checks_all,
+                    ap_invoices_all,
+                    ap_invoice_payments_all,
+                    sq_claims_fs
+                where
+                    (ap_invoices_all.invoice_num = sq_claims_fs.claim_number)
+                    and (ap_invoice_payments_all.check_id = ap_checks_all.check_id)
+                    and (
+                        ap_invoices_all.invoice_id = ap_invoice_payments_all.invoice_id
+                    )
+                    and (
+                        ap_invoices_all.source = 'TRADE MANAGEMENT'
+                        and ap_invoices_all.invoice_type_lookup_code = 'STANDARD'
+                    )
+                    and ap_invoice_payments_all.reversal_inv_pmt_id is null
+                group by (sq_claims_fs.claim_id)
+
+            ) sq_check_number_list
+       on sq_claims_fs.claim_id = sq_check_number_list.claim_id      
+       left join ozf_reason_codes_all_b
+      on sq_claims_fs.reason_code_id = ozf_reason_codes_all_b.reason_code_id
+      left join ozf_claim_types_all_tl
+      on ozf_claim_types_all_tl.claim_type_id = sq_claims_fs.claim_type_id
+      
+      
+
+      left join  jtf_rs_resource_extns
+      on sq_claims_fs.owner_id = jtf_rs_resource_extns.resource_id
+      left join ozf_claim_lines_util_all
+      on    ozf_claim_lines_all.claim_line_id = ozf_claim_lines_util_all.claim_line_id
+      left join   ozf_funds_utilized_all_b
+      on ozf_claim_lines_util_all.utilization_id   = ozf_funds_utilized_all_b.utilization_id       
+        where
+            (1 = 1)

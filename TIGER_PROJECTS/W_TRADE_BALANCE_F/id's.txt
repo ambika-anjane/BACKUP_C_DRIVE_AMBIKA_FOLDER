@@ -1,0 +1,83 @@
+with
+    f_utilized_all_b as (select * from {{ ref("stg_oracle__funds_utilized_all_b") }}),
+    f_all_b as (select * from {{ ref("stg_oracle__funds_all_b") }}),
+    wc_claims_q as (select * from {{ ref("stg_oracle__wc_claims") }}),
+    wc_trade_fund_fs as (select * from {{ ref("stg_oracle__trade_funds_fs") }}),
+    wc_fund_d as (select * from {{ ref("wc_fund_d") }}),
+    wc_user_d as (select * from {{ ref("w_user_d") }}),
+
+
+
+    renamed as (
+        select
+            /*
+            nvl(
+                wc_claims_q.cust_account_id || '~' || wc_claims_q._source_id, '0'
+            ) cust_account_id,
+            nvl(wc_claims_q.fund_id || '~' || wc_claims_q._source_id, '0') fund_id,
+            nvl(wc_claims_q.org_id || '~' || wc_claims_q._source_id, '0') org_id,*/
+            
+            wc_claims_q.integration_id::varchar(16777216) integration_id,
+            wc_claims_q.cust_account_id::varchar(16777216) customer_account_id,
+            wc_claims_q.cust_billto_acct_site_id::varchar(16777216) cust_billto_acct_site_id,
+            wc_claims_q.fund_id::varchar(16777216) fund_id,
+            wc_claims_q.org_id::varchar(16777216) org_id,
+            wc_claims_q.user_id::varchar(16777216) user_id,
+            wc_claims_q.claim_id::varchar(16777216) claim_id,
+            coalesce(to_char(
+                wc_fund_d.ledger_id),'')
+              || '~'
+            || to_char(wc_claims_q._source_id) ledger_id
+            --NVL(EDW_OMNI.HOT_GET_REP_KEY(wc_claims_q.cust_shipto_acct_site_id,'ALL','ALL', wc_claims_q.cust_account_id),'0') x_terr_id
+
+            --EDW_OMNI.HOT_GET_REP_KEY(wc_claims_q.cust_shipto_acct_site_id,'ALL','ALL',replace(wc_claims_q.cust_account_id,concat('~', wc_claims_q._source_id),''),null) x_terr_id,
+            
+        from wc_claims_q
+        left outer join wc_fund_d on wc_claims_q.fund_id = wc_fund_d.integration_id
+        left outer join wc_user_d on wc_claims_q.user_id = wc_user_d.integration_id
+        left outer join wc_trade_fund_fs on wc_claims_q.fund_id = wc_trade_fund_fs.fund_id
+       --  left outer join
+       -- f_utilized_all_b on wc_claims_q.fund_id = f_utilized_all_b.fund_id
+       -- left outer join f_all_b on wc_claims_q.fund_id = f_all_b.fund_id
+       
+)
+
+select * from renamed limit 10
+/* nvl(wc_trade_fund_fs.ship_to_site_use_id
+            || '~'
+            ||wc_trade_fund_fs._source_id,'0') x_terr_id,*/
+             /*
+           
+        nvl(wc_claims_q.claim_id || '~' || wc_claims_q._source_id, '0') claim_id,
+            nvl(
+                wc_trade_fund_fs.utilization_id || '~' || wc_trade_fund_fs._source_id,
+                '0'
+            ) utilization_id,
+            nvl(
+                wc_trade_fund_fs.product_id || '~' || wc_trade_fund_fs._source_id, '0'
+            ) product_id,
+            nvl(
+                wc_trade_fund_fs.price_adjustment_id
+                || '~'
+                || wc_trade_fund_fs._source_id,
+                '0'
+            ) price_adjustment_id,
+            nvl(
+                wc_trade_fund_fs.bill_to_site_use_id
+                || '~'
+                || wc_trade_fund_fs._source_id,
+                '0'
+            ) bill_to_site_use_id,
+            nvl(
+                wc_trade_fund_fs.order_line_id || '~' || wc_trade_fund_fs._source_id,
+                '0'
+            ) order_line_id,
+            nvl(
+                wc_trade_fund_fs.ship_to_site_use_id
+                || '~'
+                || wc_trade_fund_fs._source_id,
+                '0'
+            ) ship_to_site_use_id,
+            nvl(user_details.user_id || '~' || wc_claims_q._source_id, '0') user_id */
+
+

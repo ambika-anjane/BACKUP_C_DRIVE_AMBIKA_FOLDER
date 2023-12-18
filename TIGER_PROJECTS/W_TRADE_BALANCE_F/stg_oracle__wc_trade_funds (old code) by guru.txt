@@ -1,0 +1,50 @@
+with
+    ozf_funds_all_b as (
+        select * from {{ source("oracle_financials", "ozf_funds_all_b") }}
+    ),
+    ozf_funds_utilized_all_b as (
+        select * from {{ source("oracle_financials", "ozf_funds_utilized_all_b") }}
+    )
+    -- replace ref with source
+    -- recreate view with the name stg__trade_funds
+    -- ozf_fund_Details_v (stg_oracle__trade_funds_utilizations) replace 2 to 4 with ozf_fund_Details_v (with stg_oracle__trade_funds_utilizations view name)
+    -- stg__trade_funds join between 10 (view name) and ozf_fund_Details_v
+select
+    ozf_funds_utilized_all_b.utilization_id utilization_id,
+    ozf_funds_utilized_all_b.last_update_date changed_on_dt,
+    ozf_funds_utilized_all_b.last_updated_by changed_by_id,
+    ozf_funds_utilized_all_b.last_update_login last_update_login,
+    ozf_funds_utilized_all_b.adjustment_date adjusted_on_dt,
+    ozf_funds_utilized_all_b.created_by created_by_id,
+    ozf_funds_utilized_all_b.utilization_type utilization_type,
+    ozf_funds_utilized_all_b.fund_id fund_id,
+    ozf_funds_utilized_all_b.object_type object_type,
+    ozf_funds_utilized_all_b.amount accrual_doc_amt,
+    ozf_funds_utilized_all_b.acctd_amount accrual_loc_amt,
+    ozf_funds_utilized_all_b.currency_code doc_curr_code,
+    ozf_funds_utilized_all_b.exchange_rate_type exchange_rate_type,
+    ozf_funds_utilized_all_b.exchange_rate_date exchange_rate_date,
+    ozf_funds_utilized_all_b.exchange_rate loc_exchange_rate,
+    ozf_funds_utilized_all_b.adjustment_type adjustment_type,
+    ozf_funds_utilized_all_b.org_id org_id,
+    ozf_funds_utilized_all_b.product_id product_id,
+    ozf_funds_utilized_all_b.cust_account_id cust_account_id,
+    ozf_funds_utilized_all_b.gl_date gl_date,
+    ozf_funds_utilized_all_b.price_adjustment_id price_adjustment_id,
+    ozf_funds_utilized_all_b.gl_posted_flag gl_posted_flag,
+    ozf_funds_utilized_all_b.bill_to_site_use_id bill_to_site_use_id,
+    ozf_funds_utilized_all_b.order_line_id order_line_id,
+    ozf_funds_all_b.ledger_id ledger_id,
+    ozf_funds_utilized_all_b.ship_to_site_use_id ship_to_site_use_id,
+    ozf_funds_utilized_all_b._batch_update_date _batch_update_date,
+    ozf_funds_all_b._batch_update_date _batch_update_date1,
+    ozf_funds_utilized_all_b._source_id _source_id
+from ozf_funds_utilized_all_b, ozf_funds_all_b
+where
+    (1 = 1)
+    and (
+        ozf_funds_utilized_all_b.fund_id = ozf_funds_all_b.fund_id
+    )
+    and (nvl(ozf_funds_utilized_all_b.amount, 0) <> 0)
+
+

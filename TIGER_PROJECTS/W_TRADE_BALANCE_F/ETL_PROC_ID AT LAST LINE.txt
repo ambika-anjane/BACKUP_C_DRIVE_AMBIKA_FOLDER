@@ -1,0 +1,379 @@
+with
+    wc_trade_funds_f as (select * from {{ ref("stg_oracle__wc_trade_funds") }}),
+    wc_claims_f as (select * from {{ ref("stg_oracle__wc_claims") }}),
+    wc_fund_d as (select * from dev_edw.edw_omni.wc_fund_d),
+    wc_user_d as (select * from dev_edw.edw_omni.w_user_d),
+
+    wc_claims_sq as (
+        select *
+        from wc_claims_f
+        where
+            (1 = 1)
+            {% if is_incremental() %}
+            and (
+                (
+                    wc_claims_f._batch_update_date >= $batch_start_time
+                    and wc_claims_f._batch_update_date <= $batch_end_time
+                )
+                or (
+                    wc_claims_f._batch_update_date1 >= $batch_start_time
+                    and wc_claims_f._batch_update_date1 <= $batch_end_time
+                )
+                or (
+                    wc_claims_f._batch_update_date2 >= $batch_start_time
+                    and wc_claims_f._batch_update_date2 <= $batch_end_time
+                )
+                or (
+                    wc_claims_f._batch_update_date3 >= $batch_start_time
+                    and wc_claims_f._batch_update_date3 <= $batch_end_time
+                )
+                or (
+                    wc_claims_f._batch_update_date4 >= $batch_start_time
+                    and wc_claims_f._batch_update_date4 <= $batch_end_time
+                )
+                or (
+                    wc_claims_f._batch_update_date5 >= $batch_start_time
+                    and wc_claims_f._batch_update_date5 <= $batch_end_time
+                )
+                or (
+                    wc_claims_f._batch_update_date6 >= $batch_start_time
+                    and wc_claims_f._batch_update_date6 <= $batch_end_time
+                )
+            )
+            {% endif %}
+    ),
+
+    wc_trade_sq as (
+        select *
+        from wc_trade_funds_f
+        where
+            (1 = 1)
+            {% if is_incremental() %}
+            and (
+                wc_trade_funds_f._batch_update_date >= $batch_start_time
+                and wc_trade_funds_f._batch_update_date <= $batch_end_time
+            )
+
+            {% endif %}
+    ),
+
+final as(
+
+        select
+        
+            cust_account_id as cust_acct_id,
+            org_id,
+            ledger_id,
+            terr_id,
+            fund_id,
+            nvl(
+                lag(ending_accrual) over (
+                    partition by fund_id, cust_account_id, org_id, terr_id,ledger_id
+                    order by fund_id
+                ),
+                0
+            )
+            beginning_accrual,
+            accrual_amount,
+            adjustment_amount,
+            paid_amount,
+            nvl(ending_accrual, 0) ending_accrual,
+            unposted_accruals,
+            datasource_num_id,
+            integration_id,
+          --  {{ env_var("DBT_CLOUD_RUN_ID", 9999) }}::number(32)  etl_proc_id,
+            'N' Delete_flag
+
+        from
+
+            (
+                select
+                    cust_account_id,
+                    org_id,
+                    ledger_id,
+                    fund_id,
+                    terr_id,
+                    sum(nvl(accrual_amount, 0)) accrual_amount,
+                    sum(nvl(adjustment_amount, 0)) adjustment_amount,
+                    sum(nvl(paid_amount, 0)) paid_amount,
+                    sum(
+                        sum(nvl(accrual_amount, 0))
+                        + sum(nvl(adjustment_amount, 0))
+                        - sum(nvl(paid_amount, 0))
+                    
+                    ) over (
+                        partition by fund_id, cust_account_id, org_id, ledger_id, terr_id
+                        order by fund_id
+                    )
+                    ending_accrual,
+                    sum(unposted_accruals) unposted_accruals,
+                    datasource_num_id,
+                    integration_id,
+                 --  {{ env_var("DBT_CLOUD_RUN_ID", 9999) }}::number(32,0)  etl_proc_id,
+                    'N' Delete_flag
+                from
+
+                    (
+                        select
+                            fund_periods.fund_id,
+                            fund_periods.cust_account_id,
+                            fund_periods.org_id,
+                            fund_periods.ledger_id,
+                            fund_periods.terr_id,
+                            nvl(tm.accrual_amount, 0) accrual_amount,
+                            nvl(tm.adjustment_amount, 0) adjustment_amount,
+                            nvl(tm.unposted_accruals, 0) unposted_accruals,
+                            nvl(tm.paid_amount, 0) paid_amount,
+                            tm.datasource_num_id,
+                            tm.integration_id,
+                         --   tm.etl_proc_id,
+                            tm.Delete_flag
+                        from
+                            (
+                                select distinct
+                                    fun.fund_id fund_ids,
+                                    fun.cust_account_id cust_account_ids,
+                                    fun.org_id org_ids,
+                                    fun.ledger_id ledger_ids,
+                                    EDW_OMNI.HOT_GET_REP_KEY(fun.ship_to_site_use_id::VARCHAR,'ALL','ALL',
+                                    replace(fun.cust_account_id::VARCHAR,concat('~', fun._source_id),''),null) terr_ids,
+                                    nvl(fun.gl_date, fun.adjusted_on_dt) gl_date,
+                                    sum(
+                                        case
+                                            when
+                                                fun.utilization_type = 'ACCRUAL'
+                                                and fun.gl_posted_flag = 'Y'
+                                                and fun.gl_date is not null
+                                            then accrual_loc_amt
+                                        end
+                                    )
+                                    accrual_amount,
+                                    sum(
+                                        case
+                                            when
+                                                fun.utilization_type = 'ADJUSTMENT'
+                                                and fun.gl_posted_flag = 'Y'
+                                                and fun.gl_date is not null
+                                            then accrual_loc_amt
+                                        end
+                                    )
+                                    adjustment_amount,
+                                    sum(
+                                        case
+                                            when
+                                                fun.gl_posted_flag <> 'Y'
+                                                and fun.gl_date is null
+                                            then accrual_loc_amt
+                                        end
+                                    )
+                                    unposted_accruals,
+                                    0 paid_amount,
+                                    fun._source_id datasource_num_id,
+                                    
+                                    coalesce(to_char(fun.cust_account_id), '')
+                                    || '~'
+                                    ||coalesce(to_char(fun.fund_id), '')
+                                    || '~'
+                                    ||coalesce(to_char(fun.org_id), '')
+                                    || '~'
+                                    ||coalesce(to_char(fun.ledger_id), '')
+                                    || '~'
+                                    ||coalesce(to_char(terr_ids), '')
+                                    || '~'
+                                    || to_char(fun._source_id) integration_id ,
+                                --   {{ env_var("DBT_CLOUD_RUN_ID", 9999) }}::number(32) etl_proc_id,
+                                    'N' Delete_flag
+
+                                    
+                                from wc_trade_funds_f fun
+                                where fun.utilization_type in ('ACCRUAL', 'ADJUSTMENT')
+                                 and fun.gl_date  >= dateadd('year', -3, date_trunc('year', current_date()))
+                                
+                                group by
+                                    ledger_ids,
+                                    fund_ids,
+                                    cust_account_ids,
+                                    org_ids,
+                                 --   fun.ship_to_site_use_id::VARCHAR,
+                                    terr_ids,
+                                    nvl(fun.gl_date, fun.adjusted_on_dt),
+                                    _source_id
+                                    
+
+                                union all
+                                select distinct
+                                    cl.fund_id::varchar fund_id1,
+                                    cl.cust_account_id::varchar cust_account_id1,
+                                    cl.org_id::varchar org_id1,
+                                    wc_fund_d.ledger_id::varchar(16777216) ledger_id1,
+                                    EDW_OMNI.HOT_GET_REP_KEY(cl.cust_shipto_acct_site_id::VARCHAR,'ALL','ALL',
+                                                                     replace(cl.cust_account_id::VARCHAR,concat('~', cl._source_id),''),null) terr_id1,
+                                    cl.gl_date gl_date,
+                                    0 accrual_amt,
+                                    0 adjust_amt,
+                                    0 unposted_amt,
+                                    sum(cl.settled_doc_amt) paid_amount,
+                                    cl._source_id datasource_num_id,
+                                    coalesce(to_char(cl.cust_account_id), '')
+                                    || '~'
+                                    ||coalesce(to_char(cl.fund_id), '')
+                                    || '~'
+                                    ||coalesce(to_char(cl.org_id), '')
+                                    || '~'
+                                    ||coalesce(to_char(wc_fund_d.ledger_id), '')
+                                    || '~'
+                                    ||coalesce(to_char(terr_id1), '')
+                                    || '~'
+                                    || to_char(cl._source_id) integration_id,
+                                  --  {{ env_var("DBT_CLOUD_RUN_ID", 9999) }}::number(32)  etl_proc_id,
+                                    'N' Delete_flag
+                                from wc_claims_f cl
+                                left outer join
+                                    wc_fund_d on fund_id1 = wc_fund_d.fund_id
+                                where cl.payment_status = 'PAID'
+                                and cl.gl_date  >= dateadd('year', -3, date_trunc('year', current_date()))
+
+                                -- and fund_id = 490692
+                                -- terr_id,ledger_id
+                                group by
+                                    fund_id1,
+                                    cust_account_id1,
+                                    org_id1,
+                                    ledger_id1,
+                                    terr_id1,
+                                 --   cl.cust_shipto_acct_site_id::VARCHAR,
+                                    gl_date,
+                                    _source_id
+                                    
+                            ) tm
+                        left outer  join
+                            (
+                              
+                                select fund_id, cust_account_id, org_id, terr_id,ledger_id
+
+                                from
+                                    (
+                                        select distinct
+                                            fund_id,
+                                            cust_account_id,
+                                            org_id,
+                                            ledger_id,
+                                            terr_id,
+                                            a_gl_date,
+                                            min(a_gl_date)
+                                            min_date,
+                                            max(a_gl_date)
+                                            max_date
+                                        from
+                                            (
+                                                select
+                                                    a.fund_id fund_id,
+                                                    a.cust_account_id cust_account_id,
+                                                    a.org_id  org_id,
+                                                    a.ledger_id ledger_id,
+                                                    EDW_OMNI.HOT_GET_REP_KEY(a.ship_to_site_use_id::VARCHAR,'ALL','ALL',
+                                                    replace(a.cust_account_id::VARCHAR,concat('~', a._source_id),''),null) terr_id,
+                                                    a.gl_date a_gl_date,
+                                                    a._source_id datasource_num_id,
+                                                    coalesce(to_char(a.cust_account_id), '')
+                                                    || '~'
+                                                    ||coalesce(to_char(a.fund_id), '')
+                                                    || '~'
+                                                    ||coalesce(to_char(a.org_id), '')
+                                                    || '~'
+                                                    ||coalesce(to_char(a.ledger_id), '')
+                                                    || '~'
+                                                    ||coalesce(to_char(terr_id), '')
+                                                    || '~'
+                                                    || to_char(a._source_id) integration_id,
+                                                 --  {{ env_var("DBT_CLOUD_RUN_ID", 9999) }}::number(32)  etl_proc_id,
+                                                    'N' Delete_flag
+                                                 
+                                                from wc_trade_funds_f a
+                                                where
+                                                    a.utilization_type
+                                                    in ('ACCRUAL', 'ADJUSTMENT')
+                                                and    a_gl_date >= dateadd('year', -3, date_trunc('year', current_date()))
+
+                                                union all
+                                                select distinct
+                                                    k.fund_id::varchar fund_id2,
+                                                    k.cust_account_id::varchar  cust_account_id2,
+                                                    k.org_id::varchar org_id2,
+                                                    wc_fund_d.ledger_id::varchar ledger_id2,
+                                                    EDW_OMNI.HOT_GET_REP_KEY(k.cust_shipto_acct_site_id::VARCHAR,'ALL','ALL',
+                                                                             replace(k.cust_account_id::VARCHAR,concat('~', k._source_id),''),null) terr_id2,
+
+                                                    k.gl_date k_gl_date,
+                                                    k._source_id datasource_num_id,
+                                                     coalesce(to_char(k.cust_account_id), '')
+                                                     || '~'
+                                                     ||coalesce(to_char(k.fund_id), '')
+                                                     || '~'
+                                                     ||coalesce(to_char(k.org_id), '')
+                                                     || '~'
+                                                     ||coalesce(to_char(wc_fund_d.ledger_id), '')
+                                                     || '~'
+                                                     ||coalesce(to_char(terr_id2), '')
+                                                     || '~'
+                                                     || to_char(k._source_id) integration_id,
+                                               --    {{ env_var("DBT_CLOUD_RUN_ID", 9999) }}::number(32) etl_proc_id,
+                                                     'N' Delete_flag
+                                               
+                                                from wc_claims_f k
+                                                left outer join
+                                                    wc_fund_d
+                                                    on fund_id2
+                                                    = wc_fund_d.integration_id::varchar
+                                                where
+                                                    k.payment_status = 'PAID'
+                                                    and k.gl_date  >= dateadd('year', -3, date_trunc('year', current_date()))
+                                                    and fund_id2 > '0'
+                                              
+                                                group by
+                                                    fund_id2,
+                                                    cust_account_id2,
+                                                    org_id2,
+                                                    ledger_id2,
+                                              --      k.cust_shipto_acct_site_id::VARCHAR,
+                                                    terr_id2,
+                                                    k_gl_date,
+                                                    k._source_id
+
+                                                   
+
+                                            -- and a.fund_wid = 490692
+                                            ) h
+
+                                        group by
+                                            fund_id,
+                                            cust_account_id,
+                                            org_id,
+                                            ledger_id,
+                                            terr_id,
+                                            a_gl_date
+                                
+                                   
+                                    ) fund
+                            
+                                having
+                                   fund.a_gl_date <= trunc(current_date(), 'MM')
+                                    
+                                order by fund.a_gl_date
+
+                            ) fund_periods
+
+                            on  fund_periods.fund_id = tm.fund_ids
+                            and fund_periods.cust_account_id = tm.cust_account_ids
+                            and fund_periods.ledger_id = tm.ledger_ids
+                            and fund_periods.org_id = tm.org_ids
+                            and fund_periods.terr_id = tm.terr_ids
+                    ) b
+                -- where b.fund_id = 496226 and cust_account_id =
+                
+                group by cust_account_id, org_id, fund_id, ledger_id, terr_id,datasource_num_id,integration_id,Delete_flag
+
+            )
+        
+   )
+select *, $batch_start_time w_insert_dt, $batch_start_time w_update_dt, {{ env_var("DBT_CLOUD_RUN_ID", 9999) }}::number(32)  etl_proc_id from final

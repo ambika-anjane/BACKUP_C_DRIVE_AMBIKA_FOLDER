@@ -1,0 +1,17 @@
+version: 2
+-- need to create sources.yml for dve_omni referrring dimension tables
+sources:
+  - name: oracle_financials
+    database: |
+      {%- if target.name == "default" -%} dev_omni
+      {%- elif target.name == "dev" -%} dev_omni
+      {%- else -%} invalid_database
+      {%- endif -%}    
+    tables:
+      - name: w_customer_account_d
+      - name: wc_fund_d
+      - name: wc_user_d
+      - name: w_date_d
+      - name: w_day_d
+
+      

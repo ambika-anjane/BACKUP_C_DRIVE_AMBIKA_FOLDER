@@ -1,0 +1,446 @@
+select
+    -- ledger_id, x_terr_id) 
+    cust_account_id as cust_acct_id,
+    org_id,
+    -- ledger_id,
+    fund_id,
+    nvl(
+        lag(ending_accrual) over (
+            partition by fund_id, cust_account_id, org_id order by fund_id
+        ),
+        0
+    )
+    beginning_accrual,
+    accrual_amount,
+    adjustment_amount,
+    paid_amount,
+    nvl(ending_accrual, 0) ending_accrual,
+    unposted_accruals
+-- x_terr_id
+from
+
+    (
+        select
+            cust_account_id,
+            org_id,
+            -- ledger_id,
+            fund_id,
+            -- x_terr_id,
+            sum(nvl(accrual_amount, 0)) accrual_amount,
+            sum(nvl(adjustment_amount, 0)) adjustment_amount,
+            sum(nvl(paid_amount, 0)) paid_amount,
+            sum(
+                sum(nvl(accrual_amount, 0))
+                + sum(nvl(adjustment_amount, 0))
+                - sum(nvl(paid_amount, 0))
+            -- ledger_id, org_id, x_terr_id
+            ) over (partition by fund_id, cust_account_id, org_id order by fund_id)
+            ending_accrual,
+            sum(unposted_accruals) unposted_accruals
+        from
+
+            (
+                select
+                    fund_periods.fund_id,
+                    fund_periods.cust_account_id,
+                    fund_periods.org_id,
+                    -- fund_periods.ledger_id,
+                    -- fund_periods.x_terr_id,
+                    nvl(tm.accrual_amount, 0) accrual_amount,
+                    nvl(tm.adjustment_amount, 0) adjustment_amount,
+                    nvl(tm.unposted_accruals, 0) unposted_accruals,
+                    nvl(tm.paid_amount, 0) paid_amount
+                from
+                    (
+                        select
+                            fund_id fund_ids,
+                            cust_account_id cust_account_ids,
+                            org_id org_ids,
+                            -- ledger_id ledger_ids,
+                            -- x_terr_id x_terr_ids,
+                            nvl(fun.gl_date, fun.adjustment_date) gl_date,
+
+                            sum(
+                                case
+                                    when
+                                        utilization_type = 'ACCRUAL'
+                                        and gl_posted_flag = 'Y'
+                                        and gl_date is not null
+                                    then accrual_loc_amt
+                                end
+                            )
+                            accrual_amount,
+                            sum(
+                                case
+                                    when
+                                        utilization_type = 'ADJUSTMENT'
+                                        and gl_posted_flag = 'Y'
+                                        and gl_date is not null
+                                    then accrual_loc_amt
+                                end
+                            )
+                            adjustment_amount,
+                            sum(
+                                case
+                                    when gl_posted_flag <> 'Y' and gl_date is null
+                                    then accrual_loc_amt
+                                end
+                            )
+                            unposted_accruals,
+                            0 paid_amount
+                        from wc_trade_funds_f fun
+                        where utilization_type in ('ACCRUAL', 'ADJUSTMENT')
+                        group by
+                            -- ledger_id,
+                            fund_id,
+                            cust_account_id,
+                            org_id,
+                            -- x_terr_id,
+                            nvl(fun.gl_date, fun.adjustment_date)
+                        union all
+                        select
+                            fund_id,
+                            cust_account_id,
+                            org_id,
+                            -- ledger_id,
+                            -- x_terr_id,
+                            cl.gl_date gl_date,
+                            0 accrual_amt,
+                            0 adjust_amt,
+                            0 unposted_amt,
+                            sum(settled_doc_amt) paid_amount
+                        from wc_claims_f cl
+                        where payment_status = 'PAID'
+
+                        -- and fund_id = 490692
+                        -- ledger_id,
+                        -- x_terr_id,
+                        group by fund_id, cust_account_id, org_id, gl_date
+                    ) tm
+                left outer join
+                    (
+                        -- , x_terr_id, ledger_id
+                        select fund_id, cust_account_id, org_id
+
+                        from
+                            (
+                                select distinct
+                                    fund_id,
+                                    cust_account_id,
+                                    org_id,
+                                    -- ledger_id,
+                                    -- x_terr_id,
+                                    a_gl_date,
+                                    min(a_gl_date)
+                                    min_date,
+                                    max(a_gl_date)
+                                    max_date
+                                from
+                                    (
+                                        select
+                                            fund_id,
+                                            cust_account_id,
+                                            org_id,
+                                            -- to_char(ledger_id) ledger_id,
+                                            a.gl_date a_gl_date
+                                        -- x_terr_id
+                                        from wc_trade_funds_f a
+                                        where
+                                            utilization_type
+                                            in ('ACCRUAL', 'ADJUSTMENT')
+
+                                        -- and a.fund_wid = 490692
+                                        union all
+                                        select
+                                            fund_id,
+                                            cust_account_id,
+                                            org_id,
+                                            -- ledger_id,
+                                            k.gl_date k_gl_date
+                                        -- x_terr_id
+                                        from wc_claims_f k
+                                        -- and a.fund_wid = 490692
+                                        where payment_status = 'PAID' and fund_id > 0
+
+
+                                    ) h
+
+                                group by fund_id, cust_account_id, org_id, a_gl_date
+                            -- ledger_id
+                            -- x_terr_id
+                            ) fund
+                        -- having
+                        --
+                        having
+                            fund.a_gl_date <= trunc(current_date(), 'MM')
+                            and fund.a_gl_date
+                            between trunc(min_date, 'MM') and trunc(max_date, 'MM')
+                        order by fund.a_gl_date
+
+
+                    ) fund_periods
+
+
+                    on fund_periods.fund_id = tm.fund_ids
+                    and fund_periods.cust_account_id = tm.cust_account_ids
+                    -- and fund_periods.ledger_id = tm.ledger_ids
+                    and fund_periods.org_id = tm.org_ids
+            -- and fund_periods.x_terr_id = tm.x_terr_ids
+            ) b
+        -- where b.fund_id = 496226 and cust_account_id = 664467
+        group by cust_account_id, org_id, fund_id
+
+
+    )
+
+
+
+
+-- code not working
+
+final as (
+    select
+                                           k.fund_id::varchar(16777216)  fund_id,
+                            
+                                          --  wc_fund_d.ledger_id,
+                                            k.gl_date k_gl_date
+                                        -- x_terr_id
+                                        from wc_claims_f k 
+                                      --left outer join wc_fund_d
+                                      --   on fund_id = wc_fund_d.integration_id
+                                        -- and a.fund_wid = 490692
+                                        where k.payment_status = 'PAID' and fund_id > 0
+)
+select * from final limit 2
+                   
+                
+                       
+   -- code with source_id
+
+
+with
+    wc_trade_funds_f as  (select * from {{ ref("stg_oracle__trade_funds_fs") }}),
+    wc_claims_f as (select * from {{ ref("stg_oracle__wc_claims") }}),
+    wc_fund_d as (select * from {{ ref("wc_fund_d") }}),
+    wc_user_d as (select * from {{ ref("w_user_d") }}),
+
+
+final as (
+select
+    -- ledger_id, x_terr_id) 
+    cust_account_id as cust_acct_id,
+    org_id,
+   -- ledger_id,
+   -- x_terr_id
+    fund_id,
+    nvl(
+        lag(ending_accrual) over (
+            partition by fund_id, cust_account_id, org_id order by fund_id
+        ),
+        0
+    )
+    beginning_accrual,
+    accrual_amount,
+    adjustment_amount,
+    paid_amount,
+    nvl(ending_accrual, 0) ending_accrual,
+    unposted_accruals
+
+from
+
+    (
+        select
+            cust_account_id,
+            org_id,
+         --   ledger_id,
+            fund_id,
+            -- x_terr_id,
+            sum(nvl(accrual_amount, 0)) accrual_amount,
+            sum(nvl(adjustment_amount, 0)) adjustment_amount,
+            sum(nvl(paid_amount, 0)) paid_amount,
+            sum(
+                sum(nvl(accrual_amount, 0))
+                + sum(nvl(adjustment_amount, 0))
+                - sum(nvl(paid_amount, 0))
+            --  x_terr_id,ledger_id
+            ) over (partition by fund_id, cust_account_id, org_id order by fund_id)
+            ending_accrual,
+            sum(unposted_accruals) unposted_accruals
+        from
+
+            (
+                select
+                    fund_periods.fund_id,
+                    fund_periods.cust_account_id,
+                    fund_periods.org_id,
+                  --  fund_periods.ledger_id,
+                    -- fund_periods.x_terr_id,
+                    nvl(tm.accrual_amount, 0) accrual_amount,
+                    nvl(tm.adjustment_amount, 0) adjustment_amount,
+                    nvl(tm.unposted_accruals, 0) unposted_accruals,
+                    nvl(tm.paid_amount, 0) paid_amount
+                from
+                    (
+                        select
+                            fun.fund_id::varchar(16777216)  fund_ids,
+                            fun.cust_account_id::varchar(16777216) cust_account_ids,
+                            fun.org_id::varchar(16777216) org_ids,
+                         --   ledger_id ledger_ids,
+                            -- x_terr_id x_terr_ids,
+                            nvl(fun.gl_date, fun.adjustment_date) gl_date,
+
+                            sum(
+                                case
+                                    when
+                                        fun.utilization_type = 'ACCRUAL'
+                                        and fun.gl_posted_flag = 'Y'
+                                        and fun.gl_date is not null
+                                    then accrual_loc_amt
+                                end
+                            )
+                            accrual_amount,
+                            sum(
+                                case
+                                    when
+                                        fun.utilization_type = 'ADJUSTMENT'
+                                        and fun.gl_posted_flag = 'Y'
+                                        and fun.gl_date is not null
+                                    then accrual_loc_amt
+                                end
+                            )
+                            adjustment_amount,
+                            sum(
+                                case
+                                    when fun.gl_posted_flag <> 'Y' and fun.gl_date is null
+                                    then accrual_loc_amt
+                                end
+                            )
+                            unposted_accruals,
+                            0 paid_amount
+                        from wc_trade_funds_f fun
+                        where utilization_type in ('ACCRUAL', 'ADJUSTMENT')
+                        group by
+                           --  ledger_id,
+                            fund_ids,
+                            cust_account_ids,
+                            org_ids,
+                            -- x_terr_id,
+                            nvl(fun.gl_date, fun.adjustment_date)
+
+         
+                        union all
+                        select
+                            cl.fund_id::varchar(16777216)  fund_idd,
+                            cl.cust_account_id::varchar(16777216) cust_account_idd,
+                            cl.org_id::varchar(16777216) org_idd,
+                         --   wc_fund_d.ledger_id,
+                            -- x_terr_id,
+                            cl.gl_date gl_date,
+                            0 accrual_amt,
+                            0 adjust_amt,
+                            0 unposted_amt,
+                            sum(cl.settled_doc_amt) paid_amount
+                        from wc_claims_f cl
+                      --  left outer join wc_fund_d
+                       -- on fund_id = wc_fund_d.integration_id
+                        where  cl.payment_status = 'PAID'
+
+                        -- and fund_id = 490692
+                         
+                        -- x_terr_id,ledger_id
+                        group by fund_idd, cust_account_idd, org_idd, gl_date
+                    ) tm
+                left outer join
+                    (
+                        -- , x_terr_id, ledger_id
+                        select fund_id, cust_account_id, org_id
+
+                        from
+                            (
+                                select distinct
+                                    fund_ids2,
+                                    cust_account_ids2,
+                                    org_ids2,
+                                  --  ledger_id,
+                                    -- x_terr_id,
+                                    a_gl_date,
+                                    min(a_gl_date)
+                                    min_date,
+                                    max(a_gl_date)
+                                    max_date
+                                from
+                                    (
+                                        select
+                                           a.fund_id::varchar(16777216)  fund_ids2,
+                            a.cust_account_id::varchar(16777216) cust_account_ids2,
+                            a.org_id::varchar(16777216) org_ids2,
+                                    --        ledger_id,
+                                            a.gl_date a_gl_date
+                                        -- x_terr_id
+                                        from wc_trade_funds_f a
+                                        where
+                                            a.utilization_type
+                                            in ('ACCRUAL', 'ADJUSTMENT')
+
+                                        -- and a.fund_wid = 490692
+                                        union all
+                                        select
+                                             k.fund_id::varchar(16777216)  fund_idd2,
+                            k.cust_account_id::varchar(16777216) cust_account_idd2,
+                            k.org_id::varchar(16777216) org_idd2,
+                                          --  wc_fund_d.ledger_id,
+                                            k.gl_date k_gl_date
+                                        -- x_terr_id
+                                        from wc_claims_f k 
+                                      --left outer join wc_fund_d
+                                      --   on fund_id = wc_fund_d.integration_id
+                                        -- and a.fund_wid = 490692
+                                        where k.payment_status = 'PAID' and fund_id > 0
+
+
+                                    ) h
+
+                                group by fund_ids2, cust_account_ids2, org_ids2, a_gl_date
+                            -- x_terr_id,ledger_id
+                            ) fund
+                        -- having
+                        --
+                        having
+                            fund.a_gl_date <= trunc(current_date(), 'MM')
+                            and fund.a_gl_date
+                            between trunc(min_date, 'MM') and trunc(max_date, 'MM')
+                        order by fund.a_gl_date
+
+
+                    ) fund_periods
+
+
+                    on fund_periods.fund_id = tm.fund_ids
+                    and fund_periods.cust_account_id = tm.cust_account_ids
+               --     and fund_periods.ledger_id = tm.ledger_ids
+                    and fund_periods.org_id = tm.org_ids
+            -- and fund_periods.x_terr_id = tm.x_terr_ids
+            ) b
+        -- where b.fund_id = 496226 and cust_account_id = 664467,ledger_id,x_terr_id
+        group by cust_account_id, org_id, fund_id
+
+
+    )
+)
+SELECT COUNT(*) from final
+                         
+
+
+efl logistics international 
+                                    
+
+
+                            
+                             
+
+                            
+
+
+                
+  
+                   
