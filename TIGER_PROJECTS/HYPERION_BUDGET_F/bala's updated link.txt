@@ -1,0 +1,13 @@
+{% macro my_macro() %}
+ {%- if is_incremental() -%}
+refresh_tracker_start({{ ref("stg_oracle__hyperion_financial_forecast") }}
+where _batch_update_date >= $batch_start_time and _batch_update_date <= $batch_end_time),
+update_hyperion_financial_forecast()
+{% endif %}
+{%- endmacro -%}
+
+
+
+https://github.com/data-and-analytics/Genesis/commit/4a65b695ab22135e928cfdf98d40fa01c6e99a2d#diff-2cc56f86c6a8aece660b105ea4d5df244ab5ad7f198d34d39b12e816577807db
+
+

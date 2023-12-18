@@ -1,0 +1,5 @@
+inputs for hyperion budget f
+
+1. update and merge statementts
+2. 2 different levels (corporate and segment) 
+3. 

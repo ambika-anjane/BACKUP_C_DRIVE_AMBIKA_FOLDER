@@ -1,0 +1,280 @@
+{# {{
+
+    config(pre_hook= update_hyperion_financial_forecast())
+}} #}
+
+{% set HyperionColumns = 'BU_CODE,LE,CH_CODE,LC_CODE,DEPT,BR_CODE,PL_CODE,CUSTOMER,SKU,INVORG,ACCOUNT,MAR,APR,MAY,JUN,JUL,AUG,SEP,OCT,NOV,DEC,JAN,FEB'%}
+
+ {% set pre_hook_trigger = "{{loadStagedData(this.database, 'ORACLE_FINANCIALS.HYPERION_FINANCIAL_FORECAST', 'ORACLE_FINANCIALS.azure_stage/Hyperion/', 'ORACLE_FINANCIALS.NEW_FILE_FORMAT', '"~ HyperionColumns ~"', 'HYPERION_FINANCIAL_FORECAST', 500 )}}" %}
+{{
+    config({"pre_hook": [pre_hook_trigger]})
+}}
+{% set all_scenario_types = ["BUDGET", "3PLUS9", "6PLUS6", "9PLUS3"] %}
+
+
+{% set sql_statement %}
+    select distinct trim(scenario) scenario, 1 X from {{ ref("stg_oracle__hyperion_financial_forecast") }}
+{% endset %}
+
+
+--{%- if execute -%} 
+{%- set load_scenario_types = dbt_utils.get_query_results_as_dict(sql_statement) -%}
+{{ log("Load scenarios types "~load_scenario_types,True)}}
+--{% endif %}
+
+
+with
+    period_load as (
+        select *
+        from {{ ref("stg_oracle__hyperion_financial_forecast") }} period_load
+        where
+            (1 = 1)
+            -- and not exists(select 'x' from {{ ref("w_hyperion_budget_e") }})
+            {% if is_incremental() %}
+                and (
+                    (
+                        period_load._batch_update_date >= $batch_start_time
+                        and period_load._batch_update_date <= $batch_end_time
+                    )
+
+                )
+            {% endif %}
+    ),
+    ecal as (
+        select distinct
+            month_name, month, ent_period, ent_period_start_date, ent_period_end_date,ent_year
+        from {{ ref("w_day_d") }}
+      --  where current_ent_year_code = 'Current'
+    ),
+    w_customer_account_d as (select * from {{ ref("w_customer_account_d") }}),
+    cg_count as (
+        select customer_group, max(integration_id) integration_id
+        from w_customer_account_d
+        where customer_group is not null and active_flag = 'Y'
+        group by customer_group
+    ),
+    w_gl_segment_d as (select * from {{ ref("w_gl_segment_d") }}),
+    w_int_org_d as (select * from {{ ref("w_int_org_d") }}),
+    w_inventory_product_d as (
+        select * from {{ ref("w_inventory_product_d") }} where dbt_valid_to is null
+    )
+select
+    period_load.currency,
+    ecal.ent_period_end_date,
+    ecal.month_name,
+    ecal.ent_period_start_date,
+    ecal.ent_period,
+    period_load.customer,
+    {%- for scenarioType in all_scenario_types -%}
+        {%- set prefix = "" -%}
+        {%- if (scenarioType[:1] | int > 0) -%}
+            {%- set prefix = "FORECAST_" -%}
+        {%- endif -%}
+        {% set ns = namespace(populateScenario="") %}
+        {%- for loadScenario in load_scenario_types["SCENARIO"] | unique -%}
+            {%- if scenarioType | trim | lower == loadScenario | trim | lower -%}
+                {%- set ns.populateScenario = scenarioType -%}
+            {%- endif -%}
+        {%- endfor -%}
+        {% if ns.populateScenario | trim | lower == scenarioType | trim | lower %}
+            sum(
+                case when scenario = '{{scenarioType}}' then trim(period_load.sales_units) end
+            )::number(20, 10) as {{ prefix }}{{ scenarioType }}_units,
+            -- move the exception to stage
+            sum(
+                case
+                    when scenario = '{{scenarioType}}' then trim(period_load.sales_amount)
+
+                end
+            )::number(20, 10) as {{ prefix }}{{ scenarioType }}_amount,
+
+        {% elif not(is_incremental()) %}
+            null::number(20, 10) as {{ prefix }}{{ scenarioType }}_units,
+            null::number(20, 10) as {{ prefix }}{{ scenarioType }}_amount,
+        {% else %}
+            (
+                f.{{ prefix }}{{ scenarioType }}_units
+            ) as {{ prefix }}{{ scenarioType }}_units,
+            (
+                f.{{ prefix }}{{ scenarioType }}_amount
+            ) as {{ prefix }}{{ scenarioType }}_amount,
+        {%- endif -%}
+    {% endfor %}
+    period_load.customer
+    || '~'
+    || period_load.gl_location_code
+    || '~'
+    || period_load.gl_sales_channel_code
+    || '~'
+    || period_load.gl_brand_code
+    || '~'
+    || period_load.gl_product_line_code
+    || '~'
+    || period_load.gl_business_unit_code
+    || '~'
+    || period_load.gl_company_code
+    || '~'
+    || period_load.gl_department_code
+    || '~'
+    || period_load.gl_account_code
+    || '~'
+    || period_load.sku
+    || '~'
+    || period_load.sku_org_id
+    || '~'
+    || period_load.organization_id
+    || '~'
+    || period_load.forecast_level
+    || '~'
+    || ecal.ent_period_end_date
+    || '~'
+    || period_load._source_id integration_id,
+    period_load.gl_account_code,
+    period_load.forecast_level,
+    period_load.year,
+    nvl(na.integration_id, '0') gl_account_segment_id,
+    nvl(br.integration_id, '0') gl_brand_segment_id,
+    nvl(pl.integration_id, '0') gl_product_line_segment_id,
+    nvl(bu.integration_id, '0') gl_business_unit_segment_id,
+    nvl(loc.integration_id, '0') gl_location_segment_id,
+    coalesce(c.integration_id, cg_count.integration_id, '0') customer_account_id,
+    nvl(ch.integration_id, '0') gl_channel_segment_id,
+    nvl(le.integration_id, '0') gl_company_segment_id,
+    nvl(dp.integration_id, '0') gl_dept_segment_id,
+    nvl(og.integration_id, '0') inventory_org_id,
+    nvl(i.integration_id, '0') inventory_product_id,
+    'N' delete_flag,
+    $batch_start_time w_insert_dt,
+    $batch_start_time w_update_dt
+from period_load
+inner join ecal on upper(ecal.month) = upper(period_load.month)
+and ecal.ent_year = period_load.year
+left join
+    cg_count
+    on period_load.customer_level = 'customer group'
+    and cg_count.customer_group = period_load.customer
+left join
+    w_customer_account_d c
+    on period_load.customer_level = 'customer'
+    and c.customer_account_number = period_load.customer
+left join
+    w_gl_segment_d na
+    on na.segment_value_code = period_load.gl_account_code
+    and na.segment_name = 'Account'
+left join
+    w_gl_segment_d br
+    on br.segment_value_code = period_load.gl_brand_code
+    and br.segment_name = 'Brand'
+left join
+    w_gl_segment_d pl
+    on pl.segment_value_code = gl_product_line_code
+    and pl.segment_name = 'Product Line'
+left join
+    w_gl_segment_d bu
+    on bu.segment_value_code = period_load.gl_business_unit_code
+    and bu.segment_name = 'Business Unit'
+left join
+    w_gl_segment_d loc
+    on loc.segment_value_code = period_load.gl_location_code
+    and loc.segment_name = 'Location'
+left join
+    w_gl_segment_d ch
+    on ch.segment_value_code = period_load.gl_sales_channel_code
+    and ch.segment_name = 'Channel'
+left join
+    w_gl_segment_d le
+    on le.segment_value_code = period_load.gl_company_code
+    and le.segment_name in ('Company')
+left join
+    w_gl_segment_d dp
+    on dp.segment_value_code = period_load.gl_department_code
+    and dp.segment_name = 'Department'
+left join
+    w_int_org_d og on og.integration_id = period_load.organization_id || '~' || '100'
+left join
+    w_inventory_product_d i on i.integration_id = period_load.sku_org_id || '~' || '100'
+
+{% if is_incremental() %}
+    left outer join
+        {{ this }} f
+        on (
+            period_load.customer
+            || '~'
+            || period_load.gl_location_code
+            || '~'
+            || period_load.gl_sales_channel_code
+            || '~'
+            || period_load.gl_brand_code
+            || '~'
+            || period_load.gl_product_line_code
+            || '~'
+            || period_load.gl_business_unit_code
+            || '~'
+            || period_load.gl_company_code
+            || '~'
+            || period_load.gl_department_code
+            || '~'
+            || period_load.gl_account_code
+            || '~'
+            || period_load.sku
+            || '~'
+            || period_load.sku_org_id
+            || '~'
+            || period_load.organization_id
+            || '~'
+            || ecal.ent_period_end_date
+            || '~'
+            || period_load._source_id
+        )
+        = f.integration_id 
+{% endif %}
+group by
+    period_load.currency,
+    ecal.ent_period_end_date,
+    ecal.month_name,
+    ecal.ent_period_start_date,
+    ecal.ent_period,
+    period_load.customer,
+    period_load.customer
+    || '~'
+    || period_load.gl_location_code
+    || '~'
+    || period_load.gl_sales_channel_code
+    || '~'
+    || period_load.gl_brand_code
+    || '~'
+    || period_load.gl_product_line_code
+    || '~'
+    || period_load.gl_business_unit_code
+    || '~'
+    || period_load.gl_company_code
+    || '~'
+    || period_load.gl_department_code
+    || '~'
+    || period_load.gl_account_code
+    || '~'
+    || period_load.sku
+    || '~'
+    || period_load.sku_org_id
+    || '~'
+    || period_load.organization_id
+    || '~'
+    || period_load.forecast_level
+    || '~'
+    || ecal.ent_period_end_date
+    || '~'
+    || period_load._source_id,
+    period_load.gl_account_code,
+    period_load.forecast_level,
+    period_load.year,
+    nvl(na.integration_id, '0'),
+    nvl(br.integration_id, '0'),
+    nvl(pl.integration_id, '0'),
+    nvl(bu.integration_id, '0'),
+    nvl(loc.integration_id, '0'),
+    coalesce(c.integration_id, cg_count.integration_id, '0'),
+    nvl(ch.integration_id, '0'),
+    nvl(le.integration_id, '0'),
+    nvl(dp.integration_id, '0'),
+    nvl(og.integration_id, '0'),
+    nvl(i.integration_id, '0')

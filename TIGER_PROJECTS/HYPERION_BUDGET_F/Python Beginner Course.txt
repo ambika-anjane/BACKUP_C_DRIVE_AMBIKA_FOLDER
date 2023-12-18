@@ -1,0 +1,37 @@
+Python Beginner Course:
+Python HOME DONE
+Python Intro DONE
+Python Get Started DONE
+Python Syntax DONE
+Python Comments DONE
+Python Variables DONE
+Python Data Types DONE
+Python Numbers DONE
+Python Casting DONE
+Python Strings DONE
+Python Booleans
+Python Operators
+Python Lists
+Python Tuples
+Python Sets
+Python Dictionaries
+Python If...Else
+Python While Loops
+Python For Loops
+Python Functions
+Python Lambda
+Python Arrays
+Python Classes/Objects
+Python Inheritance
+Python Iterators
+Python Polymorphism
+Python Scope
+Python Modules
+Python Dates
+Python Math
+Python JSON
+Python RegEx
+Python PIP
+Python Try...Except
+Python User Input
+Python String Formatting

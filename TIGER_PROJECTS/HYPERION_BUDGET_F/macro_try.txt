@@ -1,0 +1,34 @@
+{% if is_incremental() %}
+WITH new_event_aggregates AS (
+SELECT
+    scenario,
+    forecast_level,
+    (SELECT MAX(_batch_update_date) FROM  {{ref('stg_oracle__hyperion_financial_forecast')}}) AS date_loaded_checkpoint
+FROM
+   {{ref('stg_oracle__hyperion_financial_forecast')}}
+GROUP BY 1, 2, 3
+
+),
+
+current_aggregates_to_update AS (
+        SELECT
+           * 
+        FROM
+           {{ref('stg_oracle__hyperion_financial_forecast')}}
+            INNER JOIN new_event_aggregates USING(scenario,forecast_level)
+             
+    )
+
+    {% else %}
+    WITH event_aggregates AS (
+        SELECT
+           scenario,
+          forecast_level
+        
+        FROM
+             {{ref('stg_oracle__hyperion_financial_forecast')}} 
+        GROUP BY 1, 2
+    )
+{% endif %}
+ 
+select * from current_aggregates_to_update

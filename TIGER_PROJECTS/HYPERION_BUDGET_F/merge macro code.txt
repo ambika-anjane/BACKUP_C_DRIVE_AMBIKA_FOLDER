@@ -1,0 +1,77 @@
+merge macro code
+
+MERGE INTO hyperiod_details USING (
+    SELECT
+       scenario,
+       forecast_level,
+       budget_units,
+       buegdt_amount
+       
+
+    FROM stg_oracle__hyperion_financial_forecast as prev_stage
+
+    ON hyperion_details.scenario= prev_stage.scenario
+    and hyperion_details.forecast_level = prev_stage.forecast_level
+
+    WHEN MATCHED THEN UPDATE
+
+    SET hyperiod_details.scenario = prev_stage.scenario
+    and hyperiod_details.forecast_level= prev_stage.forecast_level
+    and hyperiod_details.budget_units = prev_stage.budget_units
+    and hyperiod_details.budget_amount = prev_stage.budget_amount
+
+    WHEN NOT MATCHED THEN INSERT (scenario, forecast_level, sales_units,sales_amount)
+    VALUES (prev_stage.scenario, prev_stage.forecast_level, prev_stage.budget_units,prev_stage.sales_amount)
+);
+
+
+{% macro update_hyperion_financial_forecast() %}
+    {%- if is_incremental() -%}
+        {% set sql_statement %}
+            select distinct trim(scenario) scenario, 1 X,forecast_level from {{ ref("stg_oracle__hyperion_financial_forecast") }}
+            {{ log("scenario "~scenario,True)}}
+        {% endset %}
+
+        {%- set load_scenario_types = dbt_utils.get_query_results_as_dict(sql_statement) -%}
+        {% set ns = namespace(updateColumnsSql="") %}
+        {%- for loadScenario in load_scenario_types['forecast_level'] | unique -%}
+            {%- set prefix = "" -%}
+            {%- if (loadScenario[:1]|int > 0)  -%}
+                {%- set prefix = "FORECAST_" -%}
+            {%- endif -%}
+             WHEN MATCHED THEN UPDATE
+            {%- set ns.updateColumnsSql = ns.updateColumnsSql ~ 
+              sum(
+                case when scenario = '{{scenarioType}}' then trim(period_load.sales_units) end
+            )::number(20, 10) as {{ prefix }}{{ scenarioType }}_units,
+            {% if not loop.last %}
+                {%- set ns.updateColumnsSql = ns.updateColumnsSql ~ " " ~ prefix ~ loadScenario ~ "_units = null, " -%} 
+                 {%- set ns.updateColumnsSql = ns.updateColumnsSql ~ " " ~ prefix ~ loadScenario ~ "_amount = null, " -%} 
+            {%- else -%}
+                {%- set ns.updateColumnsSql = ns.updateColumnsSql ~ " " ~ prefix ~ loadScenario ~ "_amount = null " -%} 
+            {% endif %}
+        {%- endfor -%}
+
+/*
+ WHEN MATCHED THEN UPDATE
+
+    SET hyperiod_details.scenario = prev_stage.scenario
+    and hyperiod_details.forecast_level= prev_stage.forecast_level
+    and hyperiod_details.budget_units = prev_stage.budget_units
+    and hyperiod_details.budget_amount = prev_stage.budget_amount */
+
+
+
+        {%- set filterSql -%}
+            UPPER(left(month_name,3)) in (select UPPER(month)
+                                            from {{ref('stg_oracle__hyperion_financial_forecast')}}
+                                            where _batch_update_date >= $batch_start_time and _batch_update_date <= $batch_end_time
+                                        )
+        {%- endset -%}
+        {%- set updateSql -%}
+        update {{this}} set {{ns.updateColumnsSql}}
+        where {{filterSql}}
+        {%- endset -%}
+        {% do run_query(updateSql) %}
+    {% endif %}
+{% endmacro %}

@@ -1,0 +1,149 @@
+{% macro default__get_merge_sql(target, source, unique_key, dest_columns, predicates) -%}
+    {%- set predicates = [] if predicates is none else [] + predicates -%}
+    {%- set dest_cols_csv = get_quoted_csv(dest_columns | map(attribute="name")) -%}
+    {%- set update_columns = config.get('merge_update_columns', default = dest_columns | map(attribute="quoted") | list) -%}
+    {%- set sql_header = config.get('sql_header', none) -%}
+    {% if unique_key %}
+        {% if unique_key is sequence and unique_key is not mapping and unique_key is not string %}
+            {% for key in unique_key %}
+                {% set this_key_match %}
+                    DBT_INTERNAL_SOURCE.{{ key }} = DBT_INTERNAL_DEST.{{ key }}
+                {% endset %}
+                {% do predicates.append(this_key_match) %}
+            {% endfor %}
+        {% else %}
+            {% set unique_key_match %}
+                DBT_INTERNAL_SOURCE.{{ unique_key }} = DBT_INTERNAL_DEST.{{ unique_key }}
+            {% endset %}
+            {% do predicates.append(unique_key_match) %}
+        {% endif %}
+    {% else %}
+        {% do predicates.append('FALSE') %}
+    {% endif %}
+
+    {{ sql_header if sql_header is not none }}
+
+    merge into {{ target }} as DBT_INTERNAL_DEST
+        using {{ source }} as DBT_INTERNAL_SOURCE
+        on {{ predicates | join(' and ') }}
+
+    {% if unique_key %}
+    when matched {{ add_merge_date_condition() }} then update set
+        {% for column_name in update_columns -%}
+            {{ column_name }} = DBT_INTERNAL_SOURCE.{{ column_name }}
+            {%- if not loop.last %}, {%- endif %}
+        {%- endfor %}
+    {% endif %}
+
+    when not matched then insert
+        ({{ dest_cols_csv }})
+    values
+        ({{ dest_cols_csv }})
+
+{% endmacro %}
+
+
+
+
+-- our_code
+
+{% macro add_merge_date_condition() %} 
+{% set date_col = config.get('_batch_update_date', none) %} {% if date_col %} 
+and {{ref('stg_oracle__hyperion_financial_forecast')}}.{{date_col}} >=  >= $batch_start_time and {{ref('stg_oracle__hyperion_financial_forecast')}}.{{date_col}} <= $batch_end_time{% endif %} {% endmacro %}
+
+
+{%- set filterSql -%}
+            UPPER(left(month_name,3)) in (select UPPER(month)
+                                            from {{ref('stg_oracle__hyperion_financial_forecast')}}
+                                            where _batch_update_date >= $batch_start_time and _batch_update_date <= $batch_end_time
+                                        )
+        {%- endset -%}
+
+         {% if unique_key %}
+    when matched {{ add_merge_date_condition() }} then update set
+        {% for column_name in update_columns -%}
+            {{ column_name }} = DBT_INTERNAL_SOURCE.{{ column_name }}
+            {%- if not loop.last %}, {%- endif %}
+        {%- endfor %}
+    {% endif %}
+
+    
+{% macro update_hyperion_financial_forecast() %}
+    {%- if is_incremental() -%}
+        {% set sql_statement %}
+            when matched {{ add_merge_date_condition() }} then 
+            select distinct trim(scenario) scenario,forecast_level 1 X from {{ ref("stg_oracle__hyperion_financial_forecast") }}
+        {% endset %}
+
+        {%- set load_scenario_types = dbt_utils.get_query_results_as_dict(sql_statement) -%}
+        {% set ns = namespace(updateColumnsSql="") %}
+        {%- for loadScenario in load_scenario_types['SCENARIO'] | unique -%}
+            {%- set prefix = "" -%}
+            {%- if (loadScenario[:1]|int > 0)  -%}
+                {%- set prefix = "FORECAST_" -%}
+            {%- endif -%}
+            {%- set ns.updateColumnsSql = ns.updateColumnsSql ~ " " ~ prefix ~ loadScenario ~ "_units = null, " -%}
+            {% if not loop.last %}
+                {%- set ns.updateColumnsSql = ns.updateColumnsSql ~ " " ~ prefix ~ loadScenario ~ "_amount = null, " -%} 
+            {%- else -%}
+                {%- set ns.updateColumnsSql = ns.updateColumnsSql ~ " " ~ prefix ~ loadScenario ~ "_amount = null " -%} 
+            {% endif %}
+        {%- endfor -%}
+
+
+
+--- trial one
+
+{% if is_incremental() %}
+    WITH new_event_aggregates AS (
+        SELECT
+            scenario,
+            forecast_level,
+            _batch_update_date
+            COUNT(*) AS item_count,
+        FROM
+            {{ ref('stg_oracle__hyperion_financial_forecast') }}
+        WHERE
+           _batch_update_date > ( SELECT MAX(date_loaded_checkpoint) FROM {{ this }} )
+        GROUP BY 1, 2, 3, 4
+    ),
+    current_aggregates_to_update AS (
+        SELECT
+            {{ this }}.*
+        FROM
+            {{ this }}
+            INNER JOIN new_event_aggregates USING(unique_key)
+    ),
+    event_aggregates AS (
+        SELECT
+            new_data.unique_key AS unique_key,
+            new_data.a AS a,
+            new_data.b AS b,
+            new_data.item_count + IFNULL(current_data.item_count, 0) AS item_count,
+            new_data.date_loaded AS date_loaded
+        FROM
+            new_event_aggregates AS new_data
+            LEFT JOIN current_aggregates_to_update AS current_data USING(unique_key)
+    )
+{% else %}
+    WITH event_aggregates AS (
+        SELECT
+            unique_key,
+            a,
+            b,
+            date_loaded,
+            COUNT(*) AS item_count,
+        FROM
+            {{ ref('events') }}
+        GROUP BY 1, 2, 3, 4
+    )
+{% endif %}
+SELECT
+    unique_key,
+    a,
+    b,
+    SUM(item_count) as item_count,
+    (SELECT MAX(date_loaded) FROM event_aggregates) AS date_loaded_checkpoint
+FROM
+    event_aggregates
+GROUP BY 1, 2, 3

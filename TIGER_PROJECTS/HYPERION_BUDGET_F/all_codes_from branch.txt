@@ -1,0 +1,992 @@
+azure stage code
+{#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ Macro to load Staged data into ODS for HOT.
+ Usage :  
+         
+ Paremeters Required: 
+    targetDb : The target database of the Final Target Model (mostly in EDW).
+    targetRelation : The target table where the data is getting loaded in the ODS layer.
+    stage_name: The azure stage name and folder from where the files are loaded
+    file_format: File Format (full path) used for loading the data.
+    srcColumns: List of columns (passed as comma separated string) in the same order as file for loading.
+    src: Name of the source data for logging
+    _source_id: Source ID Number
+To Trigger this directly use the following command:
+  dbt run-operation loadStagedData --args 
+    '{"targetDb": "DEV_ODS",
+      "targetRelation": "POS.OTIF_SCORECARD",
+      "stage_name":"ORACLE_FINANCIALS.azure_stage/Otif_scorecard/",
+      "file_format":"POS.OTIF_CSV_FORMAT",
+      "srcColumns": "six_digit_supplier,.."
+      "src": "OTIF Scorecard",
+      "_source_id": "600"
+    }'
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#}
+{% macro loadStagedData(targetDb, targetRelation, stage_name, file_format, srcColumns, src, _source_id) %}
+    {% if targetDb != "" and execute %}
+        {%- set dbName = targetDb.split('_') -%}
+        {%- set target_env = '' -%}
+        {%- if dbName|length > 1 -%}
+            {%- set dbName = dbName[0]~'_ods' -%}
+        {%- else -%}
+            {%- set dbName = 'ods' -%}
+        {%- endif -%}
+        {% set srcColumns = srcColumns.split(',') %}
+        {% set copy_into_sql %}
+        COPY INTO {{dbName}}.{{targetRelation}} FROM (
+            SELECT 
+                {% for column in srcColumns %}
+                ${{loop.index}} as {{column|trim}}, {% endfor %}
+                split_part(metadata$filename,'/',-1) as csv_file_name,
+                metadata$file_row_number as row_num,
+                current_timestamp() _BATCH_INSERT_DATE,
+                current_timestamp() _BATCH_UPDATE_DATE,
+                {{_source_id}} _SOURCE_ID
+            from @{{dbName}}.{{stage_name}}  (file_format => '{{dbName}}.{{file_format}}')
+        ) ON_ERROR = CONTINUE;
+
+        {% endset %}
+        {% set results = run_query(copy_into_sql) %}
+        {% if execute %}
+        {% do log(" -- " ~ src ~ " Data loaded into ODS ", info=True) %}
+        {% endif %}
+    {% endif %}
+{% endmacro %}
+
+
+-- etl_utils code
+
+{#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ Macro to insert a default row or null row or dummy row.
+ Usage : in dimension models, dimension table need a default row. this helps to have
+         inner join with fact tables and not miss any later arriving dimension values
+ Paremeters Required: None (this will use the same relation information from config
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#}
+
+{% macro insert_default_row() %}
+  {% if execute and not is_incremental() %}
+    {%- set config = model['config'] -%}
+    {%- set target_table = model.get('alias', model.get('name')) -%}
+    {%- set unique_key = config.get('unique_key') %}
+    {%- set target_relation = this.incorporate(type='table') -%}
+    {% if target_table.endswith('_d') %}
+        {# --------- get column names and data types to create insert statement ----- #}
+        {% set source_columns = adapter.get_columns_in_relation(target_relation) %}
+        {# ---------  create row to be inserted into table  ---------------- #}
+        {% set insert_values_clause %}
+        insert into {{target_relation}} ({% for column in source_columns %} {{column.name}} {% if not loop.last %},{% endif %}{% endfor %}  )
+            select * from (values(
+            {% for column in source_columns -%}
+                {% if column.name|lower == unique_key %}
+                    {% if target_relation.name|lower == 'w_day_d' %}
+                        '1970-01-01'::date
+                    {% else %}
+                        '0'
+                    {% endif %}
+                {% elif column.name|lower == 'current_flag' %}
+                    'Y'
+                {% elif column.is_string() and column.char_size > 11  %}
+                    'Unspecified'
+                {% else %}
+                    NULL
+                {% endif %}
+                {%- if not loop.last %}, {%- endif %}
+            {%- endfor %}
+            )
+            )
+        {% endset %}
+        {% do run_query(insert_values_clause) %}
+        {#% do log(insert_values_clause) %#}
+    {% endif %}
+  {% endif %}
+{% endmacro %}
+
+{#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ Macro to delete data from table before inserting for the same filter condition.
+ Usage : In the HOT snapshot models, we need to delete existing rows for the same date
+         before inserting into the model.
+ Paremeters Required: 
+    Filter condition: This will be the condition used for deleting existing records
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#}
+
+{% macro delete_snapshot_records(filter) %}
+
+  {% if execute and is_incremental() %}
+    {%- set config = model['config'] -%}
+    {%- set source_relation = this.incorporate(type='table') -%}
+
+	{%- set source_relation = adapter.get_relation(database=this.database, schema=this.schema, identifier=this.identifier) -%}
+	{% set table_exists=source_relation is not none %}
+
+	{% if table_exists %}
+        {{ log("Going to delete snapshot data for " ~ filter ~ " from " ~ this, info=True) }}
+        {% set delete_snapshot_sql %}
+            delete from {{this}} where {{filter}}
+        {% endset %}
+        {% do run_query(delete_snapshot_sql) %}
+	{% else %}
+        {{ log("Table does not exist", info=True) }}
+	{% endif %}
+  {% endif %}
+{% endmacro %}
+
+{#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ Macro to raise exception when query returns none 0 output.
+ Usage : In the error tables, we need to raise an exception if error tables are popuated.
+          This should be called as post_hooks
+ Paremeters Required: 
+    Filter condition: This will be the condition used for selecting records
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#}
+
+{% macro raise_exception_when_nonzero(filter) %}
+
+    {% if execute %}
+        {{ log("Going to run check for " ~ filter ~ " from " ~ this, info=True) }}
+          {% set check_row_count_sql %}
+              select count(*) as ROW_COUNT from {{this}} where {{filter}}
+          {% endset %}
+          {%- set result = dbt_utils.get_single_value(check_row_count_sql) -%}
+          {%- if result|int(-1) != 0 -%}
+            {{ log("Raising exception for result " ~ result, info=True) }}
+            {{ exceptions.raise_compiler_error("Errors found after load of Table: " ~ this  ) }}
+          {%- endif -%}
+    {% endif %}
+{% endmacro %}
+
+
+{#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ Macro to return the database name depending on the target environment.
+ Usage : At various places in the HOT project we need to determine the database name 
+         and schema name for staging and load models. This common macro will get the
+         value across the project.
+ Paremeters Required: 
+    target environment : This will be the target environment name (dev / test / prod)
+    target zone        : This will be the terget zone (Source / Staging / Load)
+ Returns :
+    database_name
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#}
+
+{% macro get_target_dbname(target_env, zone) %}
+    
+    {%- set target_db = '' -%}
+    {%- set dbName = '' -%}
+    {%- if zone == 'source' -%}
+        {% set dbName = 'ods' %}
+    {%- elif zone == 'stage' -%}
+        {% set dbName = 'discover' %}
+    {%- elif zone == 'load' -%}
+        {% set dbName = 'edw' %}
+    {%- else -%}
+        {% set dbName = 'invalid_zone' %}
+    {%- endif -%}
+
+    {%- if target_env == "default" -%} {%- set target_db = 'dev_'~dbName -%}
+        {%- elif target_env == "dev" or target_env == "test" -%} {%- set target_db = target_env~'_'~dbName -%}
+        {%- elif target_env == "prod" -%} {%- set target_db = dbName -%}
+        {%- else -%} {%- set target_db = 'invalid_database' -%}
+    {%- endif -%}
+
+    {{return (target_db)}}
+    
+{%- endmacro -%}
+
+
+
+{% macro update_hyperion_financial_forecast() %}
+
+    {% set HyperionColumns = 'BU_CODE,LE,CH_CODE,LC_CODE,DEPT,BR_CODE,PL_CODE,CUSTOMER,SKU,INVORG,ACCOUNT,MAR,APR,MAY,JUN,JUL,AUG,SEP,OCT,NOV,DEC,JAN,FEB'%}
+    {{loadStagedData(this.database, 'ORACLE_FINANCIALS.HYPERION_FINANCIAL_FORECAST', 'ORACLE_FINANCIALS.azure_stage/Hyperion/', 'ORACLE_FINANCIALS.NEW_FILE_FORMAT', HyperionColumns, 'HYPERION_FINANCIAL_FORECAST', 500 )}}
+
+    {{refresh_tracker_start(this.table_name)}}
+
+    {%- if is_incremental() -%}
+        {% set sql_statement %}
+            select distinct trim(scenario) scenario, 1 X from {{ ref("stg_oracle__hyperion_financial_forecast") }}
+            where _batch_update_date >= $batch_start_time 
+            --and _batch_update_date <= $batch_end_time
+        {% endset %}
+
+        {%- set load_scenario_types = dbt_utils.get_query_results_as_dict(sql_statement) -%}
+        {% set ns = namespace(updateColumnsSql="") %}
+        {%- for loadScenario in load_scenario_types['SCENARIO'] | unique -%}
+            {%- set prefix = "" -%}
+            {%- if (loadScenario[:1]|int > 0)  -%}
+                {%- set prefix = "FORECAST_" -%}
+            {%- endif -%}
+            {%- set ns.updateColumnsSql = ns.updateColumnsSql ~ " " ~ prefix ~ loadScenario ~ "_units = null, " -%}
+            {% if not loop.last %}
+                {%- set ns.updateColumnsSql = ns.updateColumnsSql ~ " " ~ prefix ~ loadScenario ~ "_amount = null, " -%} 
+            {%- else -%}
+                {%- set ns.updateColumnsSql = ns.updateColumnsSql ~ " " ~ prefix ~ loadScenario ~ "_amount = null " -%} 
+            {% endif %}
+        {%- endfor -%}
+
+        {%- set filterSql -%}
+            (UPPER(left(month_name,3)), FORECAST_LEVEL) in (select distinct UPPER(month), FORECAST_LEVEL
+                                            from {{ref('stg_oracle__hyperion_financial_forecast')}}
+                                           where _batch_update_date >= $batch_start_time 
+                                           --and _batch_update_date <= $batch_end_time
+                                        )
+        {%- endset -%}
+        {%- set updateSql -%}
+        update {{this}} set {{ns.updateColumnsSql}}
+        where {{filterSql}}
+        {%- endset -%}
+        {% if ns.updateColumnsSql|trim != '' and execute %}
+        {% do run_query(updateSql) %}
+        {% endif %}
+    {% endif %}
+{% endmacro %}
+
+
+-- etl_utils
+
+{#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ Macro to insert a default row or null row or dummy row.
+ Usage : in dimension models, dimension table need a default row. this helps to have
+         inner join with fact tables and not miss any later arriving dimension values
+ Paremeters Required: None (this will use the same relation information from config
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#}
+
+{% macro insert_default_row() %}
+  {% if execute and not is_incremental() %}
+    {%- set config = model['config'] -%}
+    {%- set target_table = model.get('alias', model.get('name')) -%}
+    {%- set unique_key = config.get('unique_key') %}
+    {%- set target_relation = this.incorporate(type='table') -%}
+    {% if target_table.endswith('_d') %}
+        {# --------- get column names and data types to create insert statement ----- #}
+        {% set source_columns = adapter.get_columns_in_relation(target_relation) %}
+        {# ---------  create row to be inserted into table  ---------------- #}
+        {% set insert_values_clause %}
+        insert into {{target_relation}} ({% for column in source_columns %} {{column.name}} {% if not loop.last %},{% endif %}{% endfor %}  )
+            select * from (values(
+            {% for column in source_columns -%}
+                {% if column.name|lower == unique_key %}
+                    {% if target_relation.name|lower == 'w_day_d' %}
+                        '1970-01-01'::date
+                    {% else %}
+                        '0'
+                    {% endif %}
+                {% elif column.name|lower == 'current_flag' %}
+                    'Y'
+                {% elif column.is_string() and column.char_size > 11  %}
+                    'Unspecified'
+                {% else %}
+                    NULL
+                {% endif %}
+                {%- if not loop.last %}, {%- endif %}
+            {%- endfor %}
+            )
+            )
+        {% endset %}
+        {% do run_query(insert_values_clause) %}
+        {#% do log(insert_values_clause) %#}
+    {% endif %}
+  {% endif %}
+{% endmacro %}
+
+{#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ Macro to delete data from table before inserting for the same filter condition.
+ Usage : In the HOT snapshot models, we need to delete existing rows for the same date
+         before inserting into the model.
+ Paremeters Required: 
+    Filter condition: This will be the condition used for deleting existing records
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#}
+
+{% macro delete_snapshot_records(filter) %}
+
+  {% if execute and is_incremental() %}
+    {%- set config = model['config'] -%}
+    {%- set source_relation = this.incorporate(type='table') -%}
+
+	{%- set source_relation = adapter.get_relation(database=this.database, schema=this.schema, identifier=this.identifier) -%}
+	{% set table_exists=source_relation is not none %}
+
+	{% if table_exists %}
+        {{ log("Going to delete snapshot data for " ~ filter ~ " from " ~ this, info=True) }}
+        {% set delete_snapshot_sql %}
+            delete from {{this}} where {{filter}}
+        {% endset %}
+        {% do run_query(delete_snapshot_sql) %}
+	{% else %}
+        {{ log("Table does not exist", info=True) }}
+	{% endif %}
+  {% endif %}
+{% endmacro %}
+
+{#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ Macro to raise exception when query returns none 0 output.
+ Usage : In the error tables, we need to raise an exception if error tables are popuated.
+          This should be called as post_hooks
+ Paremeters Required: 
+    Filter condition: This will be the condition used for selecting records
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#}
+
+{% macro raise_exception_when_nonzero(filter) %}
+
+    {% if execute %}
+        {{ log("Going to run check for " ~ filter ~ " from " ~ this, info=True) }}
+          {% set check_row_count_sql %}
+              select count(*) as ROW_COUNT from {{this}} where {{filter}}
+          {% endset %}
+          {%- set result = dbt_utils.get_single_value(check_row_count_sql) -%}
+          {%- if result|int(-1) != 0 -%}
+            {{ log("Raising exception for result " ~ result, info=True) }}
+            {{ exceptions.raise_compiler_error("Errors found after load of Table: " ~ this  ) }}
+          {%- endif -%}
+    {% endif %}
+{% endmacro %}
+
+
+{#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ Macro to return the database name depending on the target environment.
+ Usage : At various places in the HOT project we need to determine the database name 
+         and schema name for staging and load models. This common macro will get the
+         value across the project.
+ Paremeters Required: 
+    target environment : This will be the target environment name (dev / test / prod)
+    target zone        : This will be the terget zone (Source / Staging / Load)
+ Returns :
+    database_name
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#}
+
+{% macro get_target_dbname(target_env, zone) %}
+    
+    {%- set target_db = '' -%}
+    {%- set dbName = '' -%}
+    {%- if zone == 'source' -%}
+        {% set dbName = 'ods' %}
+    {%- elif zone == 'stage' -%}
+        {% set dbName = 'discover' %}
+    {%- elif zone == 'load' -%}
+        {% set dbName = 'edw' %}
+    {%- else -%}
+        {% set dbName = 'invalid_zone' %}
+    {%- endif -%}
+
+    {%- if target_env == "default" -%} {%- set target_db = 'dev_'~dbName -%}
+        {%- elif target_env == "dev" or target_env == "test" -%} {%- set target_db = target_env~'_'~dbName -%}
+        {%- elif target_env == "prod" -%} {%- set target_db = dbName -%}
+        {%- else -%} {%- set target_db = 'invalid_database' -%}
+    {%- endif -%}
+
+    {{return (target_db)}}
+    
+{%- endmacro -%}
+
+
+
+{% macro update_hyperion_financial_forecast() %}
+
+    {% set HyperionColumns = 'BU_CODE,LE,CH_CODE,LC_CODE,DEPT,BR_CODE,PL_CODE,CUSTOMER,SKU,INVORG,ACCOUNT,MAR,APR,MAY,JUN,JUL,AUG,SEP,OCT,NOV,DEC,JAN,FEB'%}
+    {{loadStagedData(this.database, 'ORACLE_FINANCIALS.HYPERION_FINANCIAL_FORECAST', 'ORACLE_FINANCIALS.azure_stage/Hyperion/', 'ORACLE_FINANCIALS.NEW_FILE_FORMAT', HyperionColumns, 'HYPERION_FINANCIAL_FORECAST', 500 )}}
+
+    {{refresh_tracker_start(this.table_name)}}
+
+    {%- if is_incremental() -%}
+        {% set sql_statement %}
+            select distinct trim(scenario) scenario, 1 X from {{ ref("stg_oracle__hyperion_financial_forecast") }}
+            where _batch_update_date >= $batch_start_time 
+            --and _batch_update_date <= $batch_end_time
+        {% endset %}
+
+        {%- set load_scenario_types = dbt_utils.get_query_results_as_dict(sql_statement) -%}
+        {% set ns = namespace(updateColumnsSql="") %}
+        {%- for loadScenario in load_scenario_types['SCENARIO'] | unique -%}
+            {%- set prefix = "" -%}
+            {%- if (loadScenario[:1]|int > 0)  -%}
+                {%- set prefix = "FORECAST_" -%}
+            {%- endif -%}
+            {%- set ns.updateColumnsSql = ns.updateColumnsSql ~ " " ~ prefix ~ loadScenario ~ "_units = null, " -%}
+            {% if not loop.last %}
+                {%- set ns.updateColumnsSql = ns.updateColumnsSql ~ " " ~ prefix ~ loadScenario ~ "_amount = null, " -%} 
+            {%- else -%}
+                {%- set ns.updateColumnsSql = ns.updateColumnsSql ~ " " ~ prefix ~ loadScenario ~ "_amount = null " -%} 
+            {% endif %}
+        {%- endfor -%}
+
+        {%- set filterSql -%}
+            (UPPER(left(month_name,3)), FORECAST_LEVEL) in (select distinct UPPER(month), FORECAST_LEVEL
+                                            from {{ref('stg_oracle__hyperion_financial_forecast')}}
+                                           where _batch_update_date >= $batch_start_time 
+                                           --and _batch_update_date <= $batch_end_time
+                                        )
+        {%- endset -%}
+        {%- set updateSql -%}
+        update {{this}} set {{ns.updateColumnsSql}}
+        where {{filterSql}}
+        {%- endset -%}
+        {% if ns.updateColumnsSql|trim != '' and execute %}
+        {% do run_query(updateSql) %}
+        {% endif %}
+    {% endif %}
+{% endmacro %}
+
+hyperion budget f
+
+{{ config({"pre_hook": [update_hyperion_financial_forecast()]}) }}
+
+
+{% set all_scenario_types = ["BUDGET", "3PLUS9", "6PLUS6", "9PLUS3"] %}
+
+
+with
+    period_load as (
+        select *
+        from {{ ref("stg_oracle__hyperion_financial_forecast") }} period_load
+        where
+            (1 = 1)
+            -- and not exists(select 'x' from {{ ref("w_hyperion_budget_e") }})
+            {% if is_incremental() %}
+                and (
+                    (
+                        period_load._batch_update_date >= $batch_start_time
+                        --and period_load._batch_update_date <= $batch_end_time
+                    )
+                )
+            {% endif %}
+    ),
+    ecal as (
+        select distinct
+            month_name,
+            month,
+            ent_period,
+            ent_period_start_date,
+            ent_period_end_date,
+            ent_year
+        from {{ ref("w_day_d") }}
+    -- where current_ent_year_code = 'Current'
+    ),
+    w_customer_account_d as (select * from {{ ref("w_customer_account_d") }}),
+    cg_count as (
+        select customer_group, max(integration_id) integration_id
+        from w_customer_account_d
+        where customer_group is not null and active_flag = 'Y'
+        group by customer_group
+    ),
+    w_gl_segment_d as (select * from {{ ref("w_gl_segment_d") }}),
+    w_int_org_d as (select * from {{ ref("w_int_org_d") }}),
+    w_inventory_product_d as (
+        select * from {{ ref("w_inventory_product_d") }} where dbt_valid_to is null
+    ),
+    final as (
+        select
+            period_load.currency,
+            ecal.ent_period_end_date,
+            ecal.month_name,
+            ecal.ent_period_start_date,
+            ecal.ent_period,
+            period_load.customer,
+            {%- for scenarioType in all_scenario_types -%}
+                {%- set prefix = "" -%}
+                {%- if (scenarioType[:1] | int > 0) -%}
+                    {%- set prefix = "FORECAST_" -%}
+                {%- endif -%}
+                sum(
+                    case
+                        when scenario = '{{scenarioType}}'
+                        then trim(period_load.sales_units)
+                    end
+                )::number(20, 10) as {{ prefix }}{{ scenarioType }}_units,
+                sum(
+                    case
+                        when scenario = '{{scenarioType}}'
+                        then trim(period_load.sales_amount)
+                    end
+                )::number(20, 10) as {{ prefix }}{{ scenarioType }}_amount,
+            {% endfor %}
+            period_load.customer
+            || '~'
+            || period_load.gl_location_code
+            || '~'
+            || period_load.gl_sales_channel_code
+            || '~'
+            || period_load.gl_brand_code
+            || '~'
+            || period_load.gl_product_line_code
+            || '~'
+            || period_load.gl_business_unit_code
+            || '~'
+            || period_load.gl_company_code
+            || '~'
+            || period_load.gl_department_code
+            || '~'
+            || period_load.gl_account_code
+            || '~'
+            || period_load.sku
+            || '~'
+            || period_load.sku_org_id
+            || '~'
+            || period_load.organization_id
+            || '~'
+            || period_load.forecast_level
+            || '~'
+            || ecal.ent_period_end_date
+            || '~'
+            || period_load._source_id integration_id,
+            period_load.gl_account_code,
+            period_load.forecast_level,
+            period_load.year,
+            nvl(na.integration_id, '0') gl_account_segment_id,
+            nvl(br.integration_id, '0') gl_brand_segment_id,
+            nvl(pl.integration_id, '0') gl_product_line_segment_id,
+            nvl(bu.integration_id, '0') gl_business_unit_segment_id,
+            nvl(loc.integration_id, '0') gl_location_segment_id,
+            coalesce(
+                c.integration_id, cg_count.integration_id, '0'
+            ) customer_account_id,
+            nvl(ch.integration_id, '0') gl_channel_segment_id,
+            nvl(le.integration_id, '0') gl_company_segment_id,
+            nvl(dp.integration_id, '0') gl_dept_segment_id,
+            nvl(og.integration_id, '0') inventory_org_id,
+            nvl(i.integration_id, '0') inventory_product_id,
+            array_agg(distinct scenario) loaded_scenarios
+        from period_load
+        inner join
+            ecal
+            on upper(ecal.month) = upper(period_load.month)
+            and ecal.ent_year = period_load.year
+        left join
+            cg_count
+            on period_load.customer_level = 'customer group'
+            and cg_count.customer_group = period_load.customer
+        left join
+            w_customer_account_d c
+            on period_load.customer_level = 'customer'
+            and c.customer_account_number = period_load.customer
+        left join
+            w_gl_segment_d na
+            on na.segment_value_code = period_load.gl_account_code
+            and na.segment_name = 'Account'
+        left join
+            w_gl_segment_d br
+            on br.segment_value_code = period_load.gl_brand_code
+            and br.segment_name = 'Brand'
+        left join
+            w_gl_segment_d pl
+            on pl.segment_value_code = gl_product_line_code
+            and pl.segment_name = 'Product Line'
+        left join
+            w_gl_segment_d bu
+            on bu.segment_value_code = period_load.gl_business_unit_code
+            and bu.segment_name = 'Business Unit'
+        left join
+            w_gl_segment_d loc
+            on loc.segment_value_code = period_load.gl_location_code
+            and loc.segment_name = 'Location'
+        left join
+            w_gl_segment_d ch
+            on ch.segment_value_code = period_load.gl_sales_channel_code
+            and ch.segment_name = 'Channel'
+        left join
+            w_gl_segment_d le
+            on le.segment_value_code = period_load.gl_company_code
+            and le.segment_name in ('Company')
+        left join
+            w_gl_segment_d dp
+            on dp.segment_value_code = period_load.gl_department_code
+            and dp.segment_name = 'Department'
+        left join
+            w_int_org_d og
+            on og.integration_id = period_load.organization_id || '~' || '100'
+        left join
+            w_inventory_product_d i
+            on i.integration_id = period_load.sku_org_id || '~' || '100'
+        group by
+            period_load.currency,
+            ecal.ent_period_end_date,
+            ecal.month_name,
+            ecal.ent_period_start_date,
+            ecal.ent_period,
+            period_load.customer,
+            period_load.customer
+            || '~'
+            || period_load.gl_location_code
+            || '~'
+            || period_load.gl_sales_channel_code
+            || '~'
+            || period_load.gl_brand_code
+            || '~'
+            || period_load.gl_product_line_code
+            || '~'
+            || period_load.gl_business_unit_code
+            || '~'
+            || period_load.gl_company_code
+            || '~'
+            || period_load.gl_department_code
+            || '~'
+            || period_load.gl_account_code
+            || '~'
+            || period_load.sku
+            || '~'
+            || period_load.sku_org_id
+            || '~'
+            || period_load.organization_id
+            || '~'
+            || period_load.forecast_level
+            || '~'
+            || ecal.ent_period_end_date
+            || '~'
+            || period_load._source_id,
+            period_load.gl_account_code,
+            period_load.forecast_level,
+            period_load.year,
+            nvl(na.integration_id, '0'),
+            nvl(br.integration_id, '0'),
+            nvl(pl.integration_id, '0'),
+            nvl(bu.integration_id, '0'),
+            nvl(loc.integration_id, '0'),
+            coalesce(c.integration_id, cg_count.integration_id, '0'),
+            nvl(ch.integration_id, '0'),
+            nvl(le.integration_id, '0'),
+            nvl(dp.integration_id, '0'),
+            nvl(og.integration_id, '0'),
+            nvl(i.integration_id, '0')
+    )
+select
+    l.currency,
+    l.ent_period_end_date,
+    l.month_name,
+    l.ent_period_start_date,
+    l.ent_period,
+    l.customer,
+    {% for scenarioType in all_scenario_types %}
+        {%- set prefix = "" -%}
+        {%- if (scenarioType[:1] | int > 0) -%}
+            {%- set prefix = "FORECAST_" -%}
+        {%- endif -%}
+        case
+            when array_contains('{{scenarioType}}'::variant, loaded_scenarios)
+            then l.{{ prefix }}{{ scenarioType }}_units
+            else
+                {% if is_incremental() %} f.{{ prefix }}{{ scenarioType }}_units
+                {%- else -%} l.{{ prefix }}{{ scenarioType }}_units
+                {% endif %}
+        end as {{ prefix }}{{ scenarioType }}_units,
+        case
+            when array_contains('{{scenarioType}}'::variant, loaded_scenarios)
+            then l.{{ prefix }}{{ scenarioType }}_amount
+            else
+                {% if is_incremental() %} f.{{ prefix }}{{ scenarioType }}_amount
+                {%- else -%} l.{{ prefix }}{{ scenarioType }}_amount
+                {% endif %}
+        end as {{ prefix }}{{ scenarioType }}_amount,
+    {% endfor %}
+    l.integration_id,
+    l.gl_account_code,
+    l.forecast_level,
+    l.year,
+    l.gl_account_segment_id,
+    l.gl_brand_segment_id,
+    l.gl_product_line_segment_id,
+    l.gl_business_unit_segment_id,
+    l.gl_location_segment_id,
+    l.customer_account_id,
+    l.gl_channel_segment_id,
+    l.gl_company_segment_id,
+    l.gl_dept_segment_id,
+    l.inventory_org_id,
+    l.inventory_product_id,
+    'N' delete_flag,
+    $batch_start_time w_insert_dt,
+    $batch_start_time w_update_dt
+from final as l
+{% if is_incremental() %}
+    left outer join {{ this }} f on f.integration_id = l.integration_id
+{% endif %}
+
+
+hyperion_budget_e
+-- keep it in the load folder
+-- to add incremental logic here
+-- in config make it as table and transient = true (at yaml file)
+-- posthookk here to raise an exception to raise the job fail
+
+
+{{
+
+    config(post_hook= raise_exception_when_nonzero(' 1 = 1 ') )
+
+}}
+
+{% set sql_statement %}
+select count(*) from {{ this }} where count(*) > 0
+{% endset %}
+
+with
+    period_load as (select * from {{ ref("stg_oracle__hyperion_financial_forecast") }}  period_load
+    where (1=1)
+        {% if is_incremental() %}
+          and
+                (
+                    (
+                        period_load._batch_update_date >= $batch_start_time
+                        and period_load._batch_update_date <= $batch_end_time
+                    )
+                    or (
+                        period_load._batch_update_date >= $batch_start_time
+                        and period_load._batch_update_date <= $batch_end_time
+                    )
+                )
+        {% endif %} ),
+    
+    
+    cust_account as (
+        select
+            customer_account_number,
+            integration_id
+            from {{ ref("w_customer_account_d") }}
+        where customer_account_number is not null
+    ),
+
+-- another cte for customer_group 
+
+  cg_count as (
+        select
+            customer_group,
+            max(integration_id) integration_id
+        from w_customer_account_d
+        where customer_group is not null
+        and active_flag = 'Y' 
+        group by customer_group
+    ),
+    invent_product as (
+        select item_number, integration_id, inventory_item_id
+        from {{ ref("w_inventory_product_d") }}
+        where item_number is not null
+    )
+
+
+select distinct
+    nvl(period_load.gl_business_unit_code, '0')::varchar as gl_business_unit_code,
+    nvl(period_load.gl_company_code, '0')::varchar as gl_company_code,
+    nvl(period_load.gl_sales_channel_code, '0')::varchar as gl_sales_channel_code,
+    nvl(period_load.gl_location_code, '0')::varchar as gl_location_code,
+    nvl(period_load.organization_id, '0')::varchar as organization_id,
+    nvl(period_load.gl_account_code, '0')::varchar as gl_account_code,
+    nvl(period_load.customer, '0')::varchar as customer,
+    nvl(period_load.gl_brand_code, '0')::varchar as gl_brand_code,
+    nvl(period_load.gl_product_line_code, '0')::varchar as gl_product_line_code,
+    nvl(period_load.sku, '0')::varchar as sku,
+    nvl(period_load.sku_org_id, '0')::varchar as sku_org_id,
+    nvl(period_load.gl_department_code, '0')::varchar as gl_department_code,
+    {{ env_var("DBT_CLOUD_RUN_ID", 9999) }}::number(32) as etl_proc_wid,
+    trim(
+        case when invent_product.integration_id is null  then 'Product Missing, ' else '' end
+
+        || case
+            when cust_account.integration_id  and cg_count.integration_id is null  then 'Customer and Customer Group   Missing, ' else ''
+        end
+    )::varchar as error_message
+from period_load
+left outer join  cust_account
+    on period_load.customer_level = 'customer'
+    and period_load.customer = cust_account.customer_account_number
+
+left join cg_count  
+    on period_load.customer_level = 'customer group' 
+    and period_load.customer = cg_count.customer_group 
+   
+left outer join
+    invent_product
+    on invent_product.integration_id = period_load.sku_org_id || '~' || '100'
+    where (invent_product.integration_id is null or cust_account.integration_id is null or cg_count.integration_id is null)
+
+
+
+----   options
+
+ case when p.scenario = 'BUDGET' AND p.forecast_level  ='CORPORATE'then  s = 'BUDGET' 
+               case when p.scenario = 'BUDGET' AND p.forecast_level  ='SEGMENT'then  p.scenario = 'BUDGET' else  p.scenario = '3PLUS9' END  AND
+               case when p.scenario = '3PLUS9' AND p.forecast_level  = 'CORPORATE' then  p.scenario = '3PLUS9' else  p.scenario = '6PLUS6' END AND 
+               case when p.scenario = '3PLUS9' AND p.forecast_level  = 'SEGMENT' then  p.scenario = '3PLUS9' else  p.scenario = '6PLUS6' END AND 
+               case when p.scenario = '6PLUS6' AND p.forecast_level  = 'CORPORATE' then  p.scenario = '6PLUS6' else  p.scenario = '9PLUS3' END AND 
+               case when p.scenario = '6PLUS6' AND p.forecast_level  = 'SEGMENT' then  p.scenario = '6PLUS6' else  p.scenario = '9PLUS3' END AND 
+               case when p.scenario = '9PLUS3' AND p.forecast_level  = 'CORPORATE' then  p.scenario = '9PLUS3' else  p.scenario = 'BUDGET' END AND 
+               case when p.scenario = '9PLUS3' AND p.forecast_level  = 'SEGMENT' then  p.scenario = '9PLUS3' else  p.scenario = 'BUDGET' END 
+
+  {%- for s in p.scenario -%}
+               case when s = 'BUDGET' AND p.forecast_level  ='CORPORATE' then  s = 'BUDGET' 
+               case when s = 'BUDGET' AND p.forecast_level  ='SEGMENT'then  s = 'BUDGET'
+               case when s = '3PLUS9' AND p.forecast_level  ='CORPORATE' then  s = '3PLUS9' 
+               case when s = '3PLUS9' AND p.forecast_level  ='SEGMENT' then  s = '3PLUS9' 
+             END SCENARIO
+
+
+ {%- for s in p.scenario -%}
+               case when s = 'BUDGET' AND p.forecast_level  ='CORPORATE' then  s = 'BUDGET' 
+               case when s = 'BUDGET' AND p.forecast_level  ='SEGMENT'then  s = 'BUDGET'
+               case when s = '3PLUS9' AND p.forecast_level  ='CORPORATE' then  s = '3PLUS9' 
+               case when s = '3PLUS9' AND p.forecast_level  ='SEGMENT' then  s = '3PLUS9' 
+             END SCENARIO
+
+              
+-- first option :
+
+{% set all_scenario_types = ["BUDGET", "3PLUS9", "6PLUS6", "9PLUS3"] %}
+{% set fcast_level_types = ["CORPORATE", "SEGMENT"] %}
+{%- for scenarioType in all_scenario_types -%}
+    {%- for fcast_type in fcast_level_types -%}
+case when p.scenario = '{{scenarioType}}'   then
+p.scenario
+case when  p.forecast_level = '{{fcast_type}}' then 
+p.forecast_level
+{% endfor %}
+{% endfor %}
+
+
+{% set all_scenario_types = ["BUDGET", "3PLUS9", "6PLUS6", "9PLUS3"] %}
+{% set fcast_level_types = ["CORPORATE", "SEGMENT"] %}
+{% set fcast_level_types = ["CORPORATE", "SEGMENT"] %}
+
+{%- for scenarioType in all_scenario_types -%}
+    {%- for fcast_type in fcast_level_types -%}
+case when p.scenario = '{{scenarioType}}'   then
+p.scenario
+case when  p.forecast_level = '{{fcast_type}}' then 
+p.forecast_level
+{% endfor %}
+{% endfor %}
+
+
+
+ 
+
+
+
+
+
+{% set sql_statement %}
+            select distinct trim(scenario) scenario,1 X from {{ ref("stg_oracle__hyperion_financial_forecast") }}
+            where _batch_update_date >= $batch_start_time 
+            --and _batch_update_date <= $batch_end_time
+        {% endset %}
+
+{% set sql_statement1 %}
+            select distinct trim(forecast_level) forecast_level, 1 X from {{ ref("stg_oracle__hyperion_financial_forecast") }}
+            where _batch_update_date >= $batch_start_time 
+            --and _batch_update_date <= $batch_end_time
+        {% endset %}
+
+        {%- set load_scenario_types = dbt_utils.get_query_results_as_dict(sql_statement) -%}
+        {%- set load_forecast_level = dbt_utils.get_query_results_as_dict(sql_statement1) -%}
+
+ {%- set filterSql -%}
+       
+   
+            (ent_period_end_date, FORECAST_LEVEL) in (select distinct ecal.ent_period_end_date, FORECAST_LEVEL
+                                            from {{ref('stg_oracle__hyperion_financial_forecast')}} p
+                                        , {{ ref("w_day_d") }} ecal
+            where p._batch_update_date >= $batch_start_time 
+             and ecal.ent_year = p.year
+             and upper(ecal.month) = UPPER(p.month)
+{%- for scenarioType in load_scenario_types -%}
+    case when p.scenario = '{{scenarioType}}'   then
+p.scenario
+{% endfor %}
+
+{%- for fcast_type in load_forecast_level  -%}
+case when  p.forecast_level = '{{fcast_type}}' then 
+p.forecast_level
+           
+                                         
+                                        )
+        {%- endset -%}
+
+
+
+
+
+-- my first try for macro update
+
+
+        {%- set filterSql -%}
+
+            (ent_period_end_date, FORECAST_LEVEL) in (select distinct ecal.ent_period_end_date, FORECAST_LEVEL
+                                            from {{ref('stg_oracle__hyperion_financial_forecast')}} p
+                                        , {{ ref("w_day_d") }} ecal
+            where p._batch_update_date >= $batch_start_time 
+             and ecal.ent_year = p.year
+             and upper(ecal.month) = UPPER(p.month)
+             and ecal.ent_period_end_date = p.ent_period_end_date
+             )
+{%- set filter_forecast_level_Sql -%}
+
+            select distinct  FORECAST_LEVEL
+                                            from {{ref('stg_oracle__hyperion_financial_forecast')}}  p
+                                            where p._batch_update_date >= $batch_start_time 
+
+{%- endset -%}
+
+{%- set filter_scenario_Sql -%}
+              {% set all_scenario_types = ["BUDGET", "3PLUS9", "6PLUS6", "9PLUS3"] %}
+              select distinct  scenario scenario
+                                            from {{ref('stg_oracle__hyperion_financial_forecast')}}  p
+                                            where p._batch_update_date >= $batch_start_time 
+                                     
+                {%- for scenarioType in all_scenario_types -%}
+                 (
+                    case
+                        when scenario = '{{scenarioType}}'
+                        then scenario
+                    end
+                ){{ scenarioType }}
+              
+            {% endfor %}
+
+{%- endset -%}
+
+        {%- set updateSql -%}
+        update {{this}} set {{ns.updateColumnsSql}}
+        where {{filterSql}} 
+        and {{filter_scenario_Sql}}
+        and {{this}}.forecast_level = {{filter_forecast_level_Sql}}
+       {%- endset -%}
+
+        {% if ns.updateColumnsSql | trim != "" and execute %}
+            {% do run_query(updateSql) %}
+        {% endif %}
+    {% endif %}
+{% endmacro %}
+
+
+
+--- try fro bala's code
+
+Get all scenarios from Stage:
+get all scenario as scen, period_end date, forecast_level from stage
+ordered by scenario
+
+for each scenario:
+
+    ns.updateSql = ns.updateSql + '{{scenario}}'_amount = ''
+    ns.updateSql = ns.updateSql + 'case'
+    for each "scen,period_end_date as ped,forecast_level as fl" rows:
+        
+        if scen == scenario:
+           ns.updateSql = ns.updateSql + ' when period_end_date = {{ped}} and forecast_level = {{fl}} then null
+        end-if
+    end-for
+
+    ns.updateSql = ns.updateSql + ' else {{scen}}_amount end'
+
+end-for
+
+
+   {%- for loadScenario in load_scenario_types["SCEN"] | unique -%}
+   {%- set ns.updateColumnsSql = (
+                ns.updateColumnsSql
+                ~ " "
+                ~ prefix
+                ~ loadScenario
+                ~ "_units = null, "
+                ns.updateSql = ns.updateSql + 'case'
+    for each "scen,forecast_level as fl" rows:
+        
+        if scen == loadScenario:
+         set  ns.updateSql = ns.updateSql + when  date and forecast_level = {{fl}} then null
+        end-if
+    end-for
+            ) -%}
+            {% if not loop.last %}
